@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import Login from './login.jsx'
+import Users from './Settings/Users/Users.jsx'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
@@ -16,12 +17,17 @@ const menuGroups = [
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
 
   if (!loggedIn) {
-    return <Login onLogin={() => setLoggedIn(true)} />
+    return <Login onLogin={(email) => { setLoginEmail(email); setLoggedIn(true) }} />
   }
+
+  const userName = loginEmail ? loginEmail.split('@')[0] : 'Admin User'
+  const userInitials = userName.split(/[. _-]/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || 'U'
 
   function selectItem(label) {
     setActive(label)
@@ -72,9 +78,8 @@ function App() {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="avatar">AD</div>
-          <div className="user-details"><strong>Admin User</strong><span>Administrator</span></div>
-          <button className="more-button logout-button" type="button" aria-label="Sign out" title="Sign out" onClick={() => setLoggedIn(false)}>↪</button>
+          <div className="avatar">{userInitials}</div>
+          <div className="user-details"><strong>{userName}</strong><span>{loginEmail}</span></div>
         </div>
       </aside>
 
@@ -82,14 +87,21 @@ function App() {
         <header className="topbar">
           <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
           <div className="topbar-actions">
-            <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
             <div className="topbar-divider" />
-            <div className="top-avatar">AD</div>
-            <div className="top-user"><strong>Admin User</strong><span>Administrator</span></div>
-            <span className="top-chevron">⌄</span>
+            <div className="profile-menu-wrap">
+              <button className="profile-trigger" type="button" aria-expanded={profileOpen} aria-label="Account menu" onClick={() => setProfileOpen((open) => !open)}>
+                <span className="top-avatar">{userInitials}</span>
+                <span className="top-user"><strong>{userName}</strong><span>{loginEmail}</span></span>
+                <span className="top-chevron">⌄</span>
+              </button>
+              {profileOpen && <div className="profile-dropdown">
+                <div className="profile-email">Signed in as<strong>{loginEmail}</strong></div>
+                <button type="button" onClick={() => { setProfileOpen(false); setLoggedIn(false); setLoginEmail('') }}>↪ <span>Log out</span></button>
+              </div>}
+            </div>
           </div>
         </header>
-        <section className="page-content">
+        {active === 'Users' ? <Users /> : <section className="page-content">
           <div className="page-heading">
             <div><div className="eyebrow">FARM FINANCIAL MANAGEMENT</div><h1>{active}</h1><p>Welcome back. Here’s your farm management workspace.</p></div>
             <button className="date-filter" type="button"><span>▦</span> This season <span className="filter-chevron">⌄</span></button>
@@ -110,7 +122,7 @@ function App() {
             <article className="panel season-panel"><div className="panel-heading"><div><h2>Season overview</h2><p>Current crop season progress</p></div><button className="panel-link" type="button" onClick={() => { setActive('Crop Seasons'); setExpanded((current) => ({ ...current, Agriculture: true })) }}>View all <span>→</span></button></div><div className="season-name"><span className="season-icon">♧</span><div><strong>Kharif 2025</strong><span>Jun 2025 – Oct 2025</span></div><span className="status-pill">In progress</span></div><div className="progress-caption"><span>Season progress</span><strong>68%</strong></div><div className="progress-track"><span /></div><div className="season-stats"><div><span>Farms</span><strong>8</strong></div><div><span>Activities</span><strong>24</strong></div><div><span>Harvests</span><strong>3 <small>of 8</small></strong></div></div></article>
           </div>
           <footer className="page-footer">© 2025 Agriman <span>Built for the people who grow our future.</span></footer>
-        </section>
+        </section>}
       </main>
     </div>
   )
