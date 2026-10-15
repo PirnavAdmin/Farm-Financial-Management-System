@@ -21,7 +21,7 @@ function App() {
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('agriman_user_email') || 'meghanareddybutreddy@gmail.com')
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const userName = userEmail.split('@')[0]
   const userInitials = userName.split(/[._-]/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || 'AD'
 
@@ -35,13 +35,13 @@ function App() {
 
   function handleLogout() {
     setLoggedIn(false)
-    setProfileOpen(false)
+    setShowUserMenu(false)
     localStorage.removeItem('agriman_logged_in')
   }
 
   function selectItem(label) {
     setActive(label)
-    setProfileOpen(false)
+    setShowUserMenu(false)
   }
 
   if (!loggedIn) return <Login onLogin={handleLogin} />
@@ -75,11 +75,84 @@ function App() {
         </div>
       </aside>
       <main className="main-content">
-        <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
-          <div className="topbar-actions"><button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button><div className="topbar-divider" />
-            <div className="profile-menu-wrap"><button className="profile-trigger" type="button" aria-expanded={profileOpen} aria-label="Account menu" onClick={() => setProfileOpen((open) => !open)}>
-              <span className="top-avatar">{userInitials}</span><span className="top-user"><strong>{userName}</strong><span>{userEmail}</span></span><span className="top-chevron">⌄</span>
-            </button>{profileOpen && <div className="profile-dropdown"><div className="profile-email">Signed in as<strong>{userEmail}</strong></div><button type="button" onClick={handleLogout}>↪ <span>Log out</span></button></div>}</div>
+        <header className="topbar">
+          <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
+          <div className="topbar-actions">
+            <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
+            <div className="topbar-divider" />
+            <div
+              className="topbar-user-area"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setShowUserMenu((prev) => !prev)}
+            >
+              <div className="top-avatar">{userInitials}</div>
+              <div className="top-user" style={{ marginLeft: '8px' }}>
+                <strong title={userEmail}>{userEmail}</strong>
+                <span>Administrator</span>
+              </div>
+              <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
+
+              {showUserMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '42px',
+                    right: 0,
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                    padding: '8px 0',
+                    minWidth: '180px',
+                    zIndex: 100
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1f2937' }}>{userEmail}</div>
+                    <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>● Active Session</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '8px 16px',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span>↪</span> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="top-logout-link"
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}
+              title="Sign out"
+            >
+              Sign out ↪
+            </button>
           </div>
         </header>
         {active === 'Users' ? <Users /> : <section className="page-content">
