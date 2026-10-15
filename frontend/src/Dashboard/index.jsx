@@ -1,2 +1,1 @@
-export { default } from '../pages/ComingSoon'
-
+export { default } from './Dashboard';
