@@ -99,12 +99,7 @@ export default function ModuleView({ moduleName, onNavigate }) {
     type: 'Commercial',
     category: 'Fibre Crop',
     defaultUnit: 'Quintal',
-    varieties: 'Hybrid Standard',
-    farmName: '',
-    area: '',
-    sowingDate: '',
-    expectedHarvestDate: '',
-    expectedRevenue: ''
+    varieties: 'Hybrid Standard'
   });
 
   const formatCurrency = (val) => '₹ ' + (Number(val) || 0).toLocaleString('en-IN');
@@ -158,12 +153,7 @@ export default function ModuleView({ moduleName, onNavigate }) {
       type: 'Commercial',
       category: 'Fibre Crop',
       defaultUnit: 'Quintal',
-      varieties: 'Hybrid Standard',
-      farmName: '',
-      area: '',
-      sowingDate: '',
-      expectedHarvestDate: '',
-      expectedRevenue: ''
+      varieties: 'Hybrid Standard'
     });
   };
 
@@ -534,7 +524,7 @@ export default function ModuleView({ moduleName, onNavigate }) {
                 />
               </div>
               <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-                + Add Crop
+                + Add Crop Master
               </button>
             </div>
 
@@ -576,153 +566,66 @@ export default function ModuleView({ moduleName, onNavigate }) {
                 <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                   <div className="modal-header">
                     <div>
-                      <h3 className="modal-title">Add Crop</h3>
-                      <p className="modal-subtitle">Define crop details and optional cultivation schedule</p>
+                      <h3 className="modal-title">Add Crop Master</h3>
+                      <p className="modal-subtitle">Define crop type, category, and standard units</p>
                     </div>
                     <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>✕</button>
                   </div>
                   <form onSubmit={handleCropSubmit} className="modal-form">
-                    <div className="form-grid-2">
-                      <div className="form-group">
-                        <label>Crop Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={cropForm.name}
-                          onChange={(e) => setCropForm({ ...cropForm, name: e.target.value })}
-                          placeholder="e.g. Mustard, Turmeric, Wheat"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Crop Type</label>
-                        <select
-                          value={cropForm.type}
-                          onChange={(e) => setCropForm({ ...cropForm, type: e.target.value })}
-                        >
-                          <option value="Commercial">Commercial</option>
-                          <option value="Food Grain">Food Grain</option>
-                          <option value="Cash Crop">Cash Crop</option>
-                          <option value="Oilseed">Oilseed</option>
-                          <option value="Horticulture">Horticulture</option>
-                        </select>
-                      </div>
+                    <div className="form-group">
+                      <label>Crop Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={cropForm.name}
+                        onChange={(e) => setCropForm({ ...cropForm, name: e.target.value })}
+                        placeholder="e.g. Mustard, Turmeric, Wheat"
+                      />
                     </div>
-
-                    <div className="form-grid-2">
-                      <div className="form-group">
-                        <label>Category</label>
-                        <select
-                          value={cropForm.category}
-                          onChange={(e) => setCropForm({ ...cropForm, category: e.target.value })}
-                        >
-                          <option value="Fibre Crop">Fibre Crop (Cotton, Jute)</option>
-                          <option value="Cereal">Cereal / Food Grain (Paddy, Wheat, Maize, Millets)</option>
-                          <option value="Pulses / Legume">Pulses / Legume (Red Gram, Bengal Gram, Black Gram)</option>
-                          <option value="Oilseed">Oilseed (Groundnut, Mustard, Soybean, Sunflower)</option>
-                          <option value="Spices">Spices & Condiments (Chilli, Turmeric, Coriander, Ginger)</option>
-                          <option value="Vegetable">Horticulture & Vegetable (Tomato, Onion, Potato, Brinjal)</option>
-                          <option value="Sugar Crop">Sugar Crop (Sugarcane, Sugarbeet)</option>
-                          <option value="Commercial / Cash Crop">Commercial / Cash Crop (Tobacco, Coffee, Tea)</option>
-                          <option value="Fruits & Plantation">Fruits & Plantation (Mango, Banana, Guava, Citrus)</option>
-                          <option value="Fodder Crop">Fodder & Forage Crop (Lucerne, Berseem, Napier)</option>
-                          <option value="Medicinal & Aromatic">Medicinal & Aromatic Plants (Aloe Vera, Ashwagandha)</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Default Unit</label>
-                        <select
-                          value={cropForm.defaultUnit}
-                          onChange={(e) => setCropForm({ ...cropForm, defaultUnit: e.target.value })}
-                        >
-                          <option value="Quintal">Quintal (q / 100 kg)</option>
-                          <option value="Bags (75kg)">Bags (75kg - Paddy)</option>
-                          <option value="Bags (50kg)">Bags (50kg - Grain/Wheat)</option>
-                          <option value="Bags (40kg)">Bags (40kg - Groundnut/Seeds)</option>
-                          <option value="Tonnes">Tonnes (MT / 1000 kg)</option>
-                          <option value="Boxes (25kg)">Boxes (25kg - Vegetables/Fruits)</option>
-                          <option value="Boxes (10kg)">Boxes (10kg)</option>
-                          <option value="Crates (20kg)">Crates (20kg - Tomato/Horticulture)</option>
-                          <option value="Kilograms (kg)">Kilograms (kg)</option>
-                          <option value="Bundles">Bundles (Sugarcane/Fodder)</option>
-                          <option value="Litres">Litres</option>
-                        </select>
-                      </div>
+                    <div className="form-group">
+                      <label>Crop Type</label>
+                      <select
+                        value={cropForm.type}
+                        onChange={(e) => setCropForm({ ...cropForm, type: e.target.value })}
+                      >
+                        <option value="Commercial">Commercial</option>
+                        <option value="Food Grain">Food Grain</option>
+                        <option value="Cash Crop">Cash Crop</option>
+                        <option value="Oilseed">Oilseed</option>
+                        <option value="Horticulture">Horticulture</option>
+                      </select>
                     </div>
-
+                    <div className="form-group">
+                      <label>Category</label>
+                      <input
+                        type="text"
+                        value={cropForm.category}
+                        onChange={(e) => setCropForm({ ...cropForm, category: e.target.value })}
+                        placeholder="e.g. Fibre Crop, Cereal, Spices, Legume, Vegetable, Sugar Crop"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Default Unit</label>
+                      <input
+                        type="text"
+                        value={cropForm.defaultUnit}
+                        onChange={(e) => setCropForm({ ...cropForm, defaultUnit: e.target.value })}
+                        placeholder="e.g. Quintal, Bags (75kg), Bags (40kg), Boxes (25kg), Tonnes"
+                      />
+                    </div>
                     <div className="form-group">
                       <label>Varieties (Comma separated)</label>
                       <input
                         type="text"
                         value={cropForm.varieties}
                         onChange={(e) => setCropForm({ ...cropForm, varieties: e.target.value })}
-                        placeholder="e.g. Var-1, Var-2"
+                        placeholder="e.g. Hybrid Standard"
                       />
-                    </div>
-
-                    <div style={{ marginTop: 14, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #e5e7eb', fontSize: 13, fontWeight: 700, color: '#166534' }}>
-                      Cultivation Schedule (Optional — Leave blank if not yet planted)
-                    </div>
-
-                    <div className="form-grid-2">
-                      <div className="form-group">
-                        <label>Farm Parcel (Optional)</label>
-                        <select
-                          value={cropForm.farmName}
-                          onChange={(e) => setCropForm({ ...cropForm, farmName: e.target.value })}
-                        >
-                          <option value="">-- Not Assigned / Unallocated --</option>
-                          {farms.map((f) => (
-                            <option key={f.id} value={f.farmName}>
-                              {f.farmName} ({f.landArea} Ac)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Cultivated Area (Acres, Optional)</label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          value={cropForm.area}
-                          onChange={(e) => setCropForm({ ...cropForm, area: e.target.value })}
-                          placeholder="e.g. 5"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-grid-3">
-                      <div className="form-group">
-                        <label>Sowing Date (Optional)</label>
-                        <input
-                          type="date"
-                          value={cropForm.sowingDate}
-                          onChange={(e) => setCropForm({ ...cropForm, sowingDate: e.target.value })}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Expected Harvest Date (Optional)</label>
-                        <input
-                          type="date"
-                          value={cropForm.expectedHarvestDate}
-                          onChange={(e) => setCropForm({ ...cropForm, expectedHarvestDate: e.target.value })}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Expected Revenue (₹, Optional)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={cropForm.expectedRevenue}
-                          onChange={(e) => setCropForm({ ...cropForm, expectedRevenue: e.target.value })}
-                          placeholder="e.g. 150000"
-                        />
-                      </div>
                     </div>
 
                     <div className="modal-footer">
                       <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-                      <button type="submit" className="btn-primary">Save</button>
+                      <button type="submit" className="btn-primary">Save Crop Master</button>
                     </div>
                   </form>
                 </div>
