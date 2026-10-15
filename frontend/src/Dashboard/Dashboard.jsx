@@ -1,5 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { useFarm } from '../context/FarmContext';
+import React, { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -12,174 +11,161 @@ import {
   Area,
   Legend
 } from 'recharts';
-import QuickPayModal from '../components/QuickPayModal';
-import ReorderModal from '../components/ReorderModal';
+import {
+  dashboardWidgets,
+  cropProfitChartData,
+  monthlyCashflowData,
+  activeCropsTable,
+  upcomingPaymentsList,
+  recentTransactionsList,
+  lowStockItemsList
+} from '../data/mockData';
+import './Dashboard.css';
 
 export default function Dashboard({ onNavigate }) {
-  const {
-    crops,
-    metrics,
-    cropProfitSummary,
-    monthlyCashflow,
-    cropSeasons,
-    upcomingPayments,
-    recentTransactions,
-    lowStockItems
-  } = useFarm();
-
-  const [activePaymentForPay, setActivePaymentForPay] = useState(null);
-  const [activeItemForReorder, setActiveItemForReorder] = useState(null);
+  const [showAllWidgets, setShowAllWidgets] = useState(true);
   const [txFilter, setTxFilter] = useState('All');
 
-  // Filter transactions
-  const filteredTransactions = recentTransactions.filter((tx) => {
+  const filteredTransactions = recentTransactionsList.filter((tx) => {
     if (txFilter === 'All') return true;
     return tx.type.toLowerCase() === txFilter.toLowerCase();
   });
 
-  // Dynamically compute Crop-wise Profit data for ALL crops (ensuring all 8 crops appear on the chart)
-  const dynamicCropProfitData = useMemo(() => {
-    return crops.map((c) => {
-      // 1. Check if exact financial entry exists in cropProfitSummary
-      const foundInSummary = cropProfitSummary.find(
-        (cps) => cps.crop?.toLowerCase() === c.name?.toLowerCase()
-      );
-      if (foundInSummary) return foundInSummary;
-
-      // 2. Check if a season entry exists with revenue
-      const foundInSeason = cropSeasons.find(
-        (cs) => (cs.cropId === c.id || cs.cropName?.toLowerCase() === c.name?.toLowerCase()) && cs.expectedRevenue
-      );
-      if (foundInSeason && foundInSeason.expectedRevenue) {
-        const inc = Number(foundInSeason.expectedRevenue) || 0;
-        const exp = Number(foundInSeason.totalExpenses) || Math.round(inc * 0.35);
-        return {
-          crop: c.name,
-          acres: Number(foundInSeason.area) || 5,
-          income: inc,
-          expense: exp,
-          netProfit: inc - exp
-        };
-      }
-
-      // 3. Baseline projection for registered crops
-      let inc = 140000;
-      let exp = 55000;
-      if (c.name?.toLowerCase() === 'sugarcane') {
-        inc = 310000;
-        exp = 110000;
-      }
-      return {
-        crop: c.name,
-        acres: 5,
-        income: inc,
-        expense: exp,
-        netProfit: inc - exp
-      };
-    });
-  }, [crops, cropProfitSummary, cropSeasons]);
-
-  // Ensure every crop in the Crops module has an entry and is visible on Dashboard Active Crops
-  const activeCropsList = crops.map((c) => {
-    const existing = cropSeasons.find(
-      (cs) => cs.cropId === c.id || cs.cropName?.toLowerCase() === c.name?.toLowerCase()
-    );
-    const varietyName = Array.isArray(c.varieties) ? c.varieties[0] : (c.varieties || 'Standard');
-
-    if (existing) {
-      // Clean up previous dummy dates if they were auto-generated
-      if (existing.sowingDate === '2026-10-15' && existing.expectedHarvestDate === '2027-02-02') {
-        return {
-          ...existing,
-          variety: varietyName,
-          farmName: 'Unassigned',
-          area: null,
-          sowingDate: null,
-          expectedHarvestDate: null,
-          expectedRevenue: null,
-          status: 'Registered'
-        };
-      }
-      return existing;
-    }
-
-    return {
-      id: c.id,
-      cropName: c.name,
-      variety: varietyName,
-      farmName: 'Unassigned',
-      area: null,
-      areaUnit: 'Acres',
-      sowingDate: null,
-      expectedHarvestDate: null,
-      expectedRevenue: null,
-      status: 'Registered'
-    };
-  });
-
-  const formatCurrency = (val) => {
-    return '₹ ' + (Number(val) || 0).toLocaleString('en-IN');
-  };
-
   return (
-    <div className="dashboard-wrapper">
-      {/* Dashboard Title */}
-      <div className="dashboard-header-simple">
-        <h1 className="dashboard-main-heading">Dashboard</h1>
+    <div className="dashboard-page">
+      {/* 1. Header */}
+      <div className="dashboard-title-row">
+        <div>
+          <h1 className="dashboard-main-title">Dashboard</h1>
+          <p className="dashboard-sub">
+            Real-time financial overview and farm operational intelligence
+          </p>
+        </div>
+        <div className="dashboard-header-badge">
+          <span className="badge-dot" /> Kharif & Rabi 2025–26
+        </div>
       </div>
 
-      {/* Top 3 Summary Cards */}
-      <section className="top-summary-grid">
-        <div className="summary-card card-income" onClick={() => onNavigate && onNavigate('Income')}>
-          <div className="summary-card-label">Total Income</div>
-          <div className="summary-card-value">{formatCurrency(metrics.totalIncome)}</div>
+      {/* 2. Top 3 Primary Cards (Wireframe Section 3) */}
+      <section className="top-financial-cards">
+        <div
+          className="fin-card card-income"
+          onClick={() => onNavigate && onNavigate('Income')}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="fin-card-header">
+            <span className="fin-label">Total Income</span>
+            <span className="fin-icon green">↗</span>
+          </div>
+          <div className="fin-amount">₹ 12,50,000</div>
+          <div className="fin-sub">Realized sales & agri subsidies</div>
         </div>
 
-        <div className="summary-card card-expense" onClick={() => onNavigate && onNavigate('Expenses')}>
-          <div className="summary-card-label">Total Expense</div>
-          <div className="summary-card-value">{formatCurrency(metrics.totalExpense)}</div>
+        <div
+          className="fin-card card-expense"
+          onClick={() => onNavigate && onNavigate('Expenses')}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="fin-card-header">
+            <span className="fin-label">Total Expense</span>
+            <span className="fin-icon amber">↘</span>
+          </div>
+          <div className="fin-amount">₹ 7,80,000</div>
+          <div className="fin-sub">Inputs, labour & machinery costs</div>
         </div>
 
-        <div className="summary-card card-profit" onClick={() => onNavigate && onNavigate('Reports')}>
-          <div className="summary-card-label">Net Profit</div>
-          <div className="summary-card-value highlight-profit">{formatCurrency(metrics.netProfit)}</div>
+        <div
+          className="fin-card card-profit"
+          onClick={() => onNavigate && onNavigate('Reports')}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="fin-card-header">
+            <span className="fin-label">Net Profit</span>
+            <span className="fin-icon emerald">★</span>
+          </div>
+          <div className="fin-amount profit-text">₹ 4,70,000</div>
+          <div className="fin-sub">37.6% operating margin</div>
         </div>
       </section>
 
-      {/* Analytical Charts */}
-      <div className="dashboard-charts-grid">
+      {/* 3. Dashboard Widgets Grid (All 12 Widgets from Requirements List) */}
+      <section className="widgets-section">
+        <div className="section-header-row">
+          <div>
+            <h3 className="section-heading">Dashboard Widgets</h3>
+            <span className="section-sub-tag">Comprehensive Operational & Financial Metrics</span>
+          </div>
+          <button
+            type="button"
+            className="toggle-widgets-btn"
+            onClick={() => setShowAllWidgets((prev) => !prev)}
+          >
+            {showAllWidgets ? 'Collapse Widgets ▲' : 'View All 12 Widgets ▼'}
+          </button>
+        </div>
+
+        {showAllWidgets && (
+          <div className="widgets-grid-12">
+            {dashboardWidgets.map((w) => (
+              <div key={w.id} className="kpi-widget-card" style={{ borderLeftColor: w.color }}>
+                <div className="kpi-widget-top">
+                  <span className="kpi-widget-label">{w.label}</span>
+                  <span className="kpi-widget-icon" style={{ backgroundColor: w.bgColor, color: w.color }}>
+                    {w.icon}
+                  </span>
+                </div>
+                <div className="kpi-widget-val" style={{ color: w.color }}>
+                  {w.value}
+                </div>
+                <div className="kpi-widget-sub">{w.subtext}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 4. Analytical Charts Grid (Wireframe Section 3) */}
+      <section className="charts-grid-two">
         {/* Crop-wise Profit [Chart] */}
-        <div className="chart-panel">
-          <div className="chart-panel-header">
+        <div className="chart-card">
+          <div className="chart-card-header">
             <div>
               <h3 className="chart-title">Crop-wise Profit</h3>
-              <span className="chart-sub-tag">[Chart]</span>
+              <span className="chart-badge">[Chart]</span>
+            </div>
+            <div className="chart-legend-row">
+              <span className="legend-chip green"><i /> Income</span>
+              <span className="legend-chip amber"><i /> Expense</span>
+              <span className="legend-chip emerald"><i /> Profit</span>
             </div>
           </div>
 
-          <div className="chart-container" style={{ width: '100%', height: 320 }}>
+          <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={dynamicCropProfitData}
+                data={cropProfitChartData}
                 margin={{ top: 20, right: 20, left: 10, bottom: 25 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8ece8" vertical={false} />
                 <XAxis
                   dataKey="crop"
-                  tick={{ fill: '#556558', fontSize: 12, fontWeight: 500 }}
+                  tick={{ fill: '#374151', fontSize: 12, fontWeight: 600 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
-                  tick={{ fill: '#738377', fontSize: 11 }}
+                  tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
                 />
                 <Tooltip
                   formatter={(val, name) => [
                     `₹ ${Number(val).toLocaleString('en-IN')}`,
-                    name === 'income' ? 'Gross Revenue' : name === 'expense' ? 'Total Expenses' : 'Net Profit'
+                    name === 'income' ? 'Income' : name === 'expense' ? 'Expense' : 'Net Profit'
                   ]}
                   contentStyle={{
                     backgroundColor: '#ffffff',
@@ -188,45 +174,39 @@ export default function Dashboard({ onNavigate }) {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
                   }}
                 />
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  wrapperStyle={{ paddingBottom: 10, fontSize: 12 }}
-                  formatter={(value) => (value === 'income' ? 'Income' : value === 'expense' ? 'Expenses' : 'Net Profit')}
-                />
-                <Bar dataKey="income" fill="#2d6a4f" radius={[4, 4, 0, 0]} name="income" />
-                <Bar dataKey="expense" fill="#d97706" radius={[4, 4, 0, 0]} name="expense" />
-                <Bar dataKey="netProfit" fill="#059669" radius={[4, 4, 0, 0]} name="netProfit" />
+                <Bar dataKey="income" name="income" fill="#2d6a4f" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="expense" name="expense" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="netProfit" name="netProfit" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Income vs Expense [Monthly Chart] */}
-        <div className="chart-panel">
-          <div className="chart-panel-header">
+        <div className="chart-card">
+          <div className="chart-card-header">
             <div>
               <h3 className="chart-title">Income vs Expense</h3>
-              <span className="chart-sub-tag">[Monthly Chart]</span>
+              <span className="chart-badge">[Monthly Chart]</span>
             </div>
-            <div className="chart-legend-pill">
-              <span className="dot green" /> Income
-              <span className="dot amber" /> Expense
+            <div className="chart-legend-row">
+              <span className="legend-chip green"><i /> Monthly Inflow</span>
+              <span className="legend-chip amber"><i /> Monthly Outflow</span>
             </div>
           </div>
 
-          <div className="chart-container" style={{ width: '100%', height: 320 }}>
+          <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={monthlyCashflow}
+                data={monthlyCashflowData}
                 margin={{ top: 20, right: 20, left: 10, bottom: 25 }}
               >
                 <defs>
-                  <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#2d6a4f" stopOpacity={0.4} />
                     <stop offset="95%" stopColor="#2d6a4f" stopOpacity={0.0} />
                   </linearGradient>
-                  <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#d97706" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#d97706" stopOpacity={0.0} />
                   </linearGradient>
@@ -234,20 +214,20 @@ export default function Dashboard({ onNavigate }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8ece8" vertical={false} />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: '#556558', fontSize: 12, fontWeight: 500 }}
+                  tick={{ fill: '#374151', fontSize: 12, fontWeight: 600 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
-                  tick={{ fill: '#738377', fontSize: 11 }}
+                  tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
                 />
                 <Tooltip
                   formatter={(val, name) => [
                     `₹ ${Number(val).toLocaleString('en-IN')}`,
-                    name === 'income' ? 'Monthly Income' : 'Monthly Expense'
+                    name === 'income' ? 'Income' : 'Expense'
                   ]}
                   contentStyle={{
                     backgroundColor: '#ffffff',
@@ -256,19 +236,13 @@ export default function Dashboard({ onNavigate }) {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
                   }}
                 />
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  wrapperStyle={{ paddingBottom: 10, fontSize: 12 }}
-                  formatter={(value) => (value === 'income' ? 'Income' : 'Expense')}
-                />
                 <Area
                   type="monotone"
                   dataKey="income"
                   stroke="#2d6a4f"
                   strokeWidth={2.5}
                   fillOpacity={1}
-                  fill="url(#incomeGrad)"
+                  fill="url(#incGrad)"
                   name="income"
                 />
                 <Area
@@ -277,32 +251,35 @@ export default function Dashboard({ onNavigate }) {
                   stroke="#d97706"
                   strokeWidth={2.5}
                   fillOpacity={1}
-                  fill="url(#expenseGrad)"
+                  fill="url(#expGrad)"
                   name="expense"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 4 Essential Functional Sections */}
-      <div className="dashboard-quad-grid">
+      {/* 5. 4 Core Sections (Wireframe Section 3) */}
+      <section className="quad-panels-grid">
         {/* 1. Active Crops */}
-        <div className="quad-card">
-          <div className="quad-card-header">
-            <h3 className="quad-title">Active Crops</h3>
+        <div className="panel-box">
+          <div className="panel-box-header">
+            <div>
+              <h3 className="panel-title">Active Crops</h3>
+              <span className="panel-sub">Current standing crop cycles</span>
+            </div>
             <button
               type="button"
-              className="quad-action-link"
+              className="panel-link-btn"
               onClick={() => onNavigate && onNavigate('Crops')}
             >
-              View All ({activeCropsList.length}) →
+              View Crops ({activeCropsTable.length}) →
             </button>
           </div>
 
-          <div className="crops-table-wrapper">
-            <table className="mini-data-table">
+          <div className="panel-table-container">
+            <table className="clean-table">
               <thead>
                 <tr>
                   <th>Crop & Variety</th>
@@ -315,27 +292,25 @@ export default function Dashboard({ onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {activeCropsList.map((cs) => (
-                  <tr key={cs.id}>
+                {activeCropsTable.map((c) => (
+                  <tr key={c.id}>
                     <td>
-                      <div className="crop-cell-primary">
-                        <span className="crop-seed-icon">♧</span>
+                      <div className="crop-td-name">
+                        <span className="crop-seed-ico">🌱</span>
                         <div>
-                          <strong>{cs.cropName}</strong>
-                          <small>{cs.variety}</small>
+                          <strong>{c.crop}</strong>
+                          <small>{c.variety}</small>
                         </div>
                       </div>
                     </td>
-                    <td>{cs.farmName && cs.farmName !== 'Unassigned' ? cs.farmName : '—'}</td>
-                    <td>{cs.area ? <strong>{cs.area} {cs.areaUnit || 'Acres'}</strong> : '—'}</td>
-                    <td>{cs.sowingDate || '—'}</td>
-                    <td>{cs.expectedHarvestDate || '—'}</td>
-                    <td className="text-emerald-700 font-semibold">
-                      {cs.expectedRevenue ? formatCurrency(cs.expectedRevenue) : '—'}
-                    </td>
+                    <td>{c.farm}</td>
+                    <td><strong>{c.area}</strong></td>
+                    <td>{c.sowing}</td>
+                    <td>{c.harvest}</td>
+                    <td className="amount-col">{c.expRevenue}</td>
                     <td>
-                      <span className={`status-tag ${cs.status?.includes('Completed') ? 'status-done' : cs.status === 'Registered' ? 'status-neutral' : 'status-live'}`}>
-                        {cs.status?.split('(')[0] || 'Registered'}
+                      <span className={`status-badge ${c.status === 'Harvested' ? 'done' : c.status === 'Registered' ? 'neutral' : 'live'}`}>
+                        {c.status}
                       </span>
                     </td>
                   </tr>
@@ -346,49 +321,36 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* 2. Upcoming Payments */}
-        <div className="quad-card">
-          <div className="quad-card-header">
-            <h3 className="quad-title">Upcoming Payments</h3>
+        <div className="panel-box">
+          <div className="panel-box-header">
+            <div>
+              <h3 className="panel-title">Upcoming Payments</h3>
+              <span className="panel-sub">Loan EMIs, input dealer & labour dues</span>
+            </div>
             <button
               type="button"
-              className="quad-action-link"
-              onClick={() => onNavigate && onNavigate('Loans & Payments')}
+              className="panel-link-btn"
+              onClick={() => onNavigate && onNavigate('Payments')}
             >
               Payments Ledger →
             </button>
           </div>
 
-          <div className="payments-list">
-            {upcomingPayments.map((p) => (
-              <div key={p.id} className={`payment-row-card ${p.status === 'Completed' ? 'is-paid' : ''}`}>
-                <div className="payment-left">
-                  <div className="payment-due-date-badge">
-                    <span className="pay-day">{p.dueDate.split('-')[2]}</span>
-                    <span className="pay-month">
-                      {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p.dueDate.split('-')[1])-1]}
-                    </span>
-                  </div>
-                  <div className="payment-party-info">
-                    <strong>{p.party}</strong>
-                    <div className="payment-type-note">
-                      <span>{p.type}</span> • <small>{p.mode}</small>
-                    </div>
-                  </div>
+          <div className="payments-cards-list">
+            {upcomingPaymentsList.map((p) => (
+              <div key={p.id} className="payment-item-card">
+                <div className="payment-date-badge">
+                  <span className="p-day">{p.day}</span>
+                  <span className="p-month">{p.month}</span>
                 </div>
-
+                <div className="payment-body">
+                  <strong>{p.payee}</strong>
+                  <p>{p.purpose}</p>
+                  <span className="payment-tag">{p.category}</span>
+                </div>
                 <div className="payment-right">
-                  <div className="payment-amount-val">{formatCurrency(p.amount)}</div>
-                  {p.status === 'Completed' ? (
-                    <span className="status-tag status-done">✓ Paid</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn-pay-now"
-                      onClick={() => setActivePaymentForPay(p)}
-                    >
-                      Pay Now
-                    </button>
-                  )}
+                  <span className="p-amount">{p.amount}</span>
+                  <span className="p-status-pill">{p.status}</span>
                 </div>
               </div>
             ))}
@@ -396,256 +358,116 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* 3. Recent Transactions */}
-        <div className="quad-card">
-          <div className="quad-card-header">
-            <h3 className="quad-title">Recent Transactions</h3>
+        <div className="panel-box">
+          <div className="panel-box-header">
+            <div>
+              <h3 className="panel-title">Recent Transactions</h3>
+              <span className="panel-sub">Latest cash and bank log</span>
+            </div>
             <div className="tx-filter-pills">
-              <button
-                type="button"
-                className={`tx-pill ${txFilter === 'All' ? 'active' : ''}`}
-                onClick={() => setTxFilter('All')}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className={`tx-pill ${txFilter === 'Income' ? 'active' : ''}`}
-                onClick={() => setTxFilter('Income')}
-              >
-                Income
-              </button>
-              <button
-                type="button"
-                className={`tx-pill ${txFilter === 'Expense' ? 'active' : ''}`}
-                onClick={() => setTxFilter('Expense')}
-              >
-                Expense
-              </button>
+              {['All', 'Income', 'Expense'].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`tx-filter-btn ${txFilter === f ? 'active' : ''}`}
+                  onClick={() => setTxFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="transactions-list">
-            {filteredTransactions.slice(0, 5).map((tx) => (
-              <div key={tx.id} className="tx-row">
-                <div className={`tx-icon ${tx.type === 'Income' ? 'tx-inc' : 'tx-exp'}`}>
-                  {tx.type === 'Income' ? '↓' : '↑'}
-                </div>
-                <div className="tx-details">
-                  <div className="tx-title-line">
-                    <strong>{tx.category}</strong>
-                    <span className="tx-ref">{tx.refNo}</span>
-                  </div>
-                  <div className="tx-meta-line">
-                    <span>{tx.party}</span> • <span>{tx.farm}</span> • <time>{tx.date}</time>
-                  </div>
-                </div>
-                <div className="tx-amount-col">
-                  <span className={`tx-amt ${tx.type === 'Income' ? 'text-green' : 'text-red'}`}>
-                    {tx.type === 'Income' ? '+' : '-'} {formatCurrency(tx.amount)}
-                  </span>
-                  <small className="tx-mode">{tx.mode}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="quad-footer">
-            <button
-              type="button"
-              className="view-all-link-btn"
-              onClick={() => onNavigate && onNavigate('Transactions')}
-            >
-              View Full Transaction Journal →
-            </button>
+          <div className="panel-table-container">
+            <table className="clean-table">
+              <thead>
+                <tr>
+                  <th>Voucher</th>
+                  <th>Date</th>
+                  <th>Description / Party</th>
+                  <th>Type</th>
+                  <th>Payment Mode</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((tx) => (
+                  <tr key={tx.id}>
+                    <td><span className="voucher-tag">{tx.voucher}</span></td>
+                    <td>{tx.date}</td>
+                    <td>
+                      <div>
+                        <strong>{tx.title}</strong>
+                        <small style={{ display: 'block', color: '#6b7280' }}>{tx.party}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`tx-type-badge ${tx.type === 'Income' ? 'in' : 'out'}`}>
+                        {tx.type === 'Income' ? '↗ Income' : '↘ Expense'}
+                      </span>
+                    </td>
+                    <td>{tx.mode}</td>
+                    <td className={`amount-col ${tx.type === 'Income' ? 'text-green' : 'text-amber'}`}>
+                      {tx.type === 'Income' ? `+ ${tx.amount}` : `- ${tx.amount}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* 4. Low Stock Items */}
-        <div className="quad-card">
-          <div className="quad-card-header">
-            <h3 className="quad-title">Low Stock Items</h3>
+        <div className="panel-box">
+          <div className="panel-box-header">
+            <div>
+              <h3 className="panel-title">Low Stock Items</h3>
+              <span className="panel-sub">Critical inventory replenishment alerts</span>
+            </div>
             <button
               type="button"
-              className="quad-action-link"
+              className="panel-link-btn"
               onClick={() => onNavigate && onNavigate('Inventory')}
             >
-              Warehouse Inventory →
+              Inventory Ledger →
             </button>
           </div>
 
-          <div className="low-stock-list">
-            {lowStockItems.map((item) => {
-              const percent = Math.min(100, Math.round((item.currentStock / item.reorderLevel) * 100));
-              const isReplenished = item.status.includes('Replenished');
-              return (
-                <div key={item.id} className="stock-alert-item">
-                  <div className="stock-alert-top">
-                    <div className="stock-name-box">
-                      <strong>{item.productName}</strong>
-                      <span className="stock-category-badge">{item.category}</span>
-                    </div>
-                    <span className={`stock-status-badge ${isReplenished ? 'status-done' : item.currentStock <= 5 ? 'badge-critical' : 'badge-warning'}`}>
-                      {item.status}
-                    </span>
-                  </div>
-
-                  <div className="stock-meter-area">
-                    <div className="stock-numbers">
-                      <span>Available: <strong>{item.currentStock} {item.unit}</strong></span>
-                      <span>Min Required: <strong>{item.reorderLevel} {item.unit}</strong></span>
-                    </div>
-                    <div className="stock-progress-bar">
-                      <div
-                        className={`stock-progress-fill ${isReplenished ? 'bg-emerald-500' : percent <= 30 ? 'bg-red-500' : 'bg-amber-500'}`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="stock-alert-bottom">
-                    <span className="stock-supplier-tag">Supplier: {item.supplier}</span>
-                    <button
-                      type="button"
-                      className="btn-reorder-stock"
-                      onClick={() => setActiveItemForReorder(item)}
-                    >
-                      + Reorder Stock
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="panel-table-container">
+            <table className="clean-table">
+              <thead>
+                <tr>
+                  <th>Item Description</th>
+                  <th>Category</th>
+                  <th>Current Stock</th>
+                  <th>Min. Threshold</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lowStockItemsList.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <div className="stock-td-item">
+                        <span className="stock-ico">📦</span>
+                        <strong>{s.item}</strong>
+                      </div>
+                    </td>
+                    <td>{s.category}</td>
+                    <td><strong className="text-red">{s.currentQty}</strong></td>
+                    <td>{s.minStock}</td>
+                    <td>
+                      <span className={`stock-status-pill ${s.level}`}>
+                        {s.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-
-      {/* Dashboard widgets (12 official widgets) */}
-      <div className="widgets-section-header">
-        <h2 className="widgets-section-title">Dashboard widgets</h2>
-      </div>
-
-      <div className="twelve-widgets-grid">
-        {/* 1. Total Income */}
-        <div className="widget-card widget-income" onClick={() => onNavigate && onNavigate('Income')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box green">₹</span>
-          </div>
-          <div className="widget-name">Total Income</div>
-          <div className="widget-amount">{formatCurrency(metrics.totalIncome)}</div>
-        </div>
-
-        {/* 2. Total Expenditure */}
-        <div className="widget-card widget-expense" onClick={() => onNavigate && onNavigate('Expenses')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box amber">⌁</span>
-          </div>
-          <div className="widget-name">Total Expenditure</div>
-          <div className="widget-amount">{formatCurrency(metrics.totalExpense)}</div>
-        </div>
-
-        {/* 3. Net Profit */}
-        <div className="widget-card widget-profit" onClick={() => onNavigate && onNavigate('Reports')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box teal">▲</span>
-          </div>
-          <div className="widget-name">Net Profit</div>
-          <div className="widget-amount text-teal-800">{formatCurrency(metrics.netProfit)}</div>
-        </div>
-
-        {/* 4. Total Farm Area */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Machinery & Assets')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box forest">⊞</span>
-          </div>
-          <div className="widget-name">Total Farm Area</div>
-          <div className="widget-amount">{metrics.totalFarmArea} <small className="unit-label">Acres</small></div>
-        </div>
-
-        {/* 5. Active Crops */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Crops')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box lime">♧</span>
-          </div>
-          <div className="widget-name">Active Crops</div>
-          <div className="widget-amount">{crops.length} <small className="unit-label">Crops</small></div>
-        </div>
-
-        {/* 6. Total Sales */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Income')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box blue">↗</span>
-          </div>
-          <div className="widget-name">Total Sales</div>
-          <div className="widget-amount">{formatCurrency(metrics.totalSales)}</div>
-        </div>
-
-        {/* 7. Total Purchases */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Inventory')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box orange">▣</span>
-          </div>
-          <div className="widget-name">Total Purchases</div>
-          <div className="widget-amount">{formatCurrency(metrics.totalPurchases)}</div>
-        </div>
-
-        {/* 8. Outstanding Receivables */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Income')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box indigo">⌛</span>
-          </div>
-          <div className="widget-name">Outstanding Receivables</div>
-          <div className="widget-amount">{formatCurrency(metrics.outstandingReceivables)}</div>
-        </div>
-
-        {/* 9. Outstanding Payables */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Loans & Payments')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box rose">⏳</span>
-          </div>
-          <div className="widget-name">Outstanding Payables</div>
-          <div className="widget-amount">{formatCurrency(metrics.outstandingPayables)}</div>
-        </div>
-
-        {/* 10. Labour Cost */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Expenses')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box cyan">👥</span>
-          </div>
-          <div className="widget-name">Labour Cost</div>
-          <div className="widget-amount">{formatCurrency(metrics.labourCost)}</div>
-        </div>
-
-        {/* 11. Input Cost */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Inventory')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box violet">🌱</span>
-          </div>
-          <div className="widget-name">Input Cost</div>
-          <div className="widget-amount">{formatCurrency(metrics.inputCost)}</div>
-        </div>
-
-        {/* 12. Machinery Cost */}
-        <div className="widget-card" onClick={() => onNavigate && onNavigate('Machinery & Assets')}>
-          <div className="widget-card-top">
-            <span className="widget-icon-box brown">⚙</span>
-          </div>
-          <div className="widget-name">Machinery Cost</div>
-          <div className="widget-amount">{formatCurrency(metrics.machineryCost)}</div>
-        </div>
-      </div>
-
-      {/* Interactive Quick Modals for 4 Sections */}
-      <QuickPayModal
-        payment={activePaymentForPay}
-        isOpen={Boolean(activePaymentForPay)}
-        onClose={() => setActivePaymentForPay(null)}
-      />
-
-      <ReorderModal
-        item={activeItemForReorder}
-        isOpen={Boolean(activeItemForReorder)}
-        onClose={() => setActiveItemForReorder(null)}
-      />
+      </section>
     </div>
   );
 }

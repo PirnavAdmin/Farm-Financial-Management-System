@@ -1,0 +1,780 @@
+/* Dashboard.css - Pixel-Perfect Responsive Layout for Pic 1 & Pic 3 */
+
+.dashboard-page {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.dashboard-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dashboard-main-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-sub {
+  margin: 3px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.dashboard-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.dashboard-header-badge .badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+/* 2. Top 3 Primary Financial Cards (Pic 3) */
+.top-financial-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fin-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.fin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
+}
+
+.card-income {
+  border-top: 4px solid #15803d;
+}
+
+.card-expense {
+  border-top: 4px solid #b45309;
+}
+
+.card-profit {
+  border-top: 4px solid #059669;
+  background: linear-gradient(135deg, #ffffff 65%, #f0fdf4 100%);
+}
+
+.fin-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.fin-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4b5563;
+}
+
+.fin-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fin-icon.green {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.fin-icon.amber {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.fin-icon.emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.fin-amount {
+  font-size: 28px;
+  font-weight: 850;
+  color: #111827;
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+}
+
+.fin-amount.profit-text {
+  color: #059669;
+}
+
+.fin-sub {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3. Dashboard Widgets Grid (All 12 Widgets from Pic 1) */
+.widgets-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.section-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #111827;
+}
+
+.section-sub-tag {
+  font-size: 11.5px;
+  color: #6b7280;
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+}
+
+.toggle-widgets-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-widgets-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.widgets-grid-12 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kpi-widget-card {
+  background: #fafbfa;
+  border: 1px solid #eef2ee;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 11px 13px;
+  transition: transform 0.15s ease;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.kpi-widget-card:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.kpi-widget-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 4px;
+}
+
+.kpi-widget-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-widget-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.kpi-widget-val {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.kpi-widget-sub {
+  font-size: 10.5px;
+  color: #6b7280;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 4. Analytical Charts Grid (Pic 3) */
+.charts-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chart-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #111827;
+}
+
+.chart-badge {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-top: 2px;
+  display: inline-block;
+}
+
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.legend-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.legend-chip.green i { background: #2d6a4f; }
+.legend-chip.amber i { background: #d97706; }
+.legend-chip.emerald i { background: #059669; }
+
+.chart-canvas-box {
+  width: 100%;
+  min-width: 0;
+  height: 290px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 5. 4 Core Sections Quad Grid (Pic 3) */
+.quad-panels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.panel-box {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.panel-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 750;
+  color: #111827;
+}
+
+.panel-sub {
+  font-size: 11px;
+  color: #6b7280;
+  display: block;
+  margin-top: 1px;
+}
+
+.panel-link-btn {
+  background: transparent;
+  border: none;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.panel-link-btn:hover {
+  background: #f0fdf4;
+  text-decoration: underline;
+}
+
+/* In-Card Scroll Container for Tables (as requested) */
+.panel-table-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 4px;
+  border: 1px solid #f1f5f1;
+  border-radius: 8px;
+}
+
+/* Elegant thin scrollbar inside cards */
+.panel-table-container::-webkit-scrollbar {
+  height: 5px;
+}
+
+.panel-table-container::-webkit-scrollbar-track {
+  background: #f8faf8;
+  border-radius: 3px;
+}
+
+.panel-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.panel-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.clean-table {
+  width: 100%;
+  min-width: 580px; /* guarantees all columns are spaced comfortably with smooth in-card scroll */
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.clean-table th {
+  padding: 8px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.clean-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #1f2937;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.clean-table tr:hover td {
+  background: #fafdfa;
+}
+
+.crop-td-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.crop-seed-ico {
+  font-size: 15px;
+}
+
+.crop-td-name strong {
+  display: block;
+  color: #111827;
+  font-size: 12px;
+}
+
+.crop-td-name small {
+  display: block;
+  color: #6b7280;
+  font-size: 10.5px;
+}
+
+.amount-col {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.text-green { color: #15803d; }
+.text-amber { color: #b45309; }
+.text-red { color: #dc2626; }
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 650;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.status-badge.live {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.done {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Upcoming Payments List (Compact & Perfectly Contained) */
+.payments-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.payment-item-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.15s ease;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.payment-item-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.payment-date-badge {
+  width: 40px;
+  height: 40px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.p-day {
+  font-size: 15px;
+  font-weight: 800;
+  color: #166534;
+}
+
+.p-month {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #15803d;
+  margin-top: 1px;
+}
+
+.payment-body {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.payment-body strong {
+  font-size: 12.5px;
+  color: #111827;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payment-body p {
+  margin: 1px 0 3px;
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payment-tag {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.payment-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.p-amount {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.p-status-pill {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 650;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+/* Transactions Filter */
+.tx-filter-pills {
+  display: flex;
+  gap: 3px;
+  background: #f3f4f6;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.tx-filter-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #4b5563;
+}
+
+.tx-filter-btn.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.voucher-tag {
+  font-family: monospace;
+  font-weight: 700;
+  background: #f3f4f6;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  color: #374151;
+}
+
+.tx-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 650;
+  padding: 2px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.tx-type-badge.in {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tx-type-badge.out {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* Low Stock Items */
+.stock-td-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.stock-ico {
+  font-size: 13px;
+}
+
+.stock-status-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 650;
+  padding: 2px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.stock-status-pill.critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.stock-status-pill.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Responsive Rules for Small / Medium Screens */
+@media (max-width: 1200px) {
+  .widgets-grid-12 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .charts-grid-two,
+  .quad-panels-grid {
+    grid-template-columns: 1fr;
+  }
+  .widgets-grid-12 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .top-financial-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .top-financial-cards {
+    grid-template-columns: 1fr;
+  }
+  .widgets-grid-12 {
+    grid-template-columns: 1fr;
+  }
+}
