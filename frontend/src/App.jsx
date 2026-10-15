@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import './App.css';
-import Login from './login.jsx';
-import { FarmProvider, useFarm } from './context/FarmContext.jsx';
-import Dashboard from './Dashboard/Dashboard.jsx';
-import ModuleView from './components/ModuleView.jsx';
+import { useState } from 'react'
+import './App.css'
+import Login from './login.jsx'
+import Dashboard from './Dashboard/Dashboard.jsx'
 
-// Streamlined modules directly linked to the Dashboard (No unnecessary submenus)
-const menuItems = [
+const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
   { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crops', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
   { label: 'Agriculture', icon: '♧', children: ['Crop Seasons', 'Crop Activities', 'Labour Attendance', 'Machinery Usage'] },
@@ -37,6 +34,7 @@ function App() {
   })
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   function handleLogin(email) {
     const mail = email || 'meghanareddybutreddy@gmail.com'
@@ -48,6 +46,7 @@ function App() {
 
   function handleLogout() {
     setLoggedIn(false)
+    setShowUserMenu(false)
     localStorage.removeItem('agriman_logged_in')
   }
 
@@ -126,52 +125,79 @@ function App() {
           <div className="topbar-actions">
             <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
             <div className="topbar-divider" />
-
-            {/* User Profile with Clickable Dropdown Showing Sign Out */}
-            <div className="user-profile-wrapper">
-              <button
-                type="button"
-                className="user-profile-trigger"
-                aria-expanded={showUserMenu}
-                onClick={() => {
-                  setShowUserMenu((prev) => !prev);
-                }}
-              >
-                <div className="top-avatar">{userInitials}</div>
-                <div className="top-user">
-                  <strong className="top-user-email" title={userEmail}>
-                    {userEmail}
-                  </strong>
-                  <span>Administrator</span>
-                </div>
-                <span className={`top-chevron ${showUserMenu ? 'open' : ''}`}>⌄</span>
-              </button>
+            <div
+              className="topbar-user-area"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setShowUserMenu((prev) => !prev)}
+            >
+              <div className="top-avatar">{userInitials}</div>
+              <div className="top-user" style={{ marginLeft: '8px' }}>
+                <strong title={userEmail}>{userEmail}</strong>
+                <span>Administrator</span>
+              </div>
+              <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
 
               {showUserMenu && (
-                <div className="user-dropdown-menu">
-                  <div className="user-dropdown-header">
-                    <div className="dropdown-avatar">{userInitials}</div>
-                    <div className="dropdown-user-info">
-                      <strong title={userEmail}>{userEmail}</strong>
-                      <span>Administrator</span>
-                      <small className="session-pill">● Active Session</small>
-                    </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '42px',
+                    right: 0,
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                    padding: '8px 0',
+                    minWidth: '180px',
+                    zIndex: 100
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1f2937' }}>{userEmail}</div>
+                    <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>● Active Session</div>
                   </div>
-                  <div className="user-dropdown-divider" />
                   <button
                     type="button"
-                    className="user-dropdown-item"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      onLogout();
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '8px 16px',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}
                   >
-                    <span className="dropdown-icon">↪</span>
-                    <span>Sign out</span>
+                    <span>↪</span> Sign out
                   </button>
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              className="top-logout-link"
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}
+              title="Sign out"
+            >
+              Sign out ↪
+            </button>
           </div>
         </header>
 
