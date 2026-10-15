@@ -1,9 +1,12 @@
-import { useState } from 'react'
-import './App.css'
-import Login from './login.jsx'
-import Dashboard from './Dashboard/Dashboard.jsx'
+import { useState } from 'react';
+import './App.css';
+import Login from './login.jsx';
+import { FarmProvider, useFarm } from './context/FarmContext.jsx';
+import Dashboard from './Dashboard/Dashboard.jsx';
+import ModuleView from './components/ModuleView.jsx';
 
-const menuGroups = [
+// Streamlined modules directly linked to the Dashboard (No unnecessary submenus)
+const menuItems = [
   { label: 'Dashboard', icon: '▦' },
   { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crops', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
   { label: 'Agriculture', icon: '♧', children: ['Crop Seasons', 'Crop Activities', 'Labour Attendance', 'Machinery Usage'] },
@@ -123,26 +126,52 @@ function App() {
           <div className="topbar-actions">
             <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
             <div className="topbar-divider" />
-            <div className="top-avatar">{userInitials}</div>
-            <div className="top-user"><strong title={userEmail}>{userEmail}</strong><span>Administrator</span></div>
-            <button
-              type="button"
-              className="top-logout-link"
-              onClick={handleLogout}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#6b7280',
-                cursor: 'pointer',
-                fontSize: '12px',
-                marginLeft: '8px',
-                padding: '4px 8px',
-                borderRadius: '4px'
-              }}
-              title="Sign out"
-            >
-              Sign out ↪
-            </button>
+
+            {/* User Profile with Clickable Dropdown Showing Sign Out */}
+            <div className="user-profile-wrapper">
+              <button
+                type="button"
+                className="user-profile-trigger"
+                aria-expanded={showUserMenu}
+                onClick={() => {
+                  setShowUserMenu((prev) => !prev);
+                }}
+              >
+                <div className="top-avatar">{userInitials}</div>
+                <div className="top-user">
+                  <strong className="top-user-email" title={userEmail}>
+                    {userEmail}
+                  </strong>
+                  <span>Administrator</span>
+                </div>
+                <span className={`top-chevron ${showUserMenu ? 'open' : ''}`}>⌄</span>
+              </button>
+
+              {showUserMenu && (
+                <div className="user-dropdown-menu">
+                  <div className="user-dropdown-header">
+                    <div className="dropdown-avatar">{userInitials}</div>
+                    <div className="dropdown-user-info">
+                      <strong title={userEmail}>{userEmail}</strong>
+                      <span>Administrator</span>
+                      <small className="session-pill">● Active Session</small>
+                    </div>
+                  </div>
+                  <div className="user-dropdown-divider" />
+                  <button
+                    type="button"
+                    className="user-dropdown-item"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onLogout();
+                    }}
+                  >
+                    <span className="dropdown-icon">↪</span>
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

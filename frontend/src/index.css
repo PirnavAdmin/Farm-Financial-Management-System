@@ -17,4 +17,4 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; overflow: hidden; }
 body { min-width: 320px; height: 100vh; }
-button { font: inherit; }
+ebutton { font: inherit; }
