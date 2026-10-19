@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 import Login from './login.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
+import Users from './Settings/Users/Users.jsx'
+import Dashboard from './Dashboard/Dashboard.jsx'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
@@ -16,39 +18,53 @@ const menuGroups = [
 ]
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(() => localStorage.getItem('agriman_logged_in') === 'true')
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('agriman_user_email') || 'meghanareddybutreddy@gmail.com')
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userName = userEmail.split('@')[0]
+  const userInitials = userName.split(/[._-]/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || 'AD'
 
-  if (!loggedIn) {
-    return <Login onLogin={() => setLoggedIn(true)} />
+  function handleLogin(email) {
+    const nextEmail = email || 'meghanareddybutreddy@gmail.com'
+    setUserEmail(nextEmail)
+    setLoggedIn(true)
+    localStorage.setItem('agriman_logged_in', 'true')
+    localStorage.setItem('agriman_user_email', nextEmail)
+  }
+
+  function handleLogout() {
+    setLoggedIn(false)
+    setShowUserMenu(false)
+    localStorage.removeItem('agriman_logged_in')
   }
 
   function selectItem(label) {
     setActive(label)
+    setShowUserMenu(false)
   }
+
+  if (!loggedIn) return <Login onLogin={handleLogin} />
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <a className="brand" href="#dashboard" onClick={() => selectItem('Dashboard')}>
-          <span className="brand-mark">A</span>
-          <span className="brand-name">AGRIMAN<small>Farm management</small></span>
+          <span className="brand-mark">A</span><span className="brand-name">AGRIMAN<small>Farm management</small></span>
         </a>
         <div className="menu-caption">WORKSPACE</div>
         <nav aria-label="Main navigation">
           {menuGroups.map((group) => {
-            const isOpen = expanded[group.label]
+            const isOpen = Boolean(expanded[group.label])
             const isActive = active === group.label || group.children?.includes(active)
             return (
               <div className="menu-group" key={group.label}>
                 <button
                   className={`menu-item${isActive ? ' selected' : ''}`}
                   type="button"
-                  aria-expanded={group.children ? Boolean(isOpen) : undefined}
-                  onClick={() => group.children
-                    ? setExpanded((current) => ({ ...current, [group.label]: !current[group.label] }))
-                    : selectItem(group.label)}
+                  aria-expanded={group.children ? isOpen : undefined}
+                  onClick={() => group.children ? setExpanded((current) => ({ ...current, [group.label]: !current[group.label] })) : selectItem(group.label)}
                 >
                   <span className="menu-icon" aria-hidden="true">{group.icon}</span>
                   <span>{group.label}</span>
@@ -63,7 +79,8 @@ function App() {
                         type="button"
                         onClick={() => selectItem(item)}
                       >
-                        <span className="submenu-dot" aria-hidden="true" />{item}
+                        <span className="submenu-dot" aria-hidden="true" />
+                        {item}
                       </button>
                     ))}
                   </div>
@@ -73,9 +90,9 @@ function App() {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="avatar">AD</div>
-          <div className="user-details"><strong>Admin User</strong><span>Administrator</span></div>
-          <button className="more-button logout-button" type="button" aria-label="Sign out" title="Sign out" onClick={() => setLoggedIn(false)}>↪</button>
+          <div className="avatar">{userInitials}</div>
+          <div className="user-details"><strong title={userEmail}>{userEmail}</strong><span>Administrator</span></div>
+          <button className="more-button logout-button" type="button" aria-label="Sign out" onClick={handleLogout}>↪</button>
         </div>
       </aside>
 
@@ -85,39 +102,120 @@ function App() {
           <div className="topbar-actions">
             <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
             <div className="topbar-divider" />
-            <div className="top-avatar">AD</div>
-            <div className="top-user"><strong>Admin User</strong><span>Administrator</span></div>
-            <span className="top-chevron">⌄</span>
+            <div
+              className="topbar-user-area"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setShowUserMenu((prev) => !prev)}
+            >
+              <div className="top-avatar">{userInitials}</div>
+              <div className="top-user" style={{ marginLeft: '8px' }}>
+                <strong title={userEmail}>{userEmail}</strong>
+                <span>Administrator</span>
+              </div>
+              <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
+
+              {showUserMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '42px',
+                    right: 0,
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                    padding: '8px 0',
+                    minWidth: '180px',
+                    zIndex: 100
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1f2937' }}>{userEmail}</div>
+                    <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>● Active Session</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '8px 16px',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span>↪</span> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="top-logout-link"
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginLeft: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}
+              title="Sign out"
+            >
+              Sign out ↪
+            </button>
           </div>
         </header>
-        <section className="page-content">
-          {active === 'Farmers' ? <Farmers /> : <>
-          <div className="page-heading">
-            <div><div className="eyebrow">FARM FINANCIAL MANAGEMENT</div><h1>{active}</h1><p>Welcome back. Here’s your farm management workspace.</p></div>
-            <button className="date-filter" type="button"><span>▦</span> This season <span className="filter-chevron">⌄</span></button>
-          </div>
-          <div className="welcome-card">
-            <div className="welcome-copy"><span className="welcome-tag">YOUR FARM, IN GOOD HANDS</span><h2>Good morning, Admin</h2><p>Keep track of your farms, finances, crops and inventory, all in one place.</p><button type="button" className="primary-button" onClick={() => { setActive('Crop Seasons'); setExpanded((current) => ({ ...current, Agriculture: true })) }}>Explore agriculture <span>→</span></button></div>
-            <div className="field-art" aria-hidden="true"><div className="sun" /><div className="hill hill-back" /><div className="hill hill-front" /><div className="crop-lines">╱ ╱ ╱ ╱ ╱</div></div>
-          </div>
-          <div className="section-title"><div><h2>At a glance</h2><p>A snapshot of your farm operations</p></div><button className="text-button" type="button" onClick={() => selectItem('Dashboard Reports')}>View reports <span>→</span></button></div>
-          <div className="metric-grid">
-            <article className="metric-card"><div className="metric-top"><span className="metric-icon green">♧</span><span className="metric-period">THIS SEASON</span></div><div className="metric-label">Active farms</div><div className="metric-value">12</div><div className="metric-note"><span className="positive">↗ 2 new</span> since last season</div></article>
-            <article className="metric-card"><div className="metric-top"><span className="metric-icon amber">⌁</span><span className="metric-period">THIS SEASON</span></div><div className="metric-label">Active crop seasons</div><div className="metric-value">8</div><div className="metric-note">Across <strong>5 crop varieties</strong></div></article>
-            <article className="metric-card"><div className="metric-top"><span className="metric-icon blue">↗</span><span className="metric-period">THIS MONTH</span></div><div className="metric-label">Income recorded</div><div className="metric-value">₹ 2,84,500</div><div className="metric-note"><span className="positive">↗ 12.8%</span> vs. last month</div></article>
-            <article className="metric-card"><div className="metric-top"><span className="metric-icon coral">↘</span><span className="metric-period">THIS MONTH</span></div><div className="metric-label">Expenses recorded</div><div className="metric-value">₹ 1,62,300</div><div className="metric-note"><span className="neutral">On track</span> with your budget</div></article>
-          </div>
-          <div className="lower-grid">
-            <article className="panel activity-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>The latest updates across your farms</p></div><button className="more-button panel-more" type="button" aria-label="More activity options">···</button></div><div className="activity-list"><div className="activity-row"><span className="activity-symbol green">₹</span><div><strong>Income recorded</strong><span>Wheat harvest · Green Valley Farm</span></div><time>Today, 10:42 AM</time><b>+ ₹ 42,000</b></div><div className="activity-row"><span className="activity-symbol amber">▣</span><div><strong>Stock received</strong><span>Organic fertilizer · 50 bags</span></div><time>Today, 9:15 AM</time><b className="plain-amount">Stock In</b></div><div className="activity-row"><span className="activity-symbol blue">♧</span><div><strong>Crop activity updated</strong><span>Irrigation · Sunrise Farms</span></div><time>Yesterday</time><b className="plain-amount">Updated</b></div></div></article>
-            <article className="panel season-panel"><div className="panel-heading"><div><h2>Season overview</h2><p>Current crop season progress</p></div><button className="panel-link" type="button" onClick={() => { setActive('Crop Seasons'); setExpanded((current) => ({ ...current, Agriculture: true })) }}>View all <span>→</span></button></div><div className="season-name"><span className="season-icon">♧</span><div><strong>Kharif 2025</strong><span>Jun 2025 – Oct 2025</span></div><span className="status-pill">In progress</span></div><div className="progress-caption"><span>Season progress</span><strong>68%</strong></div><div className="progress-track"><span /></div><div className="season-stats"><div><span>Farms</span><strong>8</strong></div><div><span>Activities</span><strong>24</strong></div><div><span>Harvests</span><strong>3 <small>of 8</small></strong></div></div></article>
-          </div>
-          <footer className="page-footer">© 2025 Agriman <span>Built for the people who grow our future.</span></footer>
-          </>}
-        </section>
+
+        {active === 'Farmers' ? (
+          <Farmers />
+        ) : active === 'Users' ? (
+          <Users />
+        ) : (
+          <section className="page-content">
+            {active === 'Dashboard' ? (
+              <Dashboard onNavigate={selectItem} />
+            ) : (
+              <div className="module-view-container">
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">FARM FINANCIAL MANAGEMENT • {active.toUpperCase()}</div>
+                    <h1>{active}</h1>
+                    <p>Manage, audit, and analyze {active} data across all farm operations.</p>
+                  </div>
+                  <button className="date-filter" type="button" onClick={() => selectItem('Dashboard')}>
+                    <span>▦</span> Return to Dashboard
+                  </button>
+                </div>
+                <div className="welcome-card">
+                  <div className="welcome-copy">
+                    <span className="welcome-tag">YOUR FARM, IN GOOD HANDS</span>
+                    <h2>{active} workspace</h2>
+                    <p>This section is ready for your farm management records.</p>
+                    <button type="button" className="primary-button" onClick={() => selectItem('Dashboard')}>
+                      View dashboard <span>→</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        )}
       </main>
     </div>
   )
 }
 
 export default App
-
