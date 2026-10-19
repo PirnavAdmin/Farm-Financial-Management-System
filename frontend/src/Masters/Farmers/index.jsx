@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { farmerService } from '../../services/farmerService'
+import { farmerAddressService } from '../../services/farmerAddressService'
+import { farmerBankService } from '../../services/farmerBankService'
 import './farmers.css'
 
 const EMPTY = {
   code: '', name: '', fatherName: '', mobile: '', altMobile: '',
   email: '', aadhaar: '', address: '', village: '', mandal: '',
   district: '', state: '', pin: '', bankName: '', accountNo: '',
-  ifsc: '', totalLand: '', status: 'Active',
+  ifsc: '', totalLand: '', status: 'Active', addressId: null, bankAccountId: null
 }
 
 const STATES = [
@@ -81,8 +83,8 @@ function FarmerForm({ initial, onSave, onClose }) {
       <div className="fm-modal">
         <div className="fm-modal-head">
           <div>
-            <h2>{isEdit ? 'Edit Farmer' : 'Add Farmer'}</h2>
-            <p>{isEdit ? `Updating record · ${initial.code}` : 'Fill in the details to register a new farmer in SQL Server'}</p>
+            <h2>{isEdit ? 'Edit Farmer Record' : 'Register New Farmer'}</h2>
+            <p>{isEdit ? `Updating record · ${initial.code}` : 'Saves profile, address, and bank credentials to SQL Server'}</p>
           </div>
           <button className="fm-close" onClick={onClose} aria-label="Close" type="button">✕</button>
         </div>
@@ -96,8 +98,8 @@ function FarmerForm({ initial, onSave, onClose }) {
         <form className="fm-form" onSubmit={handleSubmit} noValidate>
           <div className="fm-form-body">
 
-            {/* ── Section: Basic Info ── */}
-            <div className="fm-section-label">Basic Information</div>
+            {/* ── Section: Basic Info (/api/Farmers) ── */}
+            <div className="fm-section-label">Basic Information (/api/Farmers)</div>
             <div className="fm-row">
               <div className="fm-field">
                 <label>Farmer Code <span className="fm-req">*</span></label>
@@ -115,7 +117,7 @@ function FarmerForm({ initial, onSave, onClose }) {
               </div>
             </div>
 
-            {/* ── Section: Contact ── */}
+            {/* ── Section: Contact Details ── */}
             <div className="fm-section-label">Contact Details</div>
             <div className="fm-row">
               <div className="fm-field">
@@ -141,13 +143,16 @@ function FarmerForm({ initial, onSave, onClose }) {
                 {errs.aadhaar && <span className="fm-err">{errs.aadhaar}</span>}
               </div>
               <div className="fm-field fm-field-full">
-                <label>Address</label>
+                <label>Address Line</label>
                 <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="House / Plot / Street" />
               </div>
             </div>
 
-            {/* ── Section: Location ── */}
-            <div className="fm-section-label">Location</div>
+            {/* ── Section: Location (/api/FarmerAddresses) ── */}
+            <div className="fm-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Address Details (/api/FarmerAddresses)</span>
+              {form.addressId && <span style={{ fontSize: '11px', color: '#16a34a' }}>● Linked Address #{form.addressId}</span>}
+            </div>
             <div className="fm-row">
               <div className="fm-field">
                 <label>Village</label>
@@ -177,6 +182,26 @@ function FarmerForm({ initial, onSave, onClose }) {
               </div>
             </div>
 
+            {/* ── Section: Bank Details (/api/FarmerBankAccounts) ── */}
+            <div className="fm-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Bank Credentials (/api/FarmerBankAccounts)</span>
+              {form.bankAccountId && <span style={{ fontSize: '11px', color: '#2563eb' }}>● Linked Bank Account #{form.bankAccountId}</span>}
+            </div>
+            <div className="fm-row">
+              <div className="fm-field">
+                <label>Bank Name</label>
+                <input value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="e.g. State Bank of India" />
+              </div>
+              <div className="fm-field">
+                <label>Account Number</label>
+                <input value={form.accountNo} onChange={e => set('accountNo', e.target.value)} placeholder="Account number" />
+              </div>
+              <div className="fm-field">
+                <label>IFSC Code</label>
+                <input value={form.ifsc} onChange={e => set('ifsc', e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" maxLength={11} />
+              </div>
+            </div>
+
             {/* ── Section: Land & Status ── */}
             <div className="fm-section-label">Land & Status</div>
             <div className="fm-row fm-row-2">
@@ -198,7 +223,7 @@ function FarmerForm({ initial, onSave, onClose }) {
           <div className="fm-modal-foot">
             <button type="button" className="fm-btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             <button type="submit" className="fm-btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : isEdit ? 'Update Farmer' : 'Save Farmer'}
+              {saving ? 'Saving...' : isEdit ? 'Update Complete Profile' : 'Save Complete Profile'}
             </button>
           </div>
         </form>
@@ -249,7 +274,6 @@ export default function Farmers() {
     setApiError(null)
     try {
       const data = await farmerService.getFarmers()
-      // Normalize to view model
       const mapped = data.map(f => ({
         id: f.id,
         code: f.farmerCode || f.code,
@@ -261,12 +285,14 @@ export default function Farmers() {
         aadhaar: f.aadhaarNo || f.aadhaar || '',
         totalLand: f.totalLand !== undefined && f.totalLand !== null ? String(f.totalLand) : '',
         status: f.status || 'Active',
+        addressId: f.address?.id || null,
         village: f.address?.village || f.village || '',
         mandal: f.address?.mandal || f.mandal || '',
         district: f.address?.district || f.district || '',
         state: f.address?.state || f.state || '',
         pin: f.address?.pinCode || f.pin || '',
         address: f.address?.address || f.address || '',
+        bankAccountId: f.bankAccount?.id || null,
         bankName: f.bankAccount?.bankName || f.bankName || '',
         accountNo: f.bankAccount?.accountNumber || f.accountNo || '',
         ifsc: f.bankAccount?.ifsc || f.ifsc || '',
@@ -286,7 +312,7 @@ export default function Farmers() {
   // ── filtered list ──
   const filtered = farmers.filter(f => {
     const q = search.toLowerCase().trim()
-    const matchSearch = !q || [f.code, f.name, f.fatherName, f.mobile, f.village, f.mandal, f.district].some(v => (v || '').toLowerCase().includes(q))
+    const matchSearch = !q || [f.code, f.name, f.fatherName, f.mobile, f.village, f.mandal, f.district, f.bankName].some(v => (v || '').toLowerCase().includes(q))
     const matchStatus = statusFilter === 'All' || f.status === statusFilter
     return matchSearch && matchStatus
   })
@@ -315,6 +341,17 @@ export default function Farmers() {
           aadhaar: fresh.aadhaarNo || farmer.aadhaar,
           totalLand: fresh.totalLand !== undefined ? String(fresh.totalLand) : farmer.totalLand,
           status: fresh.status || farmer.status,
+          addressId: fresh.address?.id || farmer.addressId || null,
+          village: fresh.address?.village || farmer.village || '',
+          mandal: fresh.address?.mandal || farmer.mandal || '',
+          district: fresh.address?.district || farmer.district || '',
+          state: fresh.address?.state || farmer.state || '',
+          pin: fresh.address?.pinCode || farmer.pin || '',
+          address: fresh.address?.address || farmer.address || '',
+          bankAccountId: fresh.bankAccount?.id || farmer.bankAccountId || null,
+          bankName: fresh.bankAccount?.bankName || farmer.bankName || '',
+          accountNo: fresh.bankAccount?.accountNumber || farmer.accountNo || '',
+          ifsc: fresh.bankAccount?.ifsc || farmer.ifsc || '',
         }
       })
     } catch {
@@ -322,12 +359,114 @@ export default function Farmers() {
     }
   }
 
+  /**
+   * FULL 3-TIER CRUD SAVE:
+   * 1. POST /api/Farmers or PUT /api/Farmers/{id}
+   * 2. POST /api/FarmerAddresses or PUT /api/FarmerAddresses/{id}
+   * 3. POST /api/FarmerBankAccounts or PUT /api/FarmerBankAccounts/{id}
+   */
   async function handleSave(form) {
     if (modal.mode === 'add') {
-      await farmerService.createFarmer(form)
-      showToast(`Farmer "${form.name}" registered successfully`)
+      // 1. Create Farmer
+      const createdFarmer = await farmerService.createFarmer(form)
+      const farmerId = createdFarmer?.id || createdFarmer?.data?.id
+
+      if (farmerId) {
+        // 2. Create FarmerAddress
+        if (form.village || form.mandal || form.district || form.state || form.pin) {
+          try {
+            await farmerAddressService.createAddress({
+              farmerId,
+              address: form.address,
+              village: form.village,
+              mandal: form.mandal,
+              district: form.district,
+              state: form.state,
+              pinCode: form.pin
+            })
+          } catch (addrErr) {
+            console.warn('FarmerAddress creation note:', addrErr)
+          }
+        }
+
+        // 3. Create FarmerBankAccount
+        if (form.bankName && form.accountNo && form.ifsc) {
+          try {
+            await farmerBankService.createBankAccount({
+              farmerId,
+              bankName: form.bankName,
+              accountNumber: form.accountNo,
+              ifsc: form.ifsc
+            })
+          } catch (bankErr) {
+            console.warn('FarmerBankAccount creation note:', bankErr)
+          }
+        }
+      }
+
+      showToast(`Farmer "${form.name}" registered with address & bank details`)
     } else {
+      // 1. Update Farmer
       await farmerService.updateFarmer(form.id, form)
+
+      // 2. Update/Create Address
+      const hasAddressInfo = form.village || form.mandal || form.district || form.state || form.pin
+      if (form.addressId) {
+        try {
+          await farmerAddressService.updateAddress(form.addressId, {
+            farmerId: form.id,
+            address: form.address,
+            village: form.village,
+            mandal: form.mandal,
+            district: form.district,
+            state: form.state,
+            pinCode: form.pin
+          })
+        } catch (addrErr) {
+          console.warn('FarmerAddress update note:', addrErr)
+        }
+      } else if (hasAddressInfo) {
+        try {
+          await farmerAddressService.createAddress({
+            farmerId: form.id,
+            address: form.address,
+            village: form.village,
+            mandal: form.mandal,
+            district: form.district,
+            state: form.state,
+            pinCode: form.pin
+          })
+        } catch (addrErr) {
+          console.warn('FarmerAddress create note:', addrErr)
+        }
+      }
+
+      // 3. Update/Create Bank Account
+      const hasBankInfo = form.bankName && form.accountNo && form.ifsc
+      if (form.bankAccountId) {
+        try {
+          await farmerBankService.updateBankAccount(form.bankAccountId, {
+            farmerId: form.id,
+            bankName: form.bankName,
+            accountNumber: form.accountNo,
+            ifsc: form.ifsc
+          })
+        } catch (bankErr) {
+          console.warn('FarmerBankAccount update note:', bankErr)
+        }
+      } else if (hasBankInfo) {
+        try {
+          await farmerBankService.createBankAccount({
+            farmerId: form.id,
+            bankName: form.bankName,
+            accountNumber: form.accountNo,
+            ifsc: form.ifsc
+          })
+        } catch (bankErr) {
+          console.warn('FarmerBankAccount create note:', bankErr)
+        }
+      }
+
       showToast(`Farmer "${form.name}" updated successfully`)
     }
     await fetchFarmers()
@@ -337,6 +476,12 @@ export default function Farmers() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
+      if (deleteTarget.bankAccountId) {
+        try { await farmerBankService.deleteBankAccount(deleteTarget.bankAccountId) } catch (_) {}
+      }
+      if (deleteTarget.addressId) {
+        try { await farmerAddressService.deleteAddress(deleteTarget.addressId) } catch (_) {}
+      }
       await farmerService.deleteFarmer(deleteTarget.id)
       showToast(`Farmer "${deleteTarget.name}" deleted`, 'error')
       setDeleteTarget(null)
@@ -397,7 +542,7 @@ export default function Farmers() {
           <span className="fm-search-icon">⌕</span>
           <input
             className="fm-search"
-            placeholder="Search by name, code, mobile, village…"
+            placeholder="Search by name, code, mobile, village, bank…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
