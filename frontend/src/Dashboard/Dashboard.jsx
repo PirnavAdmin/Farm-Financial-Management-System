@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -8,25 +8,74 @@ import {
   Tooltip,
   ResponsiveContainer,
   AreaChart,
-  Area,
-  Legend
+  Area
 } from 'recharts';
 import {
-  dashboardWidgets,
-  cropProfitChartData,
-  monthlyCashflowData,
-  activeCropsTable,
-  upcomingPaymentsList,
-  recentTransactionsList,
-  lowStockItemsList
-} from '../data/mockData';
+  loadCompleteDashboard,
+  buildDashboardWidgets
+} from '../services/dashboardService';
 import './Dashboard.css';
 
 export default function Dashboard({ onNavigate }) {
   const [showAllWidgets, setShowAllWidgets] = useState(true);
   const [txFilter, setTxFilter] = useState('All');
 
-  const filteredTransactions = recentTransactionsList.filter((tx) => {
+  // Loading & error states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Financial summary primary cards
+  const [financialCards, setFinancialCards] = useState({
+    totalIncome: '₹ 0',
+    totalExpense: '₹ 0',
+    netProfit: '₹ 0',
+    marginText: '0.0% operating margin'
+  });
+
+  // 12 KPI Widgets
+  const [widgets, setWidgets] = useState(() => buildDashboardWidgets({}));
+
+  // Analytical Charts
+  const [cropProfitData, setCropProfitData] = useState([]);
+  const [monthlyCashflowData, setMonthlyCashflowData] = useState([]);
+
+  // Quad Panels Data
+  const [activeCrops, setActiveCrops] = useState([]);
+  const [upcomingPayments, setUpcomingPayments] = useState([]);
+  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
+
+  /**
+   * Fetch all dashboard data from backend API
+   */
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await loadCompleteDashboard();
+
+      setFinancialCards(data.financialCards);
+      setWidgets(data.widgets);
+      setCropProfitData(data.cropProfitData);
+      setMonthlyCashflowData(data.monthlyData);
+      setActiveCrops(data.activeCrops);
+      setUpcomingPayments(data.upcomingPayments);
+      setRecentTransactions(data.recentTransactions);
+      setLowStockItems(data.lowStockItems);
+    } catch (err) {
+      console.error('[Dashboard] Error fetching backend data:', err);
+      setError(err.message || 'Unable to load real-time dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const filteredTransactions = recentTransactions.filter((tx) => {
     if (txFilter === 'All') return true;
     return tx.type.toLowerCase() === txFilter.toLowerCase();
   });
@@ -41,8 +90,33 @@ export default function Dashboard({ onNavigate }) {
             Real-time financial overview and farm operational intelligence
           </p>
         </div>
-        <div className="dashboard-header-badge">
-          <span className="badge-dot" /> Kharif & Rabi 2025–26
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {loading && (
+            <span style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="badge-dot" style={{ background: '#0284c7', display: 'inline-block' }} /> Syncing live data...
+            </span>
+          )}
+          {error && !loading && (
+            <button
+              type="button"
+              onClick={fetchDashboardData}
+              title={error}
+              style={{
+                fontSize: '11.5px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid #fca5a5',
+                background: '#fef2f2',
+                color: '#dc2626',
+                cursor: 'pointer'
+              }}
+            >
+              ⚠ Retry Sync
+            </button>
+          )}
+          <div className="dashboard-header-badge">
+            <span className="badge-dot" /> Kharif &amp; Rabi 2025–26
+          </div>
         </div>
       </div>
 
@@ -58,8 +132,8 @@ export default function Dashboard({ onNavigate }) {
             <span className="fin-label">Total Income</span>
             <span className="fin-icon green">↗</span>
           </div>
-          <div className="fin-amount">₹ 12,50,000</div>
-          <div className="fin-sub">Realized sales & agri subsidies</div>
+          <div className="fin-amount">{financialCards.totalIncome}</div>
+          <div className="fin-sub">Realized sales &amp; agri subsidies</div>
         </div>
 
         <div
@@ -72,8 +146,8 @@ export default function Dashboard({ onNavigate }) {
             <span className="fin-label">Total Expense</span>
             <span className="fin-icon amber">↘</span>
           </div>
-          <div className="fin-amount">₹ 7,80,000</div>
-          <div className="fin-sub">Inputs, labour & machinery costs</div>
+          <div className="fin-amount">{financialCards.totalExpense}</div>
+          <div className="fin-sub">Inputs, labour &amp; machinery costs</div>
         </div>
 
         <div
@@ -86,8 +160,8 @@ export default function Dashboard({ onNavigate }) {
             <span className="fin-label">Net Profit</span>
             <span className="fin-icon emerald">★</span>
           </div>
-          <div className="fin-amount profit-text">₹ 4,70,000</div>
-          <div className="fin-sub">37.6% operating margin</div>
+          <div className="fin-amount profit-text">{financialCards.netProfit}</div>
+          <div className="fin-sub">{financialCards.marginText}</div>
         </div>
       </section>
 
@@ -96,7 +170,7 @@ export default function Dashboard({ onNavigate }) {
         <div className="section-header-row">
           <div>
             <h3 className="section-heading">Dashboard Widgets</h3>
-            <span className="section-sub-tag">Comprehensive Operational & Financial Metrics</span>
+            <span className="section-sub-tag">Comprehensive Operational &amp; Financial Metrics</span>
           </div>
           <button
             type="button"
@@ -109,7 +183,7 @@ export default function Dashboard({ onNavigate }) {
 
         {showAllWidgets && (
           <div className="widgets-grid-12">
-            {dashboardWidgets.map((w) => (
+            {widgets.map((w) => (
               <div key={w.id} className="kpi-widget-card" style={{ borderLeftColor: w.color }}>
                 <div className="kpi-widget-top">
                   <span className="kpi-widget-label">{w.label}</span>
@@ -146,7 +220,7 @@ export default function Dashboard({ onNavigate }) {
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={cropProfitChartData}
+                data={cropProfitData}
                 margin={{ top: 20, right: 20, left: 10, bottom: 25 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8ece8" vertical={false} />
@@ -274,7 +348,7 @@ export default function Dashboard({ onNavigate }) {
               className="panel-link-btn"
               onClick={() => onNavigate && onNavigate('Crops')}
             >
-              View Crops ({activeCropsTable.length}) →
+              View Crops ({activeCrops.length}) →
             </button>
           </div>
 
@@ -282,7 +356,7 @@ export default function Dashboard({ onNavigate }) {
             <table className="clean-table">
               <thead>
                 <tr>
-                  <th>Crop & Variety</th>
+                  <th>Crop &amp; Variety</th>
                   <th>Farm Parcel</th>
                   <th>Area</th>
                   <th>Sowing</th>
@@ -292,29 +366,37 @@ export default function Dashboard({ onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {activeCropsTable.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <div className="crop-td-name">
-                        <span className="crop-seed-ico">🌱</span>
-                        <div>
-                          <strong>{c.crop}</strong>
-                          <small>{c.variety}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{c.farm}</td>
-                    <td><strong>{c.area}</strong></td>
-                    <td>{c.sowing}</td>
-                    <td>{c.harvest}</td>
-                    <td className="amount-col">{c.expRevenue}</td>
-                    <td>
-                      <span className={`status-badge ${c.status === 'Harvested' ? 'done' : c.status === 'Registered' ? 'neutral' : 'live'}`}>
-                        {c.status}
-                      </span>
+                {activeCrops.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                      {loading ? 'Loading active crops...' : 'No active crop cycles found.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  activeCrops.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <div className="crop-td-name">
+                          <span className="crop-seed-ico">🌱</span>
+                          <div>
+                            <strong>{c.crop}</strong>
+                            <small>{c.variety}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{c.farm}</td>
+                      <td><strong>{c.area}</strong></td>
+                      <td>{c.sowing}</td>
+                      <td>{c.harvest}</td>
+                      <td className="amount-col">{c.expRevenue}</td>
+                      <td>
+                        <span className={`status-badge ${c.status === 'Harvested' ? 'done' : c.status === 'Registered' ? 'neutral' : 'live'}`}>
+                          {c.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -325,7 +407,7 @@ export default function Dashboard({ onNavigate }) {
           <div className="panel-box-header">
             <div>
               <h3 className="panel-title">Upcoming Payments</h3>
-              <span className="panel-sub">Loan EMIs, input dealer & labour dues</span>
+              <span className="panel-sub">Loan EMIs, input dealer &amp; labour dues</span>
             </div>
             <button
               type="button"
@@ -337,23 +419,29 @@ export default function Dashboard({ onNavigate }) {
           </div>
 
           <div className="payments-cards-list">
-            {upcomingPaymentsList.map((p) => (
-              <div key={p.id} className="payment-item-card">
-                <div className="payment-date-badge">
-                  <span className="p-day">{p.day}</span>
-                  <span className="p-month">{p.month}</span>
-                </div>
-                <div className="payment-body">
-                  <strong>{p.payee}</strong>
-                  <p>{p.purpose}</p>
-                  <span className="payment-tag">{p.category}</span>
-                </div>
-                <div className="payment-right">
-                  <span className="p-amount">{p.amount}</span>
-                  <span className="p-status-pill">{p.status}</span>
-                </div>
+            {upcomingPayments.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '28px', color: '#6b7280' }}>
+                {loading ? 'Loading scheduled payments...' : 'No upcoming payments scheduled.'}
               </div>
-            ))}
+            ) : (
+              upcomingPayments.map((p) => (
+                <div key={p.id} className="payment-item-card">
+                  <div className="payment-date-badge">
+                    <span className="p-day">{p.day}</span>
+                    <span className="p-month">{p.month}</span>
+                  </div>
+                  <div className="payment-body">
+                    <strong>{p.payee}</strong>
+                    <p>{p.purpose}</p>
+                    <span className="payment-tag">{p.category}</span>
+                  </div>
+                  <div className="payment-right">
+                    <span className="p-amount">{p.amount}</span>
+                    <span className="p-status-pill">{p.status}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -391,27 +479,35 @@ export default function Dashboard({ onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredTransactions.map((tx) => (
-                  <tr key={tx.id}>
-                    <td><span className="voucher-tag">{tx.voucher}</span></td>
-                    <td>{tx.date}</td>
-                    <td>
-                      <div>
-                        <strong>{tx.title}</strong>
-                        <small style={{ display: 'block', color: '#6b7280' }}>{tx.party}</small>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`tx-type-badge ${tx.type === 'Income' ? 'in' : 'out'}`}>
-                        {tx.type === 'Income' ? '↗ Income' : '↘ Expense'}
-                      </span>
-                    </td>
-                    <td>{tx.mode}</td>
-                    <td className={`amount-col ${tx.type === 'Income' ? 'text-green' : 'text-amber'}`}>
-                      {tx.type === 'Income' ? `+ ${tx.amount}` : `- ${tx.amount}`}
+                {filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                      {loading ? 'Loading recent transactions...' : `No transactions found for "${txFilter}".`}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredTransactions.map((tx) => (
+                    <tr key={tx.id}>
+                      <td><span className="voucher-tag">{tx.voucher}</span></td>
+                      <td>{tx.date}</td>
+                      <td>
+                        <div>
+                          <strong>{tx.title}</strong>
+                          <small style={{ display: 'block', color: '#6b7280' }}>{tx.party}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`tx-type-badge ${tx.type === 'Income' ? 'in' : 'out'}`}>
+                          {tx.type === 'Income' ? '↗ Income' : '↘ Expense'}
+                        </span>
+                      </td>
+                      <td>{tx.mode}</td>
+                      <td className={`amount-col ${tx.type === 'Income' ? 'text-green' : 'text-amber'}`}>
+                        {tx.type === 'Income' ? `+ ${tx.amount}` : `- ${tx.amount}`}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -445,24 +541,32 @@ export default function Dashboard({ onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {lowStockItemsList.map((s) => (
-                  <tr key={s.id}>
-                    <td>
-                      <div className="stock-td-item">
-                        <span className="stock-ico">📦</span>
-                        <strong>{s.item}</strong>
-                      </div>
-                    </td>
-                    <td>{s.category}</td>
-                    <td><strong className="text-red">{s.currentQty}</strong></td>
-                    <td>{s.minStock}</td>
-                    <td>
-                      <span className={`stock-status-pill ${s.level}`}>
-                        {s.status}
-                      </span>
+                {lowStockItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                      {loading ? 'Loading inventory alerts...' : 'All inventory items are within safe stock levels.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  lowStockItems.map((s) => (
+                    <tr key={s.id}>
+                      <td>
+                        <div className="stock-td-item">
+                          <span className="stock-ico">📦</span>
+                          <strong>{s.item}</strong>
+                        </div>
+                      </td>
+                      <td>{s.category}</td>
+                      <td><strong className="text-red">{s.currentQty}</strong></td>
+                      <td>{s.minStock}</td>
+                      <td>
+                        <span className={`stock-status-pill ${s.level}`}>
+                          {s.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
