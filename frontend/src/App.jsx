@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import Login from './login.jsx'
+import Farmers from './Masters/Farmers/index.jsx'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
@@ -90,6 +91,7 @@ function App() {
           </div>
         </header>
         <section className="page-content">
+          {active === 'Farmers' ? <Farmers /> : <>
           <div className="page-heading">
             <div><div className="eyebrow">FARM FINANCIAL MANAGEMENT</div><h1>{active}</h1><p>Welcome back. Here’s your farm management workspace.</p></div>
             <button className="date-filter" type="button"><span>▦</span> This season <span className="filter-chevron">⌄</span></button>
@@ -110,6 +112,7 @@ function App() {
             <article className="panel season-panel"><div className="panel-heading"><div><h2>Season overview</h2><p>Current crop season progress</p></div><button className="panel-link" type="button" onClick={() => { setActive('Crop Seasons'); setExpanded((current) => ({ ...current, Agriculture: true })) }}>View all <span>→</span></button></div><div className="season-name"><span className="season-icon">♧</span><div><strong>Kharif 2025</strong><span>Jun 2025 – Oct 2025</span></div><span className="status-pill">In progress</span></div><div className="progress-caption"><span>Season progress</span><strong>68%</strong></div><div className="progress-track"><span /></div><div className="season-stats"><div><span>Farms</span><strong>8</strong></div><div><span>Activities</span><strong>24</strong></div><div><span>Harvests</span><strong>3 <small>of 8</small></strong></div></div></article>
           </div>
           <footer className="page-footer">© 2025 Agriman <span>Built for the people who grow our future.</span></footer>
+          </>}
         </section>
       </main>
     </div>
