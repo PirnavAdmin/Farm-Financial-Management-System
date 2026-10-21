@@ -4,13 +4,22 @@ import { defineConfig, loadEnv } from 'vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
+  const dashboardTarget = env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
+  const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://mushiness-rehab-fanatic.ngrok-free.dev'
 
   return {
     plugins: [react()],
     cacheDir: '.vite-cache',
     server: {
       proxy: {
+        '/api/Dashboard': {
+          target: dashboardTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        },
         '/api': {
           target: backendTarget,
           changeOrigin: true,

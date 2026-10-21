@@ -4,8 +4,12 @@ import Login from './login.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
 import Users from './Settings/Users/Users.jsx'
 import Dashboard from './Dashboard/Dashboard.jsx'
+
 import Farms from './Masters/Farms/farms.jsx'
 import { authRequest } from './auth.js'
+
+import Crops from './Masters/Crops/index.jsx'
+
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
@@ -322,6 +326,21 @@ function App() {
           <Farmers />
         ) : active === 'Users' ? (
           <Users />
+        ) : active === 'Crops' ? (
+          <section className="page-content">
+            <Crops initialTab="crops" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Crop Varieties' ? (
+          <section className="page-content">
+            <Crops initialTab="varieties" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Crop Seasons' ? (
+          <section className="page-content">
+            <Crops initialTab="seasons" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
         ) : (
           <section className="page-content">
             {active === 'Users' ? (
