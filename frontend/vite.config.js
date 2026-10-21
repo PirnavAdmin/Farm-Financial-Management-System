@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    cacheDir: '.vite-cache',
     server: {
       proxy: {
         '/api': {

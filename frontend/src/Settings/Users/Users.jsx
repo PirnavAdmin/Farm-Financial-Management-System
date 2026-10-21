@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import './users.css'
+import './Users.css'
  
 const modules = ['Dashboard', 'Farmers', 'Crops', 'Income', 'Expenditure', 'Purchase', 'Sales', 'Inventory', 'Reports', 'Settings', 'Audit Log']
 const seed = [

@@ -72,15 +72,9 @@ html, body {
 }
 
 .brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  color: white;
-  background: #338252;
-  font: 700 16px/1 var(--sans);
-  box-shadow: 0 4px 10px #33825230;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

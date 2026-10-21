@@ -36,15 +36,10 @@
 }
 
 .login-brand-mark {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: #c5ed63;
-  color: #28573d;
-  font: 500 24px/1 var(--sans);
-  letter-spacing: 0;
+  display: block;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
 }
 
 .login-kicker {
@@ -74,7 +69,7 @@
   font: 650 13px/1.3 var(--sans);
 }
 
-.login-form input[type='email'], .login-form input[type='password'], .login-form input.otp-input, .password-field input {
+.login-form input[type='email'], .login-form input[type='text'], .login-form input[type='password'], .login-form input.otp-input, .password-field input {
   width: 100%;
   height: 52px;
   box-sizing: border-box;
@@ -89,7 +84,7 @@
 }
 
 .login-form input::placeholder { color: #8b9aa5; }
-.login-form input[type='email']:focus, .login-form input[type='password']:focus, .login-form input.otp-input:focus, .password-field input:focus { border-color: #77a88c; box-shadow: 0 0 0 3px #77a88c25; }
+.login-form input[type='email']:focus, .login-form input[type='text']:focus, .login-form input[type='password']:focus, .login-form input.otp-input:focus, .password-field input:focus { border-color: #77a88c; box-shadow: 0 0 0 3px #77a88c25; }
 .password-field { position: relative; margin-bottom: 24px; }
 .password-field input { padding-right: 66px; }
 .show-password { position: absolute; top: 0; right: 10px; height: 52px; padding: 0 5px; border: 0; background: transparent; color: #245b43; font: 650 12px var(--sans); cursor: pointer; }

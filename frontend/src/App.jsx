@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import Login from './login.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
 import Users from './Settings/Users/Users.jsx'
 import Dashboard from './Dashboard/Dashboard.jsx'
+import Farms from './Masters/Farms/farms.jsx'
+import { authRequest } from './auth.js'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
@@ -74,77 +76,112 @@ function getInitials(name, email) {
 }
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(() => localStorage.getItem('agriman_logged_in') === 'true')
+  const [loggedIn, setLoggedIn] = useState(() => {
+    return Boolean(localStorage.getItem('agriman_access_token') || sessionStorage.getItem('agriman_access_token'))
+  })
   const [userEmail, setUserEmail] = useState(() => {
-    return localStorage.getItem('agriman_user_email') || 'meghanareddybutreddy@gmail.com'
+    return localStorage.getItem('agriman_user_email') || sessionStorage.getItem('agriman_user_email') || 'User'
+  })
+  const [userRole, setUserRole] = useState(() => {
+    return localStorage.getItem('agriman_user_role') || sessionStorage.getItem('agriman_user_role') || 'User'
   })
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('agriman_user_name') || 'Meghana Reddy'
+    return localStorage.getItem('agriman_user_name')
+      || sessionStorage.getItem('agriman_user_name')
+      || localStorage.getItem('agriman_user_email')
+      || sessionStorage.getItem('agriman_user_email')
+      || 'User'
   })
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
-  const searchRef = useRef(null)
-
-  const userInitials = getInitials(userName, userEmail)
+  const sidebarCollapsed = false
 
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowSearchDropdown(false)
+    const storage = localStorage.getItem('agriman_access_token') ? localStorage : sessionStorage
+    const initialAccessToken = storage.getItem('agriman_access_token')
+    if (!initialAccessToken) return undefined
+
+    let mounted = true
+    async function restoreSession() {
+      try {
+        const response = await authRequest('me', { method: 'GET', accessToken: initialAccessToken })
+        const user = response.user || response
+
+        if (!mounted) return
+        const displayName = user.fullName || user.name || user.email || user.phoneNumber || storage.getItem('agriman_user_email') || 'User'
+        const role = user.role || storage.getItem('agriman_user_role') || 'User'
+        storage.setItem('agriman_user_email', displayName)
+        storage.setItem('agriman_user_name', displayName)
+        storage.setItem('agriman_user_role', role)
+        setUserEmail(displayName)
+        setUserName(displayName)
+        setUserRole(role)
+        setLoggedIn(true)
+      } catch (requestError) {
+        if (!mounted) return
+        if (requestError.status === 401 || requestError.status === 400) {
+          for (const currentStorage of [localStorage, sessionStorage]) {
+            currentStorage.removeItem('agriman_access_token')
+            currentStorage.removeItem('agriman_refresh_token')
+            currentStorage.removeItem('agriman_user_email')
+            currentStorage.removeItem('agriman_user_name')
+            currentStorage.removeItem('agriman_user_role')
+          }
+          setLoggedIn(false)
+          setUserEmail('User')
+          setUserName('User')
+          setUserRole('User')
+        }
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+
+    restoreSession()
+    return () => { mounted = false }
   }, [])
 
-  const filteredModules = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim()
-    if (!q) {
-      return sidebarNavModules
+  function handleLogin(user, token, rememberMe, identifier) {
+    const storage = rememberMe ? localStorage : sessionStorage
+    const displayName = user.fullName || user.name || user.email || user.phoneNumber || identifier || 'User'
+    const role = user.role || 'User'
+    for (const currentStorage of [localStorage, sessionStorage]) {
+      currentStorage.removeItem('agriman_access_token')
+      currentStorage.removeItem('agriman_refresh_token')
+      currentStorage.removeItem('agriman_user_email')
+      currentStorage.removeItem('agriman_user_name')
+      currentStorage.removeItem('agriman_user_role')
     }
-    return sidebarNavModules.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.category.toLowerCase().includes(q)
-    )
-  }, [searchQuery])
-
-  function handleSelectModule(moduleItem) {
-    selectItem(moduleItem.name)
-    if (!moduleItem.isParent) {
-      setExpanded((prev) => ({ ...prev, [moduleItem.category]: true }))
-    }
-    setSearchQuery('')
-    setShowSearchDropdown(false)
-  }
-
-  function handleLogin(email, name) {
-    const nextEmail = email || 'meghanareddybutreddy@gmail.com'
-    const nextName = name || formatDisplayName(nextEmail)
-    setUserEmail(nextEmail)
-    setUserName(nextName)
+    storage.setItem('agriman_access_token', token)
+    storage.setItem('agriman_user_email', displayName)
+    storage.setItem('agriman_user_name', user.fullName || user.name || displayName)
+    storage.setItem('agriman_user_role', role)
+    setUserEmail(displayName)
+    setUserName(user.fullName || user.name || displayName)
+    setUserRole(role)
     setLoggedIn(true)
-    localStorage.setItem('agriman_logged_in', 'true')
-    localStorage.setItem('agriman_user_email', nextEmail)
-    localStorage.setItem('agriman_user_name', nextName)
   }
 
   function handleLogout() {
     setLoggedIn(false)
     setShowUserMenu(false)
-    setShowNotifications(false)
-    localStorage.removeItem('agriman_logged_in')
+    for (const storage of [localStorage, sessionStorage]) {
+      storage.removeItem('agriman_access_token')
+      storage.removeItem('agriman_refresh_token')
+      storage.removeItem('agriman_user_email')
+      storage.removeItem('agriman_user_name')
+      storage.removeItem('agriman_user_role')
+    }
+    setUserEmail('User')
+    setUserName('User')
+    setUserRole('User')
   }
 
   function selectItem(label) {
     setActive(label)
     setShowUserMenu(false)
-    setShowNotifications(false)
   }
+
+  const userInitials = getInitials(userName, userEmail)
 
   if (!loggedIn) return <Login onLogin={handleLogin} />
 
@@ -152,7 +189,7 @@ function App() {
     <div className="app-shell">
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <a className="brand" href="#dashboard" onClick={() => selectItem('Dashboard')}>
-          <span className="brand-mark">A</span><span className="brand-name">AGRIMAN<small>Farm management</small></span>
+          <img className="brand-mark" src="/agriman-logo.png" alt="AGRIMAN Farm Management" />
         </a>
         <div className="menu-caption">WORKSPACE</div>
         <nav aria-label="Main navigation">
@@ -191,237 +228,32 @@ function App() {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="avatar" style={{ background: '#1d4ed8', color: '#fff', fontWeight: 700 }}>{userInitials}</div>
-          <div className="user-details"><strong title={userName}>{userName}</strong><span>Administrator</span></div>
-          <button className="more-button logout-button" type="button" aria-label="Sign out" onClick={handleLogout}>↪</button>
+          <div className="avatar">{userInitials}</div>
+          <div className="user-details">
+            <strong title={userEmail}>{userEmail}</strong>
+            <span>{userRole}</span>
+          </div>
+          <button className="more-button logout-button" type="button" aria-label="Sign out" title="Sign out" onClick={handleLogout}>↪</button>
         </div>
       </aside>
 
       <main className="main-content">
-        {active === 'Dashboard' ? (
-          <header className="topbar dashboard-topbar">
-            <div className="topbar-left">
-              <button
-                type="button"
-                className="hamburger-btn"
-                onClick={() => setSidebarCollapsed((prev) => !prev)}
-                aria-label="Toggle navigation"
-                title="Toggle sidebar"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-
-              <div className="topbar-search-wrapper" ref={searchRef}>
-                <div className="topbar-search-box">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  <input
-                    type="text"
-                    className="topbar-search-input"
-                    placeholder="Search dashboard, crops, finance, inventory, reports..."
-                    value={searchQuery}
-                    onFocus={() => setShowSearchDropdown(true)}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value)
-                      setShowSearchDropdown(true)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setShowSearchDropdown(false)
-                      }
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      className="search-clear-btn"
-                      onClick={() => setSearchQuery('')}
-                      title="Clear search"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {showSearchDropdown && (
-                  <div className="search-results-dropdown">
-                    <div className="search-dropdown-header">
-                      <span>{searchQuery.trim() ? `Matching Modules (${filteredModules.length})` : 'Sidebar Modules (Click to Navigate)'}</span>
-                    </div>
-                    {filteredModules.length > 0 ? (
-                      <div className="search-results-list">
-                        {filteredModules.map((item) => (
-                          <button
-                            key={`${item.category}-${item.name}`}
-                            type="button"
-                            className="search-result-item"
-                            onClick={() => handleSelectModule(item)}
-                          >
-                            <div className="search-result-left">
-                              <span className="search-result-icon">{item.icon}</span>
-                              <div className="search-result-text">
-                                <span className="search-result-name">{item.name}</span>
-                                <span className="search-result-category">{item.path}</span>
-                              </div>
-                            </div>
-                            <span className="search-result-arrow">→</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="search-no-results">
-                        <p>No sidebar module found matching &ldquo;<strong>{searchQuery}</strong>&rdquo;</p>
-                        <small>Available: Crops, Expenses, Purchases, Reports, Farmers, etc.</small>
-                      </div>
-                    )}
-                  </div>
-                )}
+        <header className="topbar">
+          <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
+          <div className="topbar-actions">
+            <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
+            <div className="topbar-divider" />
+            <div
+              className="topbar-user-area"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setShowUserMenu((prev) => !prev)}
+            >
+              <div className="top-avatar">{userInitials}</div>
+              <div className="top-user" style={{ marginLeft: '8px' }}>
+                <strong title={userEmail}>{userEmail}</strong>
+                <span>{userRole}</span>
               </div>
-            </div>
-
-            <div className="topbar-right">
-              <div className="bell-wrapper">
-                <button
-                  type="button"
-                  className="bell-btn"
-                  onClick={() => {
-                    setShowNotifications((prev) => !prev)
-                    setShowUserMenu(false)
-                  }}
-                  aria-label="Notifications"
-                  title="Notifications"
-                >
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                  </svg>
-                  <span className="bell-badge-dot" />
-                </button>
-
-                {showNotifications && (
-                  <div className="notifications-dropdown-menu">
-                    <div className="notif-dropdown-header">
-                      <strong>Notifications</strong>
-                      <span className="notif-count-badge">3 New</span>
-                    </div>
-                    <div className="notif-items-list">
-                      <div className="notif-item unread">
-                        <span className="notif-icon">🌾</span>
-                        <div className="notif-item-body">
-                          <strong>Harvest Alert</strong>
-                          <p>Field #2 crop cycle is ready for harvest</p>
-                          <small>15m ago</small>
-                        </div>
-                      </div>
-                      <div className="notif-item unread">
-                        <span className="notif-icon">⚠️</span>
-                        <div className="notif-item-body">
-                          <strong>Low Stock Warning</strong>
-                          <p>DAP Fertilizer stock reached 4 Bags</p>
-                          <small>1h ago</small>
-                        </div>
-                      </div>
-                      <div className="notif-item">
-                        <span className="notif-icon">💰</span>
-                        <div className="notif-item-body">
-                          <strong>Payment Received</strong>
-                          <p>₹ 1,45,000 received from APMC Mandi</p>
-                          <small>3h ago</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="notif-footer">
-                      <button type="button" onClick={() => setShowNotifications(false)}>Mark all as read</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="user-pill-wrapper">
-                <div
-                  className="user-pill-card"
-                  onClick={() => {
-                    setShowUserMenu((prev) => !prev)
-                    setShowNotifications(false)
-                  }}
-                >
-                  <div className="pill-avatar-wrap">
-                    {userInitials}
-                    <span className="avatar-online-dot" />
-                  </div>
-                  <div className="pill-user-info">
-                    <strong className="pill-name">{userName}</strong>
-                    <span className="pill-email">{userEmail}</span>
-                  </div>
-                  <svg
-                    className={`pill-chevron ${showUserMenu ? 'open' : ''}`}
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#64748b"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-
-                {showUserMenu && (
-                  <div className="user-dropdown-menu">
-                    <div className="user-dropdown-header">
-                      <div className="pill-avatar-wrap" style={{ width: '38px', height: '38px', fontSize: '14px' }}>
-                        {userInitials}
-                        <span className="avatar-online-dot" />
-                      </div>
-                      <div className="dropdown-user-info">
-                        <strong title={userName}>{userName}</strong>
-                        <span title={userEmail}>{userEmail}</span>
-                        <small className="session-pill">● Active Session</small>
-                      </div>
-                    </div>
-                    <div className="user-dropdown-divider" />
-                    <button
-                      type="button"
-                      className="dropdown-logout-item"
-                      onClick={handleLogout}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
-                      <span>Sign out</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </header>
-        ) : (
-          <header className="topbar classic-topbar">
-            <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
-            <div className="topbar-actions">
-              <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
-              <div className="topbar-divider" />
-              <div
-                className="topbar-user-area"
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                onClick={() => setShowUserMenu((prev) => !prev)}
-              >
-                <div className="top-avatar" style={{ background: '#1d4ed8', color: '#fff', fontWeight: 700 }}>{userInitials}</div>
-                <div className="top-user" style={{ marginLeft: '8px' }}>
-                  <strong title={userName}>{userName}</strong>
-                  <span>Administrator</span>
-                </div>
-                <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
+              <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
 
                 {showUserMenu && (
                   <div
@@ -486,15 +318,17 @@ function App() {
               </button>
             </div>
           </header>
-        )}
-
         {active === 'Farmers' ? (
           <Farmers />
         ) : active === 'Users' ? (
           <Users />
         ) : (
           <section className="page-content">
-            {active === 'Dashboard' ? (
+            {active === 'Users' ? (
+            <Users />
+          ) : active === 'Farms' ? (
+            <Farms />
+          ) : active === 'Dashboard' ? (
               <Dashboard onNavigate={selectItem} />
             ) : (
               <div className="module-view-container">
