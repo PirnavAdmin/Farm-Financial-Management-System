@@ -1,0 +1,4 @@
+﻿@import '../../Settings/Users/Users.css';
+
+.sales-screen .users-table { min-width: 1100px; }
+.sales-screen .users-table td { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }

@@ -6,9 +6,35 @@ import Users from './Settings/Users/Users.jsx'
 import Dashboard from './Dashboard/Dashboard.jsx'
 
 import Farms from './Masters/Farms/farms.jsx'
+import ExpenseCategories from './Masters/Expense Categories/expense categories.jsx'
+import IncomeCategories from './Masters/Income Categories/income categories.jsx'
 import { authRequest } from './auth.js'
 
 import Crops from './Masters/Crops/index.jsx'
+import Income from './Finance/Income/income.jsx'
+import Expenses from './Finance/Expenses/expenses.jsx'
+import Payments from './Finance/Payments/payments.jsx'
+import Receipts from './Finance/Receipts/receipts.jsx'
+import Loans from './Finance/Loans/loans.jsx'
+import BankAccounts from './Finance/Bank Accounts/bank accounts.jsx'
+import Purchases from './Inventory/Purchases/purchases.jsx'
+import StockIn from './Inventory/Stock In/stock in.jsx'
+import StockOut from './Inventory/Stock Out/stock out.jsx'
+import StockAdjustment from './Inventory/Stock Adjustment/stock adjustment.jsx'
+import StockLedger from './Inventory/Stock Ledger/stock ledger.jsx'
+import Sales from './Sales/Sales/sales.jsx'
+import Customers from './Sales/Customers/customers.jsx'
+import Receivables from './Sales/Receivables/receivables.jsx'
+import CashFlow from './Reports/Cash Flow/cash flow.jsx'
+import CropProfit from './Reports/Crop Profit/crop profit.jsx'
+import DashboardReports from './Reports/Dashboard Reports/dashboard reports.jsx'
+import ExpenseReport from './Reports/Expense Report/expense report.jsx'
+import FarmProfit from './Reports/Farm Profit/farm profit.jsx'
+import IncomeReport from './Reports/Income Report/income report.jsx'
+import ProfitLoss from './Reports/P&L/p&l.jsx'
+import AuditLog from './Settings/Audit Log/audit log.jsx'
+import Company from './Settings/Company/company.jsx'
+import Roles from './Settings/Roles/roles.jsx'
 
 
 const menuGroups = [
@@ -144,7 +170,7 @@ function App() {
     return () => { mounted = false }
   }, [])
 
-  function handleLogin(user, token, rememberMe, identifier) {
+  function handleLogin(user, token, rememberMe, identifier, refreshToken) {
     const storage = rememberMe ? localStorage : sessionStorage
     const displayName = user.fullName || user.name || user.email || user.phoneNumber || identifier || 'User'
     const role = user.role || 'User'
@@ -156,6 +182,7 @@ function App() {
       currentStorage.removeItem('agriman_user_role')
     }
     storage.setItem('agriman_access_token', token)
+    if (refreshToken) storage.setItem('agriman_refresh_token', refreshToken)
     storage.setItem('agriman_user_email', displayName)
     storage.setItem('agriman_user_name', user.fullName || user.name || displayName)
     storage.setItem('agriman_user_role', role)
@@ -231,22 +258,12 @@ function App() {
             )
           })}
         </nav>
-        <div className="sidebar-footer">
-          <div className="avatar">{userInitials}</div>
-          <div className="user-details">
-            <strong title={userEmail}>{userEmail}</strong>
-            <span>{userRole}</span>
-          </div>
-          <button className="more-button logout-button" type="button" aria-label="Sign out" title="Sign out" onClick={handleLogout}>↪</button>
-        </div>
       </aside>
 
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
           <div className="topbar-actions">
-            <button className="icon-button notification-button" type="button" aria-label="Notifications">♧<i /></button>
-            <div className="topbar-divider" />
             <div
               className="topbar-user-area"
               style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -301,31 +318,14 @@ function App() {
                   </div>
                 )}
               </div>
-
-              <button
-                type="button"
-                className="top-logout-link"
-                onClick={handleLogout}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6b7280',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  marginLeft: '8px',
-                  padding: '4px 8px',
-                  borderRadius: '4px'
-                }}
-                title="Sign out"
-              >
-                Sign out ↪
-              </button>
             </div>
           </header>
         {active === 'Farmers' ? (
           <Farmers />
         ) : active === 'Users' ? (
-          <Users />
+          <section className="page-content">
+            <Users />
+          </section>
         ) : active === 'Crops' ? (
           <section className="page-content">
             <Crops initialTab="crops" onNavigate={selectItem} />
@@ -343,7 +343,59 @@ function App() {
           </section>
         ) : (
           <section className="page-content">
-            {active === 'Users' ? (
+            {active === 'Income' ? (
+              <Income />
+            ) : active === 'Expenses' ? (
+              <Expenses />
+            ) : active === 'Payments' ? (
+              <Payments />
+            ) : active === 'Receipts' ? (
+              <Receipts />
+            ) : active === 'Loans' ? (
+              <Loans />
+            ) : active === 'Bank Accounts' ? (
+              <BankAccounts />
+            ) : active === 'Purchases' ? (
+              <Purchases />
+            ) : active === 'Stock In' ? (
+              <StockIn />
+            ) : active === 'Stock Out' ? (
+              <StockOut />
+            ) : active === 'Stock Adjustment' ? (
+              <StockAdjustment />
+            ) : active === 'Stock Ledger' ? (
+              <StockLedger />
+            ) : active === 'Sales' ? (
+              <Sales />
+            ) : active === 'Customers' ? (
+              <Customers />
+            ) : active === 'Receivables' ? (
+              <Receivables />
+            ) : active === 'Expense Categories' ? (
+              <ExpenseCategories />
+            ) : active === 'Income Categories' ? (
+              <IncomeCategories />
+            ) : active === 'Income Report' ? (
+              <IncomeReport />
+            ) : active === 'Expense Report' ? (
+              <ExpenseReport />
+            ) : active === 'Crop Profit' ? (
+              <CropProfit />
+            ) : active === 'Farm Profit' ? (
+              <FarmProfit />
+            ) : active === 'Cash Flow' ? (
+              <CashFlow />
+            ) : active === 'P&L' ? (
+              <ProfitLoss />
+            ) : active === 'Dashboard Reports' ? (
+              <DashboardReports />
+            ) : active === 'Roles' ? (
+              <Roles />
+            ) : active === 'Company' ? (
+              <Company />
+            ) : active === 'Audit Log' ? (
+              <AuditLog />
+            ) : active === 'Users' ? (
             <Users />
           ) : active === 'Farms' ? (
             <Farms />

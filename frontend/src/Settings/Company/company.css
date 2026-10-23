@@ -1,0 +1,15 @@
+﻿@import '../Users/Users.css';
+
+.company-panel { padding: 0 22px; }
+.company-section { padding: 20px 0; border-bottom: 1px solid #edf0ed; }
+.company-section-heading { margin-bottom: 14px; }
+.company-section-heading h2 { margin: 0; color: #405146; font-size: 13px; }
+.company-section-heading p { margin: 5px 0 0; color: #89958d; font-size: 10px; }
+.company-panel .form-grid label { font-size: 10px; }
+.company-panel .form-grid input,.company-panel .form-grid select { height: 36px; font-size: 11px; }
+.company-footer { display:flex; align-items:center; justify-content:space-between; padding: 14px 0; color:#89958d; font-size:10px; }
+.company-footer button { height:34px; padding:0 14px; border:0; border-radius:5px; background:#31794a; color:white; cursor:pointer; font-size:10px; font-weight:600; }
+.company-page .users-stats article strong { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; }
+@media(max-width:600px) { .company-panel { padding:0 14px; }.company-footer { gap:10px; align-items:flex-start; flex-direction:column; } }
+.company-api-message { margin:0 0 14px; padding:10px 13px; border:1px solid #f0c6bf; border-radius:6px; color:#9e3c31; background:#fff4f1; font-size:10px; line-height:1.5; }
+.company-footer button:disabled,.users-add:disabled { opacity:.65; cursor:wait; }

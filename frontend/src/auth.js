@@ -2,13 +2,15 @@ const defaultApiBase = 'https://mushiness-rehab-fanatic.ngrok-free.dev'
 const apiBase = (import.meta.env.DEV ? '' : import.meta.env.VITE_API_BASE_URL ?? defaultApiBase).replace(/\/+$/, '')
 
 export async function authRequest(endpoint, { method = 'POST', body, accessToken } = {}) {
+  const supportedEndpoints = new Set(['login', 'register', 'refresh-token', 'forgot-password', 'reset-password', 'me'])
+  if (!supportedEndpoints.has(endpoint)) throw new Error(`Unsupported authentication endpoint: ${endpoint}`)
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
 
   let response
   try {
-    response = await fetch(`${apiBase}/api/Auth/${endpoint}`, {
+    response = await fetch(`${apiBase}/api/v1/auth/${endpoint}`, {
       method,
       headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -20,7 +22,7 @@ export async function authRequest(endpoint, { method = 'POST', body, accessToken
   const result = await response.json().catch(() => ({}))
   if (!response.ok || result.success === false) {
     const message = response.status === 404
-      ? `The AGRIMAN API returned 404 for /api/Auth/${endpoint}. Check that the API server and tunnel expose this route.`
+      ? `The AGRIMAN API returned 404 for /api/v1/auth/${endpoint}. Check that the API server and tunnel expose this route.`
       : result.message || `The authentication request failed (${response.status}).`
     const error = new Error(message)
     error.status = response.status

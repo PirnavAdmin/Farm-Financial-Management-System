@@ -70,7 +70,7 @@ export default function Login({ onLogin }) {
             const token = result.token || result.data?.token
             const user = result.user || result.data?.user || { email: identifier.trim() }
             if (!token) throw new Error('The server did not return a login token.')
-            onLogin(user, token, rememberMe, identifier.trim())
+            onLogin(user, token, rememberMe, identifier.trim(), result.refreshToken)
           })
         }}>
           <label htmlFor="login-identifier">Email</label>
@@ -122,7 +122,7 @@ export default function Login({ onLogin }) {
           runRequest(async () => {
             const result = await authRequest('reset-password', { body: {
               email: identifier.trim(),
-              otp,
+              token: otp,
               newPassword,
               confirmPassword,
             } })

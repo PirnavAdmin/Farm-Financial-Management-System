@@ -209,19 +209,7 @@ html, body {
   background: #398456;
 }
 
-/* Sidebar Footer (Profile & Logout) */
-.sidebar-footer {
-  display: flex;
-  align-items: center;
-  border-top: 1px solid #edf0ed;
-  padding: 12px 2px 0;
-  gap: 8px;
-  flex-shrink: 0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.avatar, .top-avatar {
+.top-avatar {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -231,13 +219,7 @@ html, body {
   font-weight: 700;
 }
 
-.avatar {
-  width: 30px;
-  height: 30px;
-  font-size: 10px;
-}
-
-.user-details, .top-user {
+.top-user {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -245,8 +227,8 @@ html, body {
   overflow: hidden;
 }
 
-.user-details strong, .top-user strong {
-  font-size: 11px;
+.top-user strong {
+  font-size: 13px;
   color: #3b4940;
   font-weight: 650;
   white-space: nowrap;
@@ -255,9 +237,9 @@ html, body {
   max-width: 140px;
 }
 
-.user-details span, .top-user span {
+.top-user span {
   color: #929d95;
-  font-size: 9.5px;
+  font-size: 10.5px;
   white-space: nowrap;
 }
 
@@ -269,15 +251,6 @@ html, body {
   font-size: 18px;
   letter-spacing: 1px;
   flex-shrink: 0;
-}
-
-.sidebar-footer .more-button {
-  margin-left: auto;
-}
-
-.logout-button {
-  padding: 2px 5px;
-  font-size: 16px;
 }
 
 /* Main Content Area */
@@ -338,42 +311,13 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.icon-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid #e3e8e4;
-  background: #fafdfa;
-  cursor: pointer;
-  color: #55675b;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  position: relative;
-}
-
-.notification-button i {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 5px;
-  height: 5px;
-  background: #257843;
-  border-radius: 50%;
-}
-
-.topbar-divider {
-  height: 25px;
-  border-left: 1px solid #e8ece8;
-  margin: 0 2px 0 5px;
+  margin-right: 16px;
 }
 
 .top-avatar {
-  width: 30px;
-  height: 30px;
-  font-size: 10px;
+  width: 38px;
+  height: 38px;
+  font-size: 12px;
 }
 
 .top-user {
@@ -1060,9 +1004,7 @@ html, body {
   .menu-caption,
   .menu-item > span:not(.menu-icon),
   .chevron,
-  .submenu,
-  .sidebar-footer .user-details,
-  .sidebar-footer .more-button {
+  .submenu {
     display: none;
   }
   .menu-item {
@@ -1072,13 +1014,12 @@ html, body {
   .menu-icon {
     font-size: 16px;
   }
-  .sidebar-footer {
-    justify-content: center;
-    padding: 10px 0 0;
-  }
   .topbar {
     height: 52px;
     padding: 0 12px;
+  }
+  .topbar-actions {
+    margin-right: 0;
   }
   .top-user,
   .top-chevron {

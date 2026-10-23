@@ -3,7 +3,7 @@ import axios from 'axios';
 // In dev mode, use relative URL ('') so requests go through Vite proxy at localhost:5173.
 // This prevents browser CORS and 405 Method Not Allowed preflight errors.
 const isDev = import.meta.env.DEV;
-const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://lesser-chomp-stomp.ngrok-free.dev');
+const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_FARMERS_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev');
 const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 export const api = axios.create({
@@ -46,7 +46,7 @@ api.interceptors.response.use(
       } else if (data && data.message) {
         friendlyMessage = data.message;
       } else if (status === 404) {
-        friendlyMessage = 'The requested farmer record was not found.';
+        friendlyMessage = `The API route or farmer record was not found (${error.config?.url || 'unknown route'}). Check that the business API host exposes this endpoint.`;
       } else if (status === 500) {
         friendlyMessage = 'Server error in ASP.NET Core Web API. Please check backend logs.';
       } else {

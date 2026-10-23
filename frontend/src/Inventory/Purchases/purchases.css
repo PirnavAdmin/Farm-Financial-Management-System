@@ -1,0 +1,4 @@
+﻿@import '../../Settings/Users/Users.css';
+
+.inventory-screen .users-table { min-width: 1100px; }
+.inventory-screen .users-table td { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }

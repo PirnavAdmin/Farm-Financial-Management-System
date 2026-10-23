@@ -1,0 +1,7 @@
+﻿@import '../Users/Users.css';
+
+.roles-table { min-width: 980px; }
+.roles-table td { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.roles-table td:nth-child(2),.roles-table td:nth-child(4) { white-space: normal; line-height:1.5; }
+.role-name { color:#435248; font-size:10px; font-weight:600; }
+.permission-summary { display:inline-block; max-width:250px; overflow:hidden; color:#748078; text-overflow:ellipsis; vertical-align:middle; }

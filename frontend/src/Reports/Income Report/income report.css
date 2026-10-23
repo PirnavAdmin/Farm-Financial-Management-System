@@ -1,0 +1,9 @@
+﻿@import '../../Settings/Users/Users.css';
+
+.report-screen .users-table { min-width: 850px; }
+.report-screen .users-table td { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.report-export { white-space: nowrap; }
+.report-toolbar { flex-wrap: wrap; }
+.report-date-filter { display: flex; align-items: center; gap: 6px; color: #77847b; font-size: 9px; white-space: nowrap; }
+.report-date-filter input { height: 34px; padding: 0 8px; border: 1px solid #e5eae4; border-radius: 5px; color: #657269; background: #fff; font: 400 10px var(--sans); }
+@media(max-width: 850px) { .report-date-filter { flex: 1; } .report-date-filter input { min-width: 0; width: 100%; } }
