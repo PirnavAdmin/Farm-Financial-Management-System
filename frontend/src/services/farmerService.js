@@ -3,13 +3,17 @@ import api from './api';
 export const farmerService = {
   getFarmers: async () => {
     const response = await api.get('/api/Farmers');
-    if (Array.isArray(response.data)) {
-      return response.data;
+    const farmers = Array.isArray(response.data)
+      ? response.data
+      : Array.isArray(response.data?.data)
+        ? response.data.data
+        : null;
+
+    if (!farmers || farmers.some((farmer) => !farmer || typeof farmer !== 'object' || Array.isArray(farmer))) {
+      throw new Error('The Farmers API returned an unsupported response. Expected a farmer list or an object with a data list.');
     }
-    if (Array.isArray(response.data?.data)) {
-      return response.data.data;
-    }
-    return [];
+
+    return farmers;
   },
 
   getFarmerById: async (id) => {
