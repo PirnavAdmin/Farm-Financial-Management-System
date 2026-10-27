@@ -1,1 +1,0 @@
-# Farm Financial Management Backend 

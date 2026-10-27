@@ -1,0 +1,133 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\controllers\\rolescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:controllers\\rolescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\dtos\\roledtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:dtos\\roledtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\dtos\\companydtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:dtos\\companydtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\dtos\\authdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:dtos\\authdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\dtos\\auditlogdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:dtos\\auditlogdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|c:\\users\\admin\\desktop\\adminpage\\services\\iroleservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7C1EA29F-0DEA-406C-728D-61282B7D60A4}|AgriMan.Api.csproj|solutionrelative:services\\iroleservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "AuditLogDtos.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\AuditLogDtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\AuditLogDtos.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\AuditLogDtos.cs",
+              "RelativeToolTip": "DTOs\\AuditLogDtos.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T06:19:39.193Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IRoleService.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\Services\\IRoleService.cs",
+              "RelativeDocumentMoniker": "Services\\IRoleService.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\Services\\IRoleService.cs",
+              "RelativeToolTip": "Services\\IRoleService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAABjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-21T07:49:23.064Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "RoleDtos.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\RoleDtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\RoleDtos.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\RoleDtos.cs",
+              "RelativeToolTip": "DTOs\\RoleDtos.cs",
+              "ViewState": "AgIAACMAAAAAAAAAAAAmwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-21T07:48:59.798Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "RolesController.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\Controllers\\RolesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\RolesController.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\Controllers\\RolesController.cs",
+              "RelativeToolTip": "Controllers\\RolesController.cs",
+              "ViewState": "AgIAAH4AAAAAAAAAAAAIwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-21T07:48:20.884Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-10-20T19:19:02.506Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AuthDtos.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\AuthDtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\AuthDtos.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\AuthDtos.cs",
+              "RelativeToolTip": "DTOs\\AuthDtos.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T06:19:48.993Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "CompanyDtos.cs",
+              "DocumentMoniker": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\CompanyDtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\CompanyDtos.cs",
+              "ToolTip": "C:\\Users\\ADMIN\\Desktop\\AdminPage\\DTOs\\CompanyDtos.cs",
+              "RelativeToolTip": "DTOs\\CompanyDtos.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T06:19:53.658Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

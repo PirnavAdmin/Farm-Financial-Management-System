@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AgriMan.Api</name>
+    </assembly>
+    <members>
+        <member name="M:AgriMan.Api.Controllers.AuditLogsController.GetAuditLogs(System.String,System.String,System.Nullable{System.Int32},System.Int32,System.Int32)">
+            <summary>
+            Track administrative actions and system modifications
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.Login(AgriMan.Api.DTOs.LoginRequestDto)">
+            <summary>
+            Authenticates user and generates JWT token and refresh token
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.Register(AgriMan.Api.DTOs.RegisterRequestDto)">
+            <summary>
+            Registers a new user account
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.RefreshToken(AgriMan.Api.DTOs.RefreshTokenRequestDto)">
+            <summary>
+            Refresh access token using refresh token
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.ForgotPassword(AgriMan.Api.DTOs.ForgotPasswordRequestDto)">
+            <summary>
+            Validates email and sends a 6-digit OTP to the valid registered email address
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.VerifyResetOtp(AgriMan.Api.DTOs.VerifyResetOtpRequestDto)">
+            <summary>
+            Verifies 6-digit OTP sent to user's email and issues a reset token
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.ResetPassword(AgriMan.Api.DTOs.ResetPasswordRequestDto)">
+            <summary>
+            Resets password using verified token or OTP
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.AuthController.GetCurrentUser">
+            <summary>
+            Profile of currently authenticated user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.CompanyController.GetSettings">
+            <summary>
+            Get organization details and company settings
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.CompanyController.UpdateSettings(AgriMan.Api.DTOs.UpdateCompanySettingRequest)">
+            <summary>
+            Update organization details and company settings
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.LoginHistoryController.GetLoginHistory(System.Nullable{System.Int32},System.Int32,System.Int32)">
+            <summary>
+            Track user logins, failed login attempts, IP addresses, and timestamps
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.PermissionsController.GetAllPermissions">
+            <summary>
+            Get all system permissions grouped by module
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.GetRoles">
+            <summary>
+            Get all available roles in the system
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.GetRoleById(System.Int32)">
+            <summary>
+            Get role details by ID
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.CreateRole(AgriMan.Api.DTOs.CreateRoleRequest)">
+            <summary>
+            Create a new role
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.UpdateRole(System.Int32,AgriMan.Api.DTOs.UpdateRoleRequest)">
+            <summary>
+            Update an existing role
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.DeleteRole(System.Int32)">
+            <summary>
+            Delete a role (only if no users are assigned)
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.RolesController.AssignPermissions(System.Int32,AgriMan.Api.DTOs.AssignPermissionsRequest)">
+            <summary>
+            Assign permissions to a role
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.GetUsers(System.String,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            List users with pagination, search, role and status filtering
+            </summary>
+            <example>GET /api/v1/users?search=Arjun&amp;role=Administrator&amp;status=Active&amp;page=1&amp;pageSize=10</example>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.GetUserStats">
+            <summary>
+            Get user statistics (total, active, inactive) calculated dynamically from SQL Server
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.GetUserById(System.Int32)">
+            <summary>
+            Get user details by ID
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.CreateUser(AgriMan.Api.DTOs.CreateUserRequest)">
+            <summary>
+            Add a new user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.UpdateUser(System.Int32,AgriMan.Api.DTOs.UpdateUserRequest)">
+            <summary>
+            Update user details
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.UpdateUserStatus(System.Int32,AgriMan.Api.DTOs.UpdateUserStatusRequest)">
+            <summary>
+            Activate or deactivate a user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.DeleteUser(System.Int32)">
+            <summary>
+            Soft-delete a user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.GetUserPermissions(System.Int32)">
+            <summary>
+            Get permissions assigned to a user (via their roles and direct permissions)
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.UpdateUserPermissions(System.Int32,AgriMan.Api.DTOs.UpdateUserPermissionsRequest)">
+            <summary>
+            Save/update access permissions for an individual user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.UpdateUserPhoto(System.Int32,AgriMan.Api.DTOs.PhotoUploadRequestDto)">
+            <summary>
+            Update user profile photo (Base64 data URL or photo URL)
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.UploadUserPhotoFile(System.Int32,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload user profile photo file (PNG, JPG, JPEG, WEBP)
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.DeleteUserPhoto(System.Int32)">
+            <summary>
+            Delete user profile photo
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.AssignRoles(System.Int32,AgriMan.Api.DTOs.AssignRolesRequest)">
+            <summary>
+            Assign roles to a user
+            </summary>
+        </member>
+        <member name="M:AgriMan.Api.Controllers.UsersController.GetUserLoginHistory(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            View login history for a specific user
+            </summary>
+        </member>
+        <member name="T:AgriMan.Api.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:AgriMan.Api.Migrations.AddProfilePhotoToUser">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.AddProfilePhotoToUser.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.AddProfilePhotoToUser.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.AddProfilePhotoToUser.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:AgriMan.Api.Migrations.FilteredUniqueIndexesForSoftDelete">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.FilteredUniqueIndexesForSoftDelete.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.FilteredUniqueIndexesForSoftDelete.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AgriMan.Api.Migrations.FilteredUniqueIndexesForSoftDelete.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>
