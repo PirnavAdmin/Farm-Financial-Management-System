@@ -52,6 +52,22 @@ export default defineConfig(({ mode }) => {
             'ngrok-skip-browser-warning': 'true'
           }
         },
+        '/api/Crop': {
+          target: dashboardTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        },
+        '/api/CropCategory': {
+          target: dashboardTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        },
         '/api': {
           target: backendTarget,
           changeOrigin: true,

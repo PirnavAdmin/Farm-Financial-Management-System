@@ -346,7 +346,7 @@ export default function Dashboard({ onNavigate }) {
             <button
               type="button"
               className="panel-link-btn"
-              onClick={() => onNavigate && onNavigate('Crops')}
+              onClick={() => onNavigate && onNavigate('Crop Master')}
             >
               View Crops ({activeCrops.length}) →
             </button>
