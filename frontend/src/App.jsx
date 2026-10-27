@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Component } from 'react'
 import './App.css'
 import Login from './login.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
@@ -39,8 +39,8 @@ import Roles from './Settings/Roles/roles.jsx'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
-  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crops', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
-  { label: 'Agriculture', icon: '♧', children: ['Crop Seasons', 'Crop Activities', 'Labour Attendance', 'Machinery Usage'] },
+  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
+  { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Machinery Usage'] },
   { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
   { label: 'Inventory', icon: '▣', children: ['Purchases', 'Stock In', 'Stock Out', 'Stock Adjustment', 'Stock Ledger'] },
   { label: 'Sales', icon: '▱', children: ['Sales', 'Customers', 'Receivables'] },
@@ -103,6 +103,49 @@ function getInitials(name, email) {
     return prefix.slice(0, 2).toUpperCase()
   }
   return 'MR'
+}
+
+class ModuleErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('[ModuleErrorBoundary caught error]:', error, errorInfo);
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.active !== this.props.active && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <section className="page-content">
+          <div style={{ padding: '40px 24px', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', margin: '24px auto', maxWidth: '600px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚠️</div>
+            <h2 style={{ color: '#1e3325', margin: '0 0 8px', fontSize: '20px' }}>Unable to display {this.props.active}</h2>
+            <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 20px', lineHeight: 1.5 }}>
+              {this.state.error?.message || 'An unexpected error occurred while loading this view.'}
+            </p>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ padding: '10px 20px', background: '#15803d', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Reload View
+            </button>
+          </div>
+          <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function App() {
@@ -320,13 +363,12 @@ function App() {
               </div>
             </div>
           </header>
+        <ModuleErrorBoundary active={active}>
         {active === 'Farmers' ? (
           <Farmers />
         ) : active === 'Users' ? (
-          <section className="page-content">
-            <Users />
-          </section>
-        ) : active === 'Crops' ? (
+          <Users />
+        ) : active === 'Crop Master' || active === 'Crops' ? (
           <section className="page-content">
             <Crops initialTab="crops" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
@@ -336,9 +378,14 @@ function App() {
             <Crops initialTab="varieties" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
-        ) : active === 'Crop Seasons' ? (
+        ) : active === 'Crop Season' || active === 'Crop Seasons' ? (
           <section className="page-content">
             <Crops initialTab="seasons" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Crop Activities' ? (
+          <section className="page-content">
+            <Crops initialTab="activities" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : (
@@ -428,6 +475,7 @@ function App() {
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         )}
+        </ModuleErrorBoundary>
       </main>
     </div>
   )
