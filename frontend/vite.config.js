@@ -1,4 +1,4 @@
-import react from '@vitejs/plugin-react'
+﻿import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const dashboardTarget = env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
   const farmersTarget = env.VITE_FARMERS_API_URL || dashboardTarget
   const inventoryTarget = env.VITE_INVENTORY_API_URL || farmersTarget
-  const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://mushiness-rehab-fanatic.ngrok-free.dev'
+  const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
 
   return {
     plugins: [react()],
@@ -80,3 +80,4 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
+

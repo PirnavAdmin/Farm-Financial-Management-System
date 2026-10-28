@@ -1,4 +1,4 @@
-const defaultApiBase = 'https://mushiness-rehab-fanatic.ngrok-free.dev'
+﻿const defaultApiBase = 'https://lesser-chomp-stomp.ngrok-free.dev'
 const apiBase = (import.meta.env.DEV ? '' : import.meta.env.VITE_API_BASE_URL ?? defaultApiBase).replace(/\/+$/, '')
 
 export async function authRequest(endpoint, { method = 'POST', body, accessToken } = {}) {
@@ -31,3 +31,4 @@ export async function authRequest(endpoint, { method = 'POST', body, accessToken
 
   return result.data ?? result
 }
+

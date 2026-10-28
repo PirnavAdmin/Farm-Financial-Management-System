@@ -4,7 +4,6 @@ import Login from './login.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
 import Users from './Settings/Users/Users.jsx'
 import Dashboard from './Dashboard/Dashboard.jsx'
-import Income from './Masters/Income Categories/index.jsx'
 
 import Farms from './Masters/Farms/farms.jsx'
 import ExpenseCategories from './Masters/Expense Categories/expense categories.jsx'
@@ -362,13 +361,6 @@ function App() {
                   </div>
                 )}
               </div>
-            </div>
-<<<<<<< Updated upstream
-          </header>
-        <ModuleErrorBoundary active={active}>
-        {active === 'Farmers' ? (
-=======
-
             <button
               type="button"
               className="top-logout-link"
@@ -385,17 +377,17 @@ function App() {
               }}
               title="Sign out"
             >
-              Sign out ↪
+              Sign out
             </button>
           </div>
         </header>
 
-        {active === 'Income' ? (
-          <section className="page-content">
-            <Income />
-          </section>
-        ) : active === 'Farmers' ? (
->>>>>>> Stashed changes
+        <ModuleErrorBoundary active={active}>
+          {active === 'Income' ? (
+            <section className="page-content">
+              <Income />
+            </section>
+          ) : active === 'Farmers' ? (
           <Farmers />
         ) : active === 'Users' ? (
           <Users />
