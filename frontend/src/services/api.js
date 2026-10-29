@@ -5,6 +5,7 @@ import axios from 'axios';
 const isDev = import.meta.env.DEV;
 const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_FARMERS_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev');
 const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
+export const BUSINESS_API_BASE_URL = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || BASE_URL).replace(/\/+$/, '');
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -14,6 +15,12 @@ export const api = axios.create({
     'Accept': 'application/json',
     'ngrok-skip-browser-warning': 'true'
   }
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('agriman_access_token') || sessionStorage.getItem('agriman_access_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 api.interceptors.request.use(

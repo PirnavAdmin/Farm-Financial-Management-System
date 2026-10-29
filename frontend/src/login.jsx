@@ -6,8 +6,11 @@ export default function Login({ onLogin }) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [view, setView] = useState('login')
   const [otp, setOtp] = useState('')
+  const [resetToken, setResetToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
@@ -63,14 +66,14 @@ export default function Login({ onLogin }) {
           event.preventDefault()
           runRequest(async () => {
             const result = await authRequest('login', { body: {
-              email: identifier.trim(),
+              identifier: identifier.trim(),
               password,
               rememberMe,
             } })
-            const token = result.token || result.data?.token
+            const token = result.accessToken || result.access_token || result.token || result.jwtToken || result.data?.accessToken || result.data?.access_token || result.data?.token
             const user = result.user || result.data?.user || { email: identifier.trim() }
             if (!token) throw new Error('The server did not return a login token.')
-            onLogin(user, token, rememberMe, identifier.trim(), result.refreshToken)
+            onLogin(user, token, rememberMe, identifier.trim(), result.refreshToken || result.refresh_token || result.data?.refreshToken || result.data?.refresh_token)
           })
         }}>
           <label htmlFor="login-identifier">Email</label>
@@ -90,8 +93,9 @@ export default function Login({ onLogin }) {
         {view === 'request-otp' && <form className="login-form" onSubmit={(event) => {
           event.preventDefault()
           runRequest(async () => {
-            const result = await authRequest('forgot-password', { body: { email: identifier.trim() } })
+            const result = await authRequest('forgot-password', { body: { identifier: identifier.trim() } })
             setOtp('')
+            setResetToken('')
             setView('verify-otp')
             setNotice(result.message || 'If an account exists for this email, a verification code has been sent.')
           })
@@ -104,8 +108,12 @@ export default function Login({ onLogin }) {
 
         {view === 'verify-otp' && <form className="login-form" onSubmit={(event) => {
           event.preventDefault()
-          setView('reset-password')
-          setNotice('Enter the verification code and choose a new password.')
+          runRequest(async () => {
+            const result = await authRequest('verify-otp', { body: { identifier: identifier.trim(), otp } })
+            setResetToken(result.resetToken || result.reset_token || result.token || '')
+            setView('reset-password')
+            setNotice(result.message || 'Verification successful. Choose a new password.')
+          })
         }}>
           <label htmlFor="reset-otp">6-digit verification code</label>
           <input id="reset-otp" className="otp-input" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} placeholder="Enter code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required />
@@ -121,8 +129,8 @@ export default function Login({ onLogin }) {
           }
           runRequest(async () => {
             const result = await authRequest('reset-password', { body: {
-              email: identifier.trim(),
-              token: otp,
+              identifier: identifier.trim(),
+              ...(resetToken ? { resetToken } : { otp }),
               newPassword,
               confirmPassword,
             } })
@@ -134,9 +142,15 @@ export default function Login({ onLogin }) {
           })
         }}>
           <label htmlFor="new-password">New password</label>
-          <input id="new-password" type="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
+          <div className="password-field reset-password-field">
+            <input id="new-password" type={showNewPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} placeholder="At least 8 characters" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
+            <button type="button" className="show-password" onClick={() => setShowNewPassword((visible) => !visible)}>{showNewPassword ? 'Hide' : 'Show'}</button>
+          </div>
           <label className="confirm-password-label" htmlFor="confirm-password">Confirm new password</label>
-          <input id="confirm-password" type="password" autoComplete="new-password" minLength={8} placeholder="Re-enter your password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+          <div className="password-field reset-password-field">
+            <input id="confirm-password" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} placeholder="Re-enter your password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+            <button type="button" className="show-password" onClick={() => setShowConfirmPassword((visible) => !visible)}>{showConfirmPassword ? 'Hide' : 'Show'}</button>
+          </div>
           <button className="login-submit auth-submit" type="submit" disabled={busy}>{busy ? 'Updating…' : 'Update password'} <span>→</span></button>
         </form>}
 

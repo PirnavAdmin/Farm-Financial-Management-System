@@ -361,24 +361,6 @@ function App() {
                   </div>
                 )}
               </div>
-            <button
-              type="button"
-              className="top-logout-link"
-              onClick={handleLogout}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#6b7280',
-                cursor: 'pointer',
-                fontSize: '12px',
-                marginLeft: '8px',
-                padding: '4px 8px',
-                borderRadius: '4px'
-              }}
-              title="Sign out"
-            >
-              Sign out
-            </button>
           </div>
         </header>
 

@@ -1,34 +1,37 @@
-﻿const defaultApiBase = 'https://lesser-chomp-stomp.ngrok-free.dev'
-const apiBase = (import.meta.env.DEV ? '' : import.meta.env.VITE_API_BASE_URL ?? defaultApiBase).replace(/\/+$/, '')
+import api, { BUSINESS_API_BASE_URL } from './services/api'
 
-export async function authRequest(endpoint, { method = 'POST', body, accessToken } = {}) {
-  const supportedEndpoints = new Set(['login', 'register', 'refresh-token', 'forgot-password', 'reset-password', 'me'])
-  if (!supportedEndpoints.has(endpoint)) throw new Error(`Unsupported authentication endpoint: ${endpoint}`)
-  const headers = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-
-  let response
-  try {
-    response = await fetch(`${apiBase}/api/v1/auth/${endpoint}`, {
-      method,
-      headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    })
-  } catch {
-    throw new Error('Could not reach the AGRIMAN API. Check the API URL and its CORS settings for this frontend.')
-  }
-
-  const result = await response.json().catch(() => ({}))
-  if (!response.ok || result.success === false) {
-    const message = response.status === 404
-      ? `The AGRIMAN API returned 404 for /api/v1/auth/${endpoint}. Check that the API server and tunnel expose this route.`
-      : result.message || `The authentication request failed (${response.status}).`
-    const error = new Error(message)
-    error.status = response.status
-    throw error
-  }
-
-  return result.data ?? result
+const routes = {
+  login: '/api/Auth/login',
+  register: '/api/Auth/register',
+  'forgot-password': '/api/Auth/forgot-password',
+  'verify-otp': '/api/Auth/verify-otp',
+  'reset-password': '/api/Auth/reset-password',
+  'login-history': '/api/Auth/login-history',
+  me: '/api/v1/auth/me',
 }
 
+export async function authRequest(endpoint, { method = 'POST', body, accessToken } = {}) {
+  const route = routes[endpoint]
+  if (!route) throw new Error(`Unsupported authentication endpoint: ${endpoint}`)
+  try {
+    const response = await api.request({ baseURL: BUSINESS_API_BASE_URL, url: route, method, data: body, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined })
+    const result = response.data
+    if (result?.success === false) throw new Error(result.message || 'The authentication request failed.')
+    return result?.data ?? result
+  } catch (error) {
+    const data = error.response?.data
+    const fail = (message) => {
+      const requestError = new Error(message)
+      requestError.status = error.response?.status
+      throw requestError
+    }
+    if (data?.errors && typeof data.errors === 'object') {
+      const details = Object.entries(data.errors).flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages]).map((message) => `${field}: ${message}`)).join(' ')
+      if (details) fail(details)
+    }
+    if (data?.detail || data?.message || data?.title) fail(data.detail || data.message || data.title)
+    if (error.friendlyMessage) fail(error.friendlyMessage)
+    if (error.message && error.message !== 'Network Error') throw error
+    throw new Error('Could not reach the AGRIMAN API. Check that the backend and its tunnel are running.')
+  }
+}
