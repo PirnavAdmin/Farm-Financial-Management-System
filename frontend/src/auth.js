@@ -13,8 +13,20 @@ const routes = {
 export async function authRequest(endpoint, { method = 'POST', body, accessToken } = {}) {
   const route = routes[endpoint]
   if (!route) throw new Error(`Unsupported authentication endpoint: ${endpoint}`)
+  const identifier = body?.identifier || body?.email || ''
+  const requestBody = endpoint === 'login'
+    ? { identifier, password: body?.password, rememberMe: body?.rememberMe }
+    : endpoint === 'register'
+      ? { fullName: body?.fullName || body?.name, email: identifier, phoneNumber: body?.phoneNumber || body?.mobileNumber, password: body?.password, role: body?.role }
+      : endpoint === 'forgot-password'
+        ? { identifier }
+        : endpoint === 'verify-otp'
+          ? { identifier, otp: body?.otp }
+          : endpoint === 'reset-password'
+            ? { identifier, ...(body?.resetToken || body?.token ? { resetToken: body.resetToken || body.token } : { otp: body?.otp }), newPassword: body?.newPassword, confirmPassword: body?.confirmPassword }
+            : body
   try {
-    const response = await api.request({ baseURL: BUSINESS_API_BASE_URL, url: route, method, data: body, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined })
+    const response = await api.request({ baseURL: BUSINESS_API_BASE_URL, url: route, method, data: requestBody, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined })
     const result = response.data
     if (result?.success === false) throw new Error(result.message || 'The authentication request failed.')
     return result?.data ?? result
