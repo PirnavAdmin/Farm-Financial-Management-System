@@ -1,9 +1,722 @@
-﻿@import '../../Settings/Users/Users.css';
+/* ==========================================================================
+   AGRIMAN - Professional Income Report Module Styles
+   ========================================================================== */
 
-.report-screen .users-table { min-width: 850px; }
-.report-screen .users-table td { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
-.report-export { white-space: nowrap; }
-.report-toolbar { flex-wrap: wrap; }
-.report-date-filter { display: flex; align-items: center; gap: 6px; color: #77847b; font-size: 9px; white-space: nowrap; }
-.report-date-filter input { height: 34px; padding: 0 8px; border: 1px solid #e5eae4; border-radius: 5px; color: #657269; background: #fff; font: 400 10px var(--sans); }
-@media(max-width: 850px) { .report-date-filter { flex: 1; } .report-date-filter input { min-width: 0; width: 100%; } }
+:root {
+  --ir-primary: #245a36;
+  --ir-primary-hover: #1b472a;
+  --ir-primary-light: #edf6ef;
+  --ir-primary-border: #cde4d3;
+  --ir-accent: #059669;
+  --ir-text-dark: #0f172a;
+  --ir-text-body: #334155;
+  --ir-text-muted: #64748b;
+  --ir-text-light: #94a3b8;
+  --ir-bg-card: #ffffff;
+  --ir-border: #e2e8f0;
+  --ir-border-light: #f1f5f9;
+  --ir-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  --ir-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --ir-radius: 10px;
+  --ir-radius-lg: 14px;
+}
+
+.ir-page {
+  color: var(--ir-text-body);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   1. Header Section
+   ========================================================================== */
+
+.ir-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.ir-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--ir-text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.ir-breadcrumb span {
+  color: var(--ir-text-light);
+}
+
+.ir-breadcrumb strong {
+  color: var(--ir-primary);
+  font-weight: 600;
+}
+
+.ir-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--ir-primary-light);
+  color: var(--ir-primary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.ir-badge i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ir-primary);
+  display: inline-block;
+}
+
+.ir-header h1 {
+  margin: 0;
+  color: var(--ir-text-dark);
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ir-header p {
+  margin: 4px 0 0;
+  color: var(--ir-text-muted);
+  font-size: 12.5px;
+  max-width: 600px;
+}
+
+/* Action Buttons */
+.ir-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #27683f 0%, #1c5230 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(36, 90, 54, 0.25);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.ir-export-btn:hover {
+  background: linear-gradient(135deg, #1f5834 0%, #154125 100%);
+  box-shadow: 0 4px 12px rgba(36, 90, 54, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   2. KPI Summary Cards Grid
+   ========================================================================== */
+
+.ir-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.ir-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius);
+  background: var(--ir-bg-card);
+  box-shadow: var(--ir-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.ir-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ir-shadow);
+  border-color: #cbd5e1;
+}
+
+.ir-stat-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ir-icon-income {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.ir-icon-profit {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
+}
+
+.ir-icon-avg {
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #e0f2fe;
+}
+
+.ir-icon-rows {
+  background: #faf5ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.ir-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ir-stat-info small {
+  color: var(--ir-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.ir-stat-info strong {
+  color: var(--ir-text-dark);
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ir-stat-info span {
+  color: var(--ir-text-muted);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   3. Quick Filter Tabs
+   ========================================================================== */
+
+.ir-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.ir-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--ir-border);
+  background: #ffffff;
+  color: var(--ir-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ir-tab-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: var(--ir-text-dark);
+}
+
+.ir-tab-btn.active {
+  background: var(--ir-primary);
+  border-color: var(--ir-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(36, 90, 54, 0.2);
+}
+
+.ir-tab-count {
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.ir-tab-btn.active .ir-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   4. Report Panel & Toolbar
+   ========================================================================== */
+
+.ir-panel {
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius-lg);
+  background: var(--ir-bg-card);
+  box-shadow: var(--ir-shadow-sm);
+  overflow: hidden;
+}
+
+.ir-toolbar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.6fr) minmax(260px, 1.4fr) minmax(130px, 0.9fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #fbfdfc;
+  border-bottom: 1px solid var(--ir-border-light);
+}
+
+.ir-search,
+.ir-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ir-search {
+  position: relative;
+  justify-content: flex-end;
+}
+
+.ir-search > span {
+  position: absolute;
+  bottom: 9px;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.ir-search input,
+.ir-filter-field select,
+.ir-date-range input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ir-text-dark);
+  font-size: 11.5px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.ir-search input {
+  padding: 0 12px 0 34px;
+}
+
+.ir-filter-field > span {
+  color: #475569;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.ir-filter-field select {
+  padding: 0 28px 0 10px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 12px;
+}
+
+.ir-date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ir-date-range input {
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.ir-date-range > span {
+  color: var(--ir-text-light);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ir-search input:focus,
+.ir-filter-field select:focus,
+.ir-date-range input:focus {
+  border-color: var(--ir-primary);
+  box-shadow: 0 0 0 3px rgba(36, 90, 54, 0.15);
+}
+
+.ir-reset-btn {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ir-reset-btn:hover {
+  background: #f1f5f9;
+  color: var(--ir-text-dark);
+  border-color: #cbd5e1;
+}
+
+/* ==========================================================================
+   5. Report Data Table
+   ========================================================================== */
+
+.ir-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ir-table {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.ir-table thead {
+  background: #f8fafc;
+}
+
+.ir-table th {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-align: left;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.ir-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+  background: #ffffff;
+  transition: background 0.12s;
+}
+
+.ir-table tbody tr:hover td {
+  background: #f9fbf9;
+}
+
+.ir-table th:first-child,
+.ir-table td:first-child {
+  padding-left: 20px;
+}
+
+.ir-table th:last-child,
+.ir-table td:last-child {
+  padding-right: 20px;
+}
+
+.ir-nowrap {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #475569;
+}
+
+.ir-code-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: var(--ir-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+
+.ir-farmer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ir-farmer-name {
+  font-weight: 650;
+  color: var(--ir-text-dark);
+}
+
+.ir-farm-sub {
+  font-size: 10.5px;
+  color: var(--ir-text-muted);
+}
+
+/* Category Badges */
+.ir-cat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ir-cat-crop {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.ir-cat-milk {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.ir-cat-subsidy {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.ir-cat-rental {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.ir-cat-other {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.ir-amount-cell {
+  text-align: right !important;
+  color: #15803d !important;
+  font-weight: 750;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ir-pay-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Empty State */
+.ir-empty {
+  display: flex;
+  min-height: 200px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.ir-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 22px;
+}
+
+.ir-empty strong {
+  color: var(--ir-text-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ir-empty p {
+  margin: 0;
+  color: var(--ir-text-muted);
+  font-size: 11.5px;
+  max-width: 360px;
+}
+
+.ir-empty button {
+  margin-top: 4px;
+  padding: 7px 14px;
+  border: 1px solid var(--ir-border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ir-primary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ir-empty button:hover {
+  background: var(--ir-primary-light);
+  border-color: var(--ir-primary-border);
+}
+
+/* Table Footer & Pagination */
+.ir-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfdfc;
+  color: #64748b;
+  font-size: 11.5px;
+}
+
+.ir-table-footer strong {
+  color: var(--ir-text-dark);
+}
+
+.ir-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ir-pagination label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ir-pagination select {
+  height: 29px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ir-text-dark);
+  font-size: 11px;
+}
+
+.ir-pagination > button {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ir-text-dark);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ir-pagination > button:hover:not(:disabled) {
+  border-color: var(--ir-primary);
+  color: var(--ir-primary);
+  background: #f8fafc;
+}
+
+.ir-pagination > button:disabled {
+  color: #cbd5e1;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.ir-disclaimer {
+  margin: 10px 0 0;
+  color: var(--ir-text-light);
+  font-size: 10.5px;
+  text-align: right;
+}
+
+/* ==========================================================================
+   6. Responsive Rules
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+  .ir-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ir-search {
+    grid-column: 1 / -1;
+  }
+  .ir-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ir-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ir-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .ir-toolbar {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+  .ir-table-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ir-pagination {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

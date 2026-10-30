@@ -16,6 +16,36 @@ import {
 } from '../services/dashboardService';
 import './Dashboard.css';
 
+function CustomCropTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    const income = payload.find((p) => p.dataKey === 'income')?.value ?? 0;
+    const expense = payload.find((p) => p.dataKey === 'expense')?.value ?? 0;
+    const profit = payload.find((p) => p.dataKey === 'netProfit')?.value ?? 0;
+
+    return (
+      <div className="crop-chart-tooltip">
+        <div className="crop-chart-tooltip-title">{label}</div>
+        <div className="crop-chart-tooltip-item">
+          <span className="tooltip-dot" style={{ background: '#2d6a4f' }} />
+          <span className="tooltip-label">Income:</span>
+          <span className="tooltip-val">₹ {Number(income).toLocaleString('en-IN')}</span>
+        </div>
+        <div className="crop-chart-tooltip-item">
+          <span className="tooltip-dot" style={{ background: '#d97706' }} />
+          <span className="tooltip-label">Expense:</span>
+          <span className="tooltip-val">₹ {Number(expense).toLocaleString('en-IN')}</span>
+        </div>
+        <div className="crop-chart-tooltip-item profit-row">
+          <span className="tooltip-dot" style={{ background: '#059669' }} />
+          <span className="tooltip-label">Net Profit:</span>
+          <span className="tooltip-val profit-val">₹ {Number(profit).toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function Dashboard({ onNavigate }) {
   const [showAllWidgets, setShowAllWidgets] = useState(true);
   const [txFilter, setTxFilter] = useState('All');
@@ -222,11 +252,14 @@ export default function Dashboard({ onNavigate }) {
               <BarChart
                 data={cropProfitData}
                 margin={{ top: 20, right: 20, left: 10, bottom: 25 }}
+                barGap={4}
+                barCategoryGap="20%"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8ece8" vertical={false} />
                 <XAxis
                   dataKey="crop"
-                  tick={{ fill: '#374151', fontSize: 12, fontWeight: 600 }}
+                  interval={0}
+                  tick={{ fill: '#374151', fontSize: 11.5, fontWeight: 600 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
                 />
@@ -235,22 +268,15 @@ export default function Dashboard({ onNavigate }) {
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#ccd6cd' }}
                   tickLine={false}
+                  domain={[0, (dataMax) => Math.ceil(dataMax * 1.15)]}
                 />
                 <Tooltip
-                  formatter={(val, name) => [
-                    `₹ ${Number(val).toLocaleString('en-IN')}`,
-                    name === 'income' ? 'Income' : name === 'expense' ? 'Expense' : 'Net Profit'
-                  ]}
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    borderColor: '#d2dcd4',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                  }}
+                  content={<CustomCropTooltip />}
+                  cursor={{ fill: 'rgba(45, 106, 79, 0.05)', rx: 6 }}
                 />
-                <Bar dataKey="income" name="income" fill="#2d6a4f" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar dataKey="expense" name="expense" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar dataKey="netProfit" name="netProfit" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="income" name="Income" fill="#2d6a4f" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                <Bar dataKey="expense" name="Expense" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                <Bar dataKey="netProfit" name="Profit" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={22} />
               </BarChart>
             </ResponsiveContainer>
           </div>

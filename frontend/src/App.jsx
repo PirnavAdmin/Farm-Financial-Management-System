@@ -365,11 +365,7 @@ function App() {
         </header>
 
         <ModuleErrorBoundary active={active}>
-          {active === 'Income' ? (
-            <section className="page-content">
-              <Income />
-            </section>
-          ) : active === 'Farmers' ? (
+        {active === 'Farmers' ? (
           <Farmers />
         ) : active === 'Users' ? (
           <Users />
