@@ -1,259 +1,85 @@
-const STORAGE_KEY = 'agriman-finance-income-records'
+﻿import api from '../../services/api.js'
 
-const initialSeedRecords = [
-  {
-    id: 'inc-seed-001',
-    incomeNo: 'INC-20261022-001',
-    incomeDate: '2026-10-22',
-    farmer: 'Arjun Mehta',
-    farm: 'North Field',
-    crop: 'Paddy',
-    incomeType: 'Crop Sales',
-    buyer: 'Sri Lakshmi Traders',
-    quantity: 12500,
-    unit: 'kg',
-    rate: 28,
-    grossAmount: 350000,
-    discount: 0,
-    otherCharges: 2000,
-    netAmount: 352000,
-    amount: 352000,
-    paymentMode: 'Bank Transfer',
-    bankCash: 'HDFC Farm Account',
-    referenceNumber: 'TXN-884210',
-    remarks: 'Paddy crop harvest sale settlement',
-    status: 'Received',
-    createdAt: '2026-10-22T10:30:00.000Z',
-    updatedAt: '2026-10-22T10:30:00.000Z',
-  },
-  {
-    id: 'inc-seed-002',
-    incomeNo: 'INC-20261020-002',
-    incomeDate: '2026-10-20',
-    farmer: 'Priya Sharma',
-    farm: 'Lake Farm',
-    crop: 'Cow Milk',
-    incomeType: 'Milk Sales',
-    buyer: 'Dairy Cooperative Society',
-    quantity: 820,
-    unit: 'litre',
-    rate: 42,
-    grossAmount: 34440,
-    discount: 0,
-    otherCharges: 0,
-    netAmount: 34440,
-    amount: 34440,
-    paymentMode: 'UPI',
-    bankCash: 'SBI Agri Current Account',
-    referenceNumber: 'UPI-294188',
-    remarks: 'Bi-weekly milk collection payout',
-    status: 'Received',
-    createdAt: '2026-10-20T08:15:00.000Z',
-    updatedAt: '2026-10-20T08:15:00.000Z',
-  },
-  {
-    id: 'inc-seed-003',
-    incomeNo: 'INC-20261018-003',
-    incomeDate: '2026-10-18',
-    farmer: 'Ramesh Patel',
-    farm: 'South Orchard',
-    crop: 'Cotton',
-    incomeType: 'Crop Sales',
-    buyer: 'Vardhman Cotton Mill',
-    quantity: 4200,
-    unit: 'kg',
-    rate: 72,
-    grossAmount: 302400,
-    discount: 2400,
-    otherCharges: 1500,
-    netAmount: 301500,
-    amount: 301500,
-    paymentMode: 'Bank Transfer',
-    bankCash: 'HDFC Farm Account',
-    referenceNumber: 'NEFT-771209',
-    remarks: 'Grade-A Shankar cotton lot sale',
-    status: 'Received',
-    createdAt: '2026-10-18T14:45:00.000Z',
-    updatedAt: '2026-10-18T14:45:00.000Z',
-  },
-  {
-    id: 'inc-seed-004',
-    incomeNo: 'INC-20261015-004',
-    incomeDate: '2026-10-15',
-    farmer: 'Suresh Kumar',
-    farm: 'Green Valley Farm',
-    crop: 'Drip Irrigation',
-    incomeType: 'Government Subsidy',
-    buyer: 'Dept of Agriculture',
-    quantity: 1,
-    unit: 'subsidy',
-    rate: 50000,
-    grossAmount: 50000,
-    discount: 0,
-    otherCharges: 0,
-    netAmount: 50000,
-    amount: 50000,
-    paymentMode: 'Bank Transfer',
-    bankCash: 'SBI Agri Current Account',
-    referenceNumber: 'DBT-PMKSY-9021',
-    remarks: 'Micro-irrigation capital subsidy DBT credit',
-    status: 'Received',
-    createdAt: '2026-10-15T11:20:00.000Z',
-    updatedAt: '2026-10-15T11:20:00.000Z',
-  },
-  {
-    id: 'inc-seed-005',
-    incomeNo: 'INC-20261012-005',
-    incomeDate: '2026-10-12',
-    farmer: 'Rajesh Verma',
-    farm: 'East Meadow',
-    crop: 'Tractor / Equipment',
-    incomeType: 'Rental Income',
-    buyer: 'Balram Farm Services',
-    quantity: 25,
-    unit: 'hour',
-    rate: 1800,
-    grossAmount: 45000,
-    discount: 1000,
-    otherCharges: 0,
-    netAmount: 44000,
-    amount: 44000,
-    paymentMode: 'Cash',
-    bankCash: 'Cash in Hand',
-    referenceNumber: 'RCPT-4402',
-    remarks: 'Tractor and rotavator rental service',
-    status: 'Received',
-    createdAt: '2026-10-12T16:00:00.000Z',
-    updatedAt: '2026-10-12T16:00:00.000Z',
-  },
-  {
-    id: 'inc-seed-006',
-    incomeNo: 'INC-20261025-006',
-    incomeDate: '2026-10-25',
-    farmer: 'Arjun Mehta',
-    farm: 'North Field',
-    crop: 'Basmati Rice',
-    incomeType: 'Crop Sales',
-    buyer: 'Metro Cash & Carry',
-    quantity: 6000,
-    unit: 'kg',
-    rate: 65,
-    grossAmount: 390000,
-    discount: 5000,
-    otherCharges: 3000,
-    netAmount: 388000,
-    amount: 388000,
-    paymentMode: 'Cheque',
-    bankCash: 'HDFC Farm Account',
-    referenceNumber: 'CHQ-551029',
-    remarks: 'Payment due on presentation of invoice',
-    status: 'Pending',
-    createdAt: '2026-10-25T09:10:00.000Z',
-    updatedAt: '2026-10-25T09:10:00.000Z',
-  },
-]
-
-function readRecords() {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === null) {
-    // Seed initial records for a rich initial experience
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialSeedRecords))
-    } catch {
-      // ignore storage write errors
-    }
-    return initialSeedRecords
-  }
-
-  try {
-    const parsed = JSON.parse(stored)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed
-    }
-    return initialSeedRecords
-  } catch {
-    return initialSeedRecords
+function config() {
+  return { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_INCOME_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || api.defaults.baseURL).replace(/\/+$/, '') }
+}
+function unwrap(value) {
+  if (value?.success === false) throw new Error(value.message || 'The Income API rejected the request.')
+  return value?.data ?? value
+}
+function list(value, label) {
+  const data = unwrap(value)
+  const rows = Array.isArray(data) ? data : data?.items
+  if (!Array.isArray(rows) || rows.some((row) => !row || typeof row !== 'object')) throw new Error(`The ${label} API returned an unsupported list response.`)
+  return rows
+}
+export function normalizeIncome(row) {
+  if (!row || typeof row !== 'object' || row.id == null) throw new Error('The Income API returned an invalid record.')
+  const apiStatus = row.status ?? ''
+  const status = ({ paid: 'Received', received: 'Received', pending: 'Pending', cancelled: 'Cancelled', canceled: 'Cancelled' })[apiStatus.toLowerCase()] || apiStatus
+  return {
+    ...row, originalIncomeDate: row.incomeDate ?? row.date ?? '',
+    incomeDate: (row.incomeDate ?? row.date ?? '').slice(0, 10),
+    bankCash: row.bankOrCash ?? '', netAmount: row.netAmount ?? row.amount ?? 0,
+    amount: row.netAmount ?? row.amount ?? 0, status, apiStatus,
   }
 }
-
-function writeRecords(records) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
-  } catch (error) {
-    throw new Error(`Income data could not be saved to local storage: ${error.message}`)
-  }
+export async function listIncome() {
+  const response = await api.get('/api/Income', config())
+  return list(response.data, 'Income').map(normalizeIncome).sort((a, b) => b.incomeDate.localeCompare(a.incomeDate))
 }
-
-function createId() {
-  return globalThis.crypto?.randomUUID?.() || `inc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+export async function getIncomeById(id) {
+  const response = await api.get(`/api/Income/${encodeURIComponent(id)}`, config())
+  return normalizeIncome(unwrap(response.data))
 }
-
-export function listIncome() {
-  return readRecords().sort((a, b) => {
-    const dateComp = (b.incomeDate || '').localeCompare(a.incomeDate || '')
-    if (dateComp !== 0) return dateComp
-    return (b.createdAt || '').localeCompare(a.createdAt || '')
+export async function listIncomeCategories() {
+  const response = await api.get('/api/Income/categories', config())
+  return list(response.data, 'Income categories').map((row) => {
+    if (row.id == null || typeof row.name !== 'string') throw new Error('The category API must supply an ID and name for each category.')
+    return { ...row, code: row.code ?? '', source: row.source ?? '', description: row.description ?? '', status: row.status ?? '' }
   })
 }
-
-export function getIncomeById(id) {
-  const records = readRecords()
-  return records.find((item) => item.id === id) || null
+export async function listIncomeFarmers() {
+  const response = await api.get('/api/Farmers')
+  return list(response.data, 'Farmers').map((row) => ({ id: row.farmerId ?? row.id, name: row.farmerName ?? row.name ?? '' })).filter((row) => row.id != null && row.name)
 }
-
-export function createIncome(values) {
-  const records = readRecords()
-  const id = createId()
-  const dateStr = (values.incomeDate || new Date().toISOString().slice(0, 10)).replace(/-/g, '')
-  const randomSuffix = Math.floor(100 + Math.random() * 900)
-  const incomeNo = values.incomeNo && values.incomeNo.trim() !== ''
-    ? values.incomeNo.trim()
-    : `INC-${dateStr}-${randomSuffix}`
-
-  const now = new Date().toISOString()
-  const record = {
-    ...values,
-    id,
-    incomeNo,
-    amount: values.netAmount ?? values.amount,
-    createdAt: now,
-    updatedAt: now,
+export function buildIncomePayload(values, categories, farmers, existing = null) {
+  const category = categories.find((item) => item.name === values.incomeType && (existing?.incomeType !== values.incomeType || existing.categoryId == null || String(item.id) === String(existing.categoryId)))
+  if (!category) throw new Error('Select an income type provided by the category API.')
+  let farmerId = null
+  const farmerText = values.farmer?.trim() || ''
+  if (farmerText) {
+    if (existing?.farmer === farmerText && existing.farmerId != null) farmerId = existing.farmerId
+    else {
+      const matches = farmers.filter((farmer) => `${farmer.name} (#${farmer.id})` === farmerText || String(farmer.id) === farmerText || farmer.name === farmerText)
+      if (matches.length !== 1) throw new Error('Choose a farmer from the API list. Use the name with its ID if names repeat.')
+      farmerId = matches[0].id
+    }
   }
-
-  writeRecords([record, ...records])
-  return record
+  if (values.incomeNo && values.incomeNo !== existing?.incomeNo) throw new Error('Income numbers are generated by the backend and cannot be assigned here.')
+  const quantity = Number(values.quantity), rate = Number(values.rate), discount = Number(values.discount), otherCharges = Number(values.otherCharges)
+  if (![quantity, rate, discount, otherCharges].every(Number.isFinite) || quantity <= 0 || rate < 0 || discount < 0 || otherCharges < 0 || discount > quantity * rate) throw new Error('Enter valid quantity, rate, discount, and charges.')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(values.incomeDate) || Number.isNaN(Date.parse(values.incomeDate))) throw new Error('Enter a valid income date.')
+  if (!values.paymentMode || !values.status || !values.unit?.trim()) throw new Error('Payment mode, status, and unit are required.')
+  const status = existing?.status === values.status ? existing.apiStatus : values.status
+  const incomeDate = existing?.incomeDate === values.incomeDate && existing.originalIncomeDate ? existing.originalIncomeDate : `${values.incomeDate}T00:00:00`
+  return {
+    incomeDate, categoryId: category.id, farmerId,
+    farm: values.farm || null, crop: values.crop || null, buyer: values.buyer || null,
+    quantity, unit: values.unit, rate, discount, otherCharges,
+    paymentMode: values.paymentMode, bankOrCash: values.bankCash || null,
+    referenceNumber: values.referenceNumber || null, remarks: values.remarks || null, status,
+  }
 }
-
-export function updateIncome(id, values) {
-  const records = readRecords()
-  const existingIndex = records.findIndex((item) => item.id === id)
-  if (existingIndex === -1) {
-    throw new Error('This income record no longer exists. Refresh the page and try again.')
-  }
-
-  const existing = records[existingIndex]
-  const updated = {
-    ...existing,
-    ...values,
-    id,
-    incomeNo: existing.incomeNo || values.incomeNo,
-    amount: values.netAmount ?? values.amount,
-    updatedAt: new Date().toISOString(),
-  }
-
-  const newRecords = [...records]
-  newRecords[existingIndex] = updated
-  writeRecords(newRecords)
-  return updated
+export async function createIncome(values, categories, farmers) {
+  const response = await api.post('/api/Income', buildIncomePayload(values, categories, farmers), config())
+  unwrap(response.data)
 }
-
-export function deleteIncome(id) {
-  const records = readRecords()
-  const existing = records.find((item) => item.id === id)
-  if (!existing) {
-    throw new Error('This income record no longer exists. Refresh the page and try again.')
-  }
-
-  const filtered = records.filter((item) => item.id !== id)
-  writeRecords(filtered)
+export async function updateIncome(id, values, categories, farmers, existing) {
+  const response = await api.put(`/api/Income/${encodeURIComponent(id)}`, buildIncomePayload(values, categories, farmers, existing), config())
+  unwrap(response.data)
+}
+export async function deleteIncome(id) {
+  const response = await api.delete(`/api/Income/${encodeURIComponent(id)}`, config())
+  unwrap(response.data)
 }

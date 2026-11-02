@@ -1,17 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './income report.css'
+import { listIncome } from '../../Finance/Income/incomeService.js'
+import { buildReport } from './reportData.js'
 
 const reportTitle = 'Income Report'
 const reportDescription = 'Review income transactions by date, farm, crop, and income type.'
-
-function readRecords(key) {
-  try {
-    const value = JSON.parse(localStorage.getItem(key))
-    return Array.isArray(value) ? value : []
-  } catch {
-    return []
-  }
-}
 
 function amount(value) {
   const parsed = Number(String(value || '').replace(/[^0-9.-]/g, ''))
@@ -46,48 +39,6 @@ function getCategoryBadgeClass(type) {
   return 'ir-cat-other'
 }
 
-function buildReport() {
-  const rawIncome = readRecords('agriman-finance-income-records')
-  const expenses = readRecords('agriman-finance-expenses-records')
-
-  // Filter out empty or unpopulated records
-  const income = rawIncome.filter((row) => {
-    if (!row || typeof row !== 'object') return false
-    return Boolean(
-      row.Date || row['Income Date'] || row.incomeDate ||
-      row['Income No'] || row.incomeNo ||
-      row.Farmer || row.farmer ||
-      row.Farm || row.farm ||
-      row.Crop || row.crop ||
-      row['Income Type'] || row.incomeType ||
-      row['Net Amount'] || row.netAmount || row.Amount || row.amount
-    )
-  })
-
-  const totalIncome = income.reduce(
-    (sum, row) => sum + amount(row['Net Amount'] ?? row.netAmount ?? row.Amount ?? row.amount),
-    0
-  )
-  const totalExpenses = expenses.reduce(
-    (sum, row) => sum + amount(row.Amount ?? row.amount),
-    0
-  )
-
-  const columns = ['Date', 'Income No', 'Farmer', 'Farm', 'Crop', 'Income Type', 'Net Amount', 'Payment Mode']
-  const rows = income.map((row) => ({
-    Date: row.Date || row['Income Date'] || row.incomeDate || '',
-    'Income No': row['Income No'] || row.incomeNo || '',
-    Farmer: row.Farmer || row.farmer || '',
-    Farm: row.Farm || row.farm || '',
-    Crop: row.Crop || row.crop || '',
-    'Income Type': row['Income Type'] || row.incomeType || row.category || '',
-    'Net Amount': row['Net Amount'] ?? row.netAmount ?? row.Amount ?? row.amount ?? '',
-    'Payment Mode': row['Payment Mode'] || row.paymentMode || ''
-  }))
-
-  return { columns, rows, totalIncome, totalExpenses }
-}
-
 function exportCsv(columns, rows) {
   const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
   const csv = [
@@ -109,7 +60,17 @@ function exportCsv(columns, rows) {
 }
 
 export default function IncomeReport() {
-  const report = useMemo(() => buildReport(), [])
+  const [records, setRecords] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    listIncome().then((rows) => { if (active) setRecords(rows) })
+      .catch((err) => { if (active) setError(err.friendlyMessage || err.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const report = useMemo(() => buildReport(records), [records])
   const [query, setQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -146,7 +107,7 @@ export default function IncomeReport() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const currentPage = Math.min(page, pageCount)
   const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  const avgTransaction = report.rows.length > 0 ? Math.round(report.totalIncome / report.rows.length) : 0
+  const avgTransaction = report.rows.length > 0 ? Math.round(report.rows.reduce((sum, row) => sum + amount(row['Net Amount']), 0) / report.rows.length) : 0
 
   return (
     <div className="ir-page">
@@ -178,6 +139,7 @@ export default function IncomeReport() {
           type="button"
           onClick={() => exportCsv(report.columns, filtered)}
           title="Download filtered report as CSV file"
+          disabled={loading || Boolean(error)}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -213,8 +175,8 @@ export default function IncomeReport() {
           </div>
           <div className="ir-stat-info">
             <small>Net Profit Margin</small>
-            <strong>{currency(report.totalIncome - report.totalExpenses)}</strong>
-            <span>Income less expenses</span>
+            <strong>—</strong>
+            <span>Expense API required</span>
           </div>
         </article>
 
@@ -406,8 +368,8 @@ export default function IncomeReport() {
                   <td colSpan={8}>
                     <div className="ir-empty">
                       <span className="ir-empty-icon">⌕</span>
-                      <strong>No matching income records found</strong>
-                      <p>Try adjusting your search query, category filter, or date range.</p>
+                      <strong>{loading ? 'Loading income report...' : error ? 'Unable to load income report' : 'No matching income records found'}</strong>
+                      <p>{error || 'Try adjusting your search query, category filter, or date range.'}</p>
                       <button
                         type="button"
                         onClick={() => {
@@ -478,7 +440,7 @@ export default function IncomeReport() {
 
       {/* 7. Audit Disclaimer */}
       <div className="ir-disclaimer">
-        Report data • Audited from Finance records saved in this workspace.
+        {error || (loading ? 'Loading income report...' : 'Report data comes from the Income API. Received payments count as realized income; cancelled records are excluded. Profit requires an expense API.')}
       </div>
     </div>
   )
