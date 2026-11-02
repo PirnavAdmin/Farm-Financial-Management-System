@@ -191,7 +191,7 @@ function InventoryModal({ values, editing, onClose, onSave, inventory, farms, cr
 }
 
 export default function Purchases() {
-  const { records, inventory, farms, crops, loading, error, isLocalFallback, saving, save, remove, reload } = useInventory(screenName)
+  const { records, inventory, farms, crops, loading, error, saving, save, remove } = useInventory(screenName)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [paymentStatus, setPaymentStatus] = useState('All payment statuses')
@@ -226,7 +226,7 @@ export default function Purchases() {
       const success = await save(values, modal?.rawRecord)
       if (success) {
         setModal(null)
-        setToast(isEdit ? `Purchase #${modal?.rawRecord?.purchaseId || values['Purchase No']} updated successfully.` : 'Purchase record saved successfully.')
+        setToast(isEdit ? `Purchase #${modal?.rawRecord?.purchaseId} updated successfully.` : 'Purchase record saved successfully.')
       }
     } catch (err) {
       setToast(err.friendlyMessage || err.message)
@@ -253,18 +253,7 @@ export default function Purchases() {
           <div className="users-eyebrow">
             INVENTORY <span>/</span> {screenName.toUpperCase()}
           </div>
-          <h1>
-            {screenName}
-            {isLocalFallback ? (
-              <span className="inventory-mode-badge offline" title="Backend endpoint is offline. Using local development data source.">
-                Demo Mode
-              </span>
-            ) : (
-              <span className="inventory-mode-badge" title="Connected to live backend.">
-                Live API
-              </span>
-            )}
-          </h1>
+          <h1>{screenName}</h1>
           <p>{description}</p>
         </div>
         <button
@@ -283,8 +272,8 @@ export default function Purchases() {
                 Product: inventory[0]?.itemName || '',
                 Quantity: '',
                 Rate: '',
-                Discount: '—',
-                Tax: '—',
+                Discount: '',
+                Tax: '',
                 Total: '',
                 'Payment Status': 'Pending'
               }
@@ -378,35 +367,66 @@ export default function Purchases() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {pageRows.map((record) => {
+                const index = records.indexOf(record)
+                return (
+                  <tr key={`${screenName}-${index}`}>
+                    {fields.map((field, fieldIndex) => (
+                      <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>
+                        {field === 'Payment Status' ? (
+                          <span className={`status-badge ${record[field] === 'Paid' ? 'active' : 'inactive'}`}>
+                            <i />
+                            {record[field] || 'Pending'}
+                          </span>
+                        ) : (
+                          record[field] !== undefined && record[field] !== null && record[field] !== ''
+                            ? record[field]
+                            : '\u2014'
+                        )}
+                      </td>
+                    ))}
+                    <td>
+                      <div className="user-actions">
+                        <button
+                          type="button"
+                          title="Edit"
+                          aria-label={`Edit ${screenName} record`}
+                          onClick={() => {
+                            setModal({
+                              isEdit: true,
+                              rawRecord: record._raw,
+                              values: { ...record }
+                            })
+                          }}
+                        >
+                          &#9998;
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete"
+                          aria-label={`Delete ${screenName} record`}
+                          onClick={() => deleteRecord(record)}
+                        >
+                          &#128465;
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {pageRows.length === 0 && (
                 <tr>
                   <td colSpan={fields.length + 1}>
                     <div className="users-empty">
                       <span>&#128269;</span>
-                      <strong>Loading purchases records...</strong>
-                    </div>
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan={fields.length + 1}>
-                    <div className="users-empty">
-                      <span style={{ color: '#c46c5b' }}>&#9888;</span>
-                      <strong style={{ color: '#c46c5b' }}>Unable to load inventory</strong>
-                      <p>{error}</p>
-                      <button type="button" onClick={() => reload()}>
-                        Retry
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan={fields.length + 1}>
-                    <div className="users-empty">
-                      <span>&#128269;</span>
-                      <strong>No {screenName.toLowerCase()} records found</strong>
-                      <p>Try clearing your search or filters.</p>
+                      <strong>
+                        {loading
+                          ? 'Loading inventory...'
+                          : error
+                          ? 'Unable to load inventory'
+                          : `No ${screenName.toLowerCase()} records found`}
+                      </strong>
+                      <p>{error || 'Add a record or change your search.'}</p>
                       <button
                         type="button"
                         onClick={() => {
@@ -419,55 +439,6 @@ export default function Purchases() {
                     </div>
                   </td>
                 </tr>
-              ) : (
-                pageRows.map((record) => {
-                  const index = records.indexOf(record)
-                  const st = String(record['Payment Status'] || 'Pending').toLowerCase().replace(/\s+/g, '-')
-                  return (
-                    <tr key={`${screenName}-${index}`}>
-                      {fields.map((field, fieldIndex) => (
-                        <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>
-                          {field === 'Payment Status' ? (
-                            <span className={`status-badge ${st === 'paid' ? 'active' : st === 'pending' ? 'inactive' : st}`}>
-                              <i />
-                              {record[field] || 'Pending'}
-                            </span>
-                          ) : (
-                            record[field] !== undefined && record[field] !== null && record[field] !== ''
-                              ? record[field]
-                              : '\u2014'
-                          )}
-                        </td>
-                      ))}
-                      <td>
-                        <div className="user-actions">
-                          <button
-                            type="button"
-                            title="Edit"
-                            aria-label={`Edit ${screenName} record`}
-                            onClick={() => {
-                              setModal({
-                                isEdit: true,
-                                rawRecord: record._raw,
-                                values: { ...record }
-                              })
-                            }}
-                          >
-                            &#9998;
-                          </button>
-                          <button
-                            type="button"
-                            title="Delete"
-                            aria-label={`Delete ${screenName} record`}
-                            onClick={() => deleteRecord(record)}
-                          >
-                            &#128465;
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
               )}
             </tbody>
           </table>
@@ -514,15 +485,7 @@ export default function Purchases() {
       </section>
 
       <div className="users-disclaimer">
-        {isLocalFallback ? (
-          <span>
-            Local Development Data Source <span>&bull;</span> Backend is offline. Realistic demo records loaded. Full CRUD (Add, Edit, Delete) is operational.
-          </span>
-        ) : (
-          <span>
-            Live Backend Connected <span>&bull;</span> Inventory records synchronized with backend server.
-          </span>
-        )}
+        Demo workspace <span>&bull;</span> Inventory records are saved in this browser.
       </div>
 
       {modal && (
