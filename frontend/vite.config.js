@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const dashboardTarget = env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
   const farmersTarget = env.VITE_FARMERS_API_URL || dashboardTarget
   const inventoryTarget = env.VITE_INVENTORY_API_URL || farmersTarget
+  const incomeTarget = env.VITE_INCOME_API_URL || dashboardTarget
   const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
 
   return {
@@ -14,6 +15,12 @@ export default defineConfig(({ mode }) => {
     cacheDir: '.vite-cache',
     server: {
       proxy: {
+        '/api/Income': {
+          target: incomeTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        },
         ...Object.fromEntries(['Inventory', 'StockIn', 'StockOut', 'StockAdjustment', 'StockLedger', 'Purchases'].map((route) => [`/api/${route}`, {
           target: inventoryTarget,
           changeOrigin: true,

@@ -1,22 +1,11 @@
-import { useMemo, useState } from 'react'
-import { createIncome, deleteIncome, listIncome, updateIncome } from './incomeService.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createIncome, deleteIncome, getIncomeById, listIncome, listIncomeCategories, listIncomeFarmers, updateIncome } from './incomeService.js'
 import './income.css'
-
-const incomeTypes = [
-  'Crop Sales',
-  'Milk Sales',
-  'Animal Sales',
-  'Government Subsidy',
-  'Loan Received',
-  'Rental Income',
-  'Other Income',
-]
 
 const paymentModes = ['Bank Transfer', 'Cash', 'Cheque', 'UPI', 'Other']
 const statuses = ['Received', 'Pending', 'Cancelled']
 const pageSizes = [5, 10, 20]
 
-const commonFarmers = ['Arjun Mehta', 'Priya Sharma', 'Ramesh Patel', 'Suresh Kumar', 'Rajesh Verma']
 const commonFarms = ['North Field', 'Lake Farm', 'South Orchard', 'Green Valley Farm', 'East Meadow']
 const commonCrops = ['Paddy', 'Wheat', 'Cotton', 'Cow Milk', 'Maize', 'Sugarcane', 'Tomatoes', 'Cattle']
 const commonUnits = ['kg', 'quintal', 'tonne', 'litre', 'bag', 'head', 'hour', 'acre', 'subsidy', 'item']
@@ -43,7 +32,7 @@ function createEmptyForm(incomeNo = '') {
     farmer: '',
     farm: '',
     crop: '',
-    incomeType: 'Crop Sales',
+    incomeType: '',
     buyer: '',
     quantity: '1',
     unit: 'kg',
@@ -51,7 +40,7 @@ function createEmptyForm(incomeNo = '') {
     discount: '0',
     otherCharges: '0',
     paymentMode: 'Bank Transfer',
-    bankCash: 'HDFC Farm Account',
+    bankCash: '',
     referenceNumber: '',
     remarks: '',
     status: 'Received',
@@ -131,7 +120,7 @@ function toFormValues(record) {
     farmer: record.farmer || '',
     farm: record.farm || '',
     crop: record.crop || '',
-    incomeType: record.incomeType || 'Crop Sales',
+    incomeType: record.incomeType || '',
     buyer: record.buyer || '',
     quantity: String(record.quantity ?? 1),
     unit: record.unit || 'kg',
@@ -142,7 +131,7 @@ function toFormValues(record) {
     bankCash: record.bankCash || record['Bank/Cash'] || '',
     referenceNumber: record.referenceNumber || record.transactionReference || '',
     remarks: record.remarks || '',
-    status: statuses.includes(record.status) ? record.status : 'Received',
+    status: record.status || '',
   }
 }
 
@@ -192,15 +181,14 @@ function getCategoryClass(type = '') {
 }
 
 export default function Income() {
-  const [initialLoad] = useState(() => {
-    try {
-      return { records: listIncome(), error: '' }
-    } catch (loadError) {
-      return { records: [], error: loadError.message || 'Income records could not be loaded.' }
-    }
-  })
-
-  const [records, setRecords] = useState(initialLoad.records)
+  const [records, setRecords] = useState([])
+  const [categories, setCategories] = useState([])
+  const [farmers, setFarmers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const busyRef = useRef(false)
+  const incomeTypes = [...new Set([...categories.map((item) => item.name), ...records.map((item) => item.incomeType).filter(Boolean)])]
+  const commonFarmers = farmers.map((item) => `${item.name} (#${item.id})`)
   const [screen, setScreen] = useState('list') // 'list' | 'add' | 'edit' | 'details'
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [formValues, setFormValues] = useState(createEmptyForm())
@@ -215,7 +203,22 @@ export default function Income() {
   const [pageSize, setPageSize] = useState(10)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [notice, setNotice] = useState('')
-  const [error, setError] = useState(initialLoad.error)
+  const [error, setError] = useState('')
+
+
+  useEffect(() => {
+    let active = true
+    Promise.allSettled([listIncome(), listIncomeCategories(), listIncomeFarmers()]).then(([income, types, growers]) => {
+      if (!active) return
+      if (income.status === 'fulfilled') setRecords(income.value)
+      if (types.status === 'fulfilled') setCategories(types.value)
+      if (growers.status === 'fulfilled') setFarmers(growers.value)
+      const failures = [income, types, growers].filter((result) => result.status === 'rejected')
+      setError(failures.map((result) => result.reason.friendlyMessage || result.reason.message).join(' '))
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [])
 
   const filteredRecords = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
@@ -260,36 +263,42 @@ export default function Income() {
     setError('')
   }
 
-  function refreshRecords() {
+  async function refreshRecords() {
+    if (busyRef.current) return
     clearMessages()
+    setLoading(true)
     try {
-      setRecords(listIncome())
-    } catch (loadError) {
-      setError(loadError.message || 'Income records could not be loaded.')
-    }
+      const results = await Promise.allSettled([listIncome(), listIncomeCategories(), listIncomeFarmers()])
+      const setters = [setRecords, setCategories, setFarmers]
+      results.forEach((result, index) => { if (result.status === 'fulfilled') setters[index](result.value) })
+      setError(results.filter((result) => result.status === 'rejected').map((result) => result.reason.friendlyMessage || result.reason.message).join(' '))
+    } finally { setLoading(false) }
   }
 
   function openAdd() {
+    if (busyRef.current || loading) return
     clearMessages()
     setSelectedRecord(null)
-    setFormValues(createEmptyForm())
+    setFormValues({ ...createEmptyForm(), incomeType: categories[0]?.name || '' })
     setFormErrors({})
     setScreen('add')
   }
 
-  function openEdit(record) {
+  async function openRecord(record, target) {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
     clearMessages()
-    setSelectedRecord(record)
-    setFormValues(toFormValues(record))
-    setFormErrors({})
-    setScreen('edit')
+    try {
+      const detail = await getIncomeById(record.id)
+      setSelectedRecord(detail)
+      if (target === 'edit') { setFormValues(toFormValues(detail)); setFormErrors({}) }
+      setScreen(target)
+    } catch (err) { setError(err.friendlyMessage || err.message) }
+    finally { busyRef.current = false; setBusy(false) }
   }
-
-  function openDetails(record) {
-    clearMessages()
-    setSelectedRecord(record)
-    setScreen('details')
-  }
+  function openEdit(record) { return openRecord(record, 'edit') }
+  function openDetails(record) { return openRecord(record, 'details') }
 
   function returnToList(message = '') {
     setScreen('list')
@@ -306,38 +315,44 @@ export default function Income() {
     setFormErrors((current) => ({ ...current, [name]: '' }))
   }
 
-  function submitForm(event) {
+  async function reloadAfterWrite(message) {
+    let refreshError = ''
+    try { setRecords(await listIncome()) }
+    catch (err) { refreshError = 'The record was saved, but the list could not refresh. Click Retry. ' + (err.friendlyMessage || err.message) }
+    returnToList(message)
+    if (refreshError) setError(refreshError)
+  }
+  async function submitForm(event) {
     event.preventDefault()
+    if (busyRef.current) return
     clearMessages()
     const validationErrors = validateForm(formValues)
     setFormErrors(validationErrors)
-    if (Object.keys(validationErrors).length > 0) return
-
+    if (Object.keys(validationErrors).length) return
+    busyRef.current = true
+    setBusy(true)
     try {
+      const values = toRecordValues(formValues)
       if (screen === 'edit' && selectedRecord) {
-        const updated = updateIncome(selectedRecord.id, toRecordValues(formValues))
-        setRecords((current) => current.map((record) => (record.id === updated.id ? updated : record)))
-        returnToList(`Income record ${updated.incomeNo} updated successfully.`)
+        await updateIncome(selectedRecord.id, values, categories, farmers, selectedRecord)
+        await reloadAfterWrite('Income record updated successfully.')
       } else {
-        const created = createIncome(toRecordValues(formValues))
-        setRecords((current) => [created, ...current])
-        returnToList(`Income record ${created.incomeNo} created successfully.`)
+        await createIncome(values, categories, farmers)
+        await reloadAfterWrite('Income record created successfully.')
       }
-    } catch (saveError) {
-      setError(saveError.message || 'Income record could not be saved.')
-    }
+    } catch (err) { setError(err.friendlyMessage || err.message) }
+    finally { busyRef.current = false; setBusy(false) }
   }
-
-  function confirmDelete() {
-    if (!pendingDelete) return
+  async function confirmDelete() {
+    if (!pendingDelete || busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
     try {
-      deleteIncome(pendingDelete.id)
+      await deleteIncome(pendingDelete.id)
       setRecords((current) => current.filter((record) => record.id !== pendingDelete.id))
-      returnToList(`Income record ${pendingDelete.incomeNo} deleted.`)
-    } catch (deleteError) {
-      setError(deleteError.message || 'Income record could not be deleted.')
-      setPendingDelete(null)
-    }
+      await reloadAfterWrite('Income record deleted successfully.')
+    } catch (err) { setError(err.friendlyMessage || err.message) }
+    finally { busyRef.current = false; setBusy(false) }
   }
 
   function resetFilters() {
@@ -355,36 +370,6 @@ export default function Income() {
 
   return (
     <div className="income-page">
-      {screen === 'list' ? (
-        <>
-          {/* Header */}
-          <header className="income-page-heading">
-            <div>
-              <div className="income-breadcrumb">
-                <span>Finance</span>
-                <span>/</span>
-                <strong>Income Management</strong>
-                <span className="income-breadcrumb-badge">
-                  <i /> Live Workspace
-                </span>
-              </div>
-              <h1>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#245a36' }}>
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                Income Management
-              </h1>
-              <p>
-                Track harvest crop sales, dairy revenue, government subsidies, equipment rentals, and operational farm income.
-              </p>
-            </div>
-            <div className="income-header-actions">
-              <button className="income-primary-button" type="button" onClick={openAdd}>
-                <span style={{ fontSize: '16px', lineHeight: 1 }}>＋</span> Record Income
-              </button>
-            </div>
-          </header>
-
           {/* Datalists for inputs */}
           <datalist id="common-farmers">
             {commonFarmers.map((f) => (
@@ -416,6 +401,37 @@ export default function Income() {
               <option key={b} value={b} />
             ))}
           </datalist>
+      {screen === 'list' ? (
+        <>
+          {/* Header */}
+          <header className="income-page-heading">
+            <div>
+              <div className="income-breadcrumb">
+                <span>Finance</span>
+                <span>/</span>
+                <strong>Income Management</strong>
+                <span className="income-breadcrumb-badge">
+                  <i /> Live Workspace
+                </span>
+              </div>
+              <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#245a36' }}>
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                Income Management
+              </h1>
+              <p>
+                Track harvest crop sales, dairy revenue, government subsidies, equipment rentals, and operational farm income.
+              </p>
+            </div>
+            <div className="income-header-actions">
+              <button className="income-primary-button" type="button" onClick={openAdd}>
+                <span style={{ fontSize: '16px', lineHeight: 1 }}>＋</span> Record Income
+              </button>
+            </div>
+          </header>
+
+
 
           {/* KPI Summary Cards */}
           <section className="income-summary" aria-label="Income KPI summary">
@@ -670,7 +686,7 @@ export default function Income() {
                   </tr>
                 </thead>
                 <tbody>
-                  {error && records.length === 0 ? (
+                  {loading ? (<tr><td className="income-empty-cell" colSpan="10">Loading income records...</td></tr>) : error && records.length === 0 ? (
                     <tr>
                       <td className="income-empty-cell" colSpan="10">
                         Income records could not be loaded. Click Retry above.
@@ -835,46 +851,16 @@ export default function Income() {
               </div>
             </footer>
           </section>
-          <p className="income-storage-note">Records are saved locally in this browser workspace.</p>
+          <p className="income-storage-note">{loading ? 'Loading income records...' : busy ? 'Contacting income API...' : 'Records are saved to the income API.'}</p>
         </>
       ) : isForm ? (
         /* Add / Edit Form Screen */
         <section className="income-form-screen">
-          <button className="income-back-link" type="button" onClick={() => returnToList()}>
+          <button className="income-back-link" type="button" disabled={busy} onClick={() => returnToList()}>
             ← Back to Income List
           </button>
 
-          {/* Datalists */}
-          <datalist id="common-farmers">
-            {commonFarmers.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-          <datalist id="common-farms">
-            {commonFarms.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-          <datalist id="common-crops">
-            {commonCrops.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
-          <datalist id="common-units">
-            {commonUnits.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-          <datalist id="common-buyers">
-            {commonBuyers.map((b) => (
-              <option key={b} value={b} />
-            ))}
-          </datalist>
-          <datalist id="common-bank-cash">
-            {commonBankCash.map((b) => (
-              <option key={b} value={b} />
-            ))}
-          </datalist>
+
 
           <header className="income-page-heading" style={{ marginBottom: '18px' }}>
             <div>
@@ -926,7 +912,7 @@ export default function Income() {
                 <FormField
                   label="Income No."
                   name="incomeNo"
-                  hint={screen === 'edit' ? 'Unique identifier' : 'Auto-generated on save if blank'}
+                  hint="Generated by the backend"
                 >
                   <input
                     id="incomeNo"
@@ -934,7 +920,7 @@ export default function Income() {
                     value={formValues.incomeNo}
                     onChange={updateField}
                     placeholder="e.g. INC-20261030-001"
-                    readOnly={screen === 'edit'}
+                    readOnly
                   />
                 </FormField>
 
@@ -1207,21 +1193,21 @@ export default function Income() {
                 <i>*</i> Required fields for financial integrity
               </span>
               <div>
-                <button className="income-secondary-button" type="button" onClick={() => returnToList()}>
+                <button className="income-secondary-button" type="button" disabled={busy} onClick={() => returnToList()}>
                   Cancel
                 </button>
-                <button className="income-primary-button" type="submit">
-                  {screen === 'edit' ? 'Update Income Record' : 'Save Income Record'}
+                <button className="income-primary-button" type="submit" disabled={busy || loading}>
+                  {busy ? 'Saving...' : screen === 'edit' ? 'Update Income Record' : 'Save Income Record'}
                 </button>
               </div>
             </div>
           </form>
-          <p className="income-storage-note">Records are saved locally in this browser workspace.</p>
+          <p className="income-storage-note">{loading ? 'Loading income records...' : busy ? 'Contacting income API...' : 'Records are saved to the income API.'}</p>
         </section>
       ) : (
         /* Details View Screen */
         <section className="income-details-screen">
-          <button className="income-back-link" type="button" onClick={() => returnToList()}>
+          <button className="income-back-link" type="button" disabled={busy} onClick={() => returnToList()}>
             ← Back to Income List
           </button>
           {selectedRecord && (
@@ -1324,7 +1310,7 @@ export default function Income() {
                   <DetailItem label="Remarks & Notes" value={selectedRecord.remarks || 'No notes provided.'} full />
                 </dl>
               </section>
-              <p className="income-storage-note">Records are saved locally in this browser workspace.</p>
+              <p className="income-storage-note">{loading ? 'Loading income records...' : busy ? 'Contacting income API...' : 'Records are saved to the income API.'}</p>
             </>
           )}
         </section>
@@ -1370,7 +1356,7 @@ export default function Income() {
               >
                 Cancel
               </button>
-              <button className="income-danger-button" type="button" onClick={confirmDelete}>
+              <button className="income-danger-button" type="button" disabled={busy} onClick={confirmDelete}>
                 Yes, Delete Record
               </button>
             </div>
