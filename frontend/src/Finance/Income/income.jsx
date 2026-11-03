@@ -162,9 +162,10 @@ function toRecordValues(values) {
 }
 
 function monthToDateAmount(records) {
+  const safe = Array.isArray(records) ? records : []
   const now = new Date()
   const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  return records
+  return safe
     .filter((record) => record.status !== 'Cancelled' && record.incomeDate?.startsWith(currentYearMonth))
     .reduce((sum, record) => sum + Number(record.netAmount ?? record.amount ?? 0), 0)
 }
@@ -184,10 +185,11 @@ export default function Income() {
   const [records, setRecords] = useState([])
   const [categories, setCategories] = useState([])
   const [farmers, setFarmers] = useState([])
+  const safeRecords = Array.isArray(records) ? records : []
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
-  const incomeTypes = [...new Set([...categories.map((item) => item.name), ...records.map((item) => item.incomeType).filter(Boolean)])]
+  const incomeTypes = [...new Set([...categories.map((item) => item.name), ...safeRecords.map((item) => item.incomeType).filter(Boolean)])]
   const commonFarmers = farmers.map((item) => `${item.name} (#${item.id})`)
   const [screen, setScreen] = useState('list') // 'list' | 'add' | 'edit' | 'details'
   const [selectedRecord, setSelectedRecord] = useState(null)
@@ -222,7 +224,7 @@ export default function Income() {
 
   const filteredRecords = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
-    return records.filter((record) => {
+    return safeRecords.filter((record) => {
       const matchesSearch = !searchTerm || [
         record.incomeNo,
         record.farmer,
@@ -248,12 +250,12 @@ export default function Income() {
   const currentPage = Math.min(page, pageCount)
   const pageRecords = filteredRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  const eligibleRecords = records.filter((record) => record.status !== 'Cancelled')
+  const eligibleRecords = safeRecords.filter((record) => record.status !== 'Cancelled')
   const totalIncome = eligibleRecords.reduce((sum, record) => sum + Number(record.netAmount ?? record.amount ?? 0), 0)
-  const thisMonth = monthToDateAmount(records)
-  const pendingRecords = records.filter((r) => r.status === 'Pending')
-  const receivedRecords = records.filter((r) => r.status === 'Received')
-  const cancelledRecords = records.filter((r) => r.status === 'Cancelled')
+  const thisMonth = monthToDateAmount(safeRecords)
+  const pendingRecords = safeRecords.filter((r) => r.status === 'Pending')
+  const receivedRecords = safeRecords.filter((r) => r.status === 'Received')
+  const cancelledRecords = safeRecords.filter((r) => r.status === 'Cancelled')
 
   const pendingIncome = pendingRecords.reduce((sum, r) => sum + Number(r.netAmount ?? r.amount ?? 0), 0)
   const receivedIncome = receivedRecords.reduce((sum, r) => sum + Number(r.netAmount ?? r.amount ?? 0), 0)
@@ -416,7 +418,11 @@ export default function Income() {
               </div>
               <h1>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#245a36' }}>
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  <path d="M6 3h12" />
+                  <path d="M6 8h12" />
+                  <path d="m6 13 8.5 8" />
+                  <path d="M6 13h3" />
+                  <path d="M9 13c6.667 0 6.667-10 0-10" />
                 </svg>
                 Income Management
               </h1>
@@ -1223,22 +1229,6 @@ export default function Income() {
                   </div>
                   <h1>Income Transaction Details</h1>
                   <p>Audit receipt and transaction particulars recorded for {selectedRecord.incomeNo}.</p>
-                </div>
-                <div className="income-detail-actions">
-                  <button
-                    className="income-secondary-button"
-                    type="button"
-                    onClick={() => openEdit(selectedRecord)}
-                  >
-                    <Icon name="edit" /> Edit Record
-                  </button>
-                  <button
-                    className="income-danger-button"
-                    type="button"
-                    onClick={() => setPendingDelete(selectedRecord)}
-                  >
-                    <Icon name="delete" /> Delete
-                  </button>
                 </div>
               </header>
 

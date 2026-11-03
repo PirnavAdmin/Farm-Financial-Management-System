@@ -90,9 +90,12 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  const [cameraFacing, setCameraFacing] = useState('user'); // 'user' | 'environment'
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Stop camera stream tracks cleanly
   const stopCameraStream = useCallback(() => {
@@ -110,6 +113,8 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
     stopCameraStream();
     setIsCameraOpen(false);
     setCameraLoading(false);
+    setCapturedPhoto(null);
+    setCameraError(null);
   }, [stopCameraStream]);
 
   // Cleanup camera stream on unmount
@@ -119,46 +124,96 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
     };
   }, [stopCameraStream]);
 
-  // Start device camera
-  const handleStartCamera = async () => {
+  // Request camera stream helper
+  const startCameraStream = async (facing = 'user') => {
+    setCameraLoading(true);
     setCameraError(null);
+    setCapturedPhoto(null);
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
     if (!navigator?.mediaDevices?.getUserMedia) {
-      const msg = 'Camera access is not supported by your browser or device. You can choose a photo from your files.';
+      setCameraLoading(false);
+      const msg = 'Camera access is not supported by your browser. Please choose an image file from your device.';
       setCameraError(msg);
       showToast(msg, 'error');
-      fileInputRef.current?.click();
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+      } else {
+        fileInputRef.current?.click();
+      }
       return;
     }
 
-    setCameraLoading(true);
-    setIsCameraOpen(true);
-
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'user' },
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
-        audio: false
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch (constraintErr) {
+        console.warn('Constrained camera request failed, attempting fallback to basic video:', constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
+
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (e) {
+          console.warn('Video playback warning:', e);
+        }
       }
+
       setCameraLoading(false);
     } catch (err) {
-      stopCameraStream();
-      setIsCameraOpen(false);
+      console.warn('Camera stream error:', err);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
       setCameraLoading(false);
       const isDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
       const errMsg = isDenied
-        ? 'Camera permission was denied. You can select an existing photo from your device.'
-        : 'Could not connect to device camera. You can select an existing photo from your device.';
+        ? 'Camera permission was blocked. Please allow camera access in your browser address bar settings.'
+        : 'Could not connect to device camera hardware. Please check your camera or select an existing photo.';
       setCameraError(errMsg);
       showToast(errMsg, 'error');
     }
+  };
+
+  // Start device camera
+  const handleStartCamera = () => {
+    setCameraError(null);
+    setCapturedPhoto(null);
+    setIsCameraOpen(true);
+    startCameraStream(cameraFacing);
+  };
+
+  // Switch between front/selfie and back/environment camera
+  const handleSwitchCamera = () => {
+    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    setCameraFacing(nextFacing);
+    startCameraStream(nextFacing);
+  };
+
+  // Retake photo and reopen camera stream
+  const handleRetakePhoto = () => {
+    setCapturedPhoto(null);
+    startCameraStream(cameraFacing);
   };
 
   // Capture snapshot from video stream
@@ -166,17 +221,33 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setLabourForm((prev) => ({ ...prev, photo: dataUrl }));
-      showToast('Photo captured successfully');
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      setCapturedPhoto(dataUrl);
     }
+  };
+
+  // Confirm and attach captured photo to labourer form
+  const handleAcceptCapturedPhoto = () => {
+    if (!capturedPhoto) return;
+    setLabourForm((prev) => ({ ...prev, photo: capturedPhoto }));
+    showToast('Photo captured and attached successfully');
     handleCloseCamera();
   };
+
+  // Ensure video element gets stream attached whenever modal or loading state updates
+  useEffect(() => {
+    if (isCameraOpen && streamRef.current && videoRef.current && !capturedPhoto) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraOpen, cameraLoading, capturedPhoto]);
 
   // Optimize and process uploaded photo file
   const handleFileSelect = (e) => {
@@ -1464,6 +1535,14 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                         style={{ display: 'none' }}
                         onChange={handleFileSelect}
                       />
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        style={{ display: 'none' }}
+                        onChange={handleFileSelect}
+                      />
                       {labourForm.photo && (
                         <button
                           type="button"
@@ -1572,7 +1651,7 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                   Cancel
                 </button>
                 <button className="lb-btn-primary" type="submit">
-                  {editingItem ? 'Update Labourer' : 'Save Labourer'}
+                  Save Labourer
                 </button>
               </div>
             </form>
@@ -2222,49 +2301,130 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
             <div className="lb-modal-head">
               <div>
                 <h2>Take Labourer Photo</h2>
-                <p>Align face inside the guide frame and press capture</p>
+                <p>
+                  {capturedPhoto
+                    ? 'Review photo. Click "Save Photo" to confirm or "Retake" to capture again'
+                    : 'Align face inside the guide frame and press capture'}
+                </p>
               </div>
               <button className="lb-close" type="button" onClick={handleCloseCamera}>✕</button>
             </div>
             <div className="lb-camera-body">
-              {cameraLoading ? (
-                <div className="lb-camera-loading">
-                  <div className="lb-spinner"></div>
-                  <span>Connecting to camera...</span>
+              {cameraError ? (
+                <div className="lb-camera-error-box">
+                  <div style={{ fontSize: '30px', marginBottom: '8px' }}>⚠️</div>
+                  <h4 style={{ margin: '0 0 8px', color: '#dc2626' }}>Camera Access Required</h4>
+                  <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+                    {cameraError}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="lb-btn-primary"
+                      onClick={() => {
+                        handleCloseCamera();
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      📁 Choose from Device Files
+                    </button>
+                    <button
+                      type="button"
+                      className="lb-btn-secondary"
+                      onClick={handleCloseCamera}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : capturedPhoto ? (
+                <div className="lb-captured-preview-wrap">
+                  <img
+                    src={capturedPhoto}
+                    alt="Captured Labourer Snapshot"
+                    className="lb-captured-preview-img"
+                  />
+                  <div className="lb-captured-preview-badge">Captured Preview</div>
                 </div>
               ) : (
                 <div className="lb-video-wrapper">
                   <video
-                    ref={videoRef}
+                    ref={(el) => {
+                      videoRef.current = el;
+                      if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                        el.srcObject = streamRef.current;
+                        el.play().catch(() => {});
+                      }
+                    }}
                     autoPlay
                     playsInline
                     muted
+                    onLoadedMetadata={(e) => {
+                      e.target.play().catch(() => {});
+                    }}
                     className="lb-camera-video"
                   />
                   <div className="lb-camera-guide-oval"></div>
+                  {cameraLoading && (
+                    <div className="lb-camera-loading-overlay">
+                      <div className="lb-spinner"></div>
+                      <span>Connecting to camera...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
             <div className="lb-modal-foot">
-              <button
-                type="button"
-                className="lb-btn-secondary"
-                onClick={handleCloseCamera}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="lb-btn-primary lb-btn-capture"
-                onClick={handleCaptureSnapshot}
-                disabled={cameraLoading}
-              >
-                📸 Capture Photo
-              </button>
+              {capturedPhoto ? (
+                <>
+                  <button
+                    type="button"
+                    className="lb-btn-secondary"
+                    onClick={handleRetakePhoto}
+                  >
+                    🔄 Retake Photo
+                  </button>
+                  <button
+                    type="button"
+                    className="lb-btn-primary lb-btn-capture"
+                    onClick={handleAcceptCapturedPhoto}
+                  >
+                    ✓ Save Photo
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="lb-btn-secondary"
+                    onClick={handleCloseCamera}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="lb-btn-secondary"
+                    onClick={handleSwitchCamera}
+                    title="Switch front and back camera"
+                    disabled={cameraLoading}
+                  >
+                    🔄 Switch Camera
+                  </button>
+                  <button
+                    type="button"
+                    className="lb-btn-primary lb-btn-capture"
+                    onClick={handleCaptureSnapshot}
+                    disabled={cameraLoading || !!cameraError}
+                  >
+                    📸 Capture Photo
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      </div>
   );
 }

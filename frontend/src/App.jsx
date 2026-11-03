@@ -17,7 +17,11 @@ import Payments from './Finance/Payments/payments.jsx'
 import Receipts from './Finance/Receipts/receipts.jsx'
 import Loans from './Finance/Loans/loans.jsx'
 import BankAccounts from './Finance/Bank Accounts/bank accounts.jsx'
+import { InventoryProvider } from './Inventory/InventoryContext.jsx'
+import ProductMaster from './Inventory/Product Master/ProductMaster.jsx'
 import Purchases from './Inventory/Purchases/purchases.jsx'
+import StockTransfer from './Inventory/Stock Transfer/StockTransfer.jsx'
+import LowStock from './Inventory/Low Stock/LowStock.jsx'
 import StockIn from './Inventory/Stock In/stock in.jsx'
 import StockOut from './Inventory/Stock Out/stock out.jsx'
 import StockAdjustment from './Inventory/Stock Adjustment/stock adjustment.jsx'
@@ -43,7 +47,7 @@ const menuGroups = [
   { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
   { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
   { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
-  { label: 'Inventory', icon: '▣', children: ['Purchases', 'Stock In', 'Stock Out', 'Stock Adjustment', 'Stock Ledger'] },
+  { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
   { label: 'Sales', icon: '▱', children: ['Sales', 'Customers', 'Receivables'] },
   { label: 'Reports', icon: '▥', children: ['Income Report', 'Expense Report', 'Crop Profit', 'Farm Profit', 'Cash Flow', 'P&L', 'Dashboard Reports'] },
   { label: 'Notifications', icon: '♧' },
@@ -261,7 +265,8 @@ function App() {
   if (!loggedIn) return <Login onLogin={handleLogin} />
 
   return (
-    <div className="app-shell">
+    <InventoryProvider>
+      <div className="app-shell">
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <a className="brand" href="#dashboard" onClick={() => selectItem('Dashboard')}>
           <img className="brand-mark" src="/agriman-logo.png" alt="AGRIMAN Farm Management" />
@@ -419,16 +424,22 @@ function App() {
               <Loans />
             ) : active === 'Bank Accounts' ? (
               <BankAccounts />
+            ) : active === 'Product Master' ? (
+              <ProductMaster />
             ) : active === 'Purchases' ? (
               <Purchases />
             ) : active === 'Stock In' ? (
               <StockIn />
             ) : active === 'Stock Out' ? (
               <StockOut />
+            ) : active === 'Stock Transfer' ? (
+              <StockTransfer />
             ) : active === 'Stock Adjustment' ? (
               <StockAdjustment />
             ) : active === 'Stock Ledger' ? (
               <StockLedger />
+            ) : active === 'Low Stock' ? (
+              <LowStock onNavigate={selectItem} />
             ) : active === 'Sales' ? (
               <Sales />
             ) : active === 'Customers' ? (
@@ -495,6 +506,7 @@ function App() {
         </ModuleErrorBoundary>
       </main>
     </div>
+    </InventoryProvider>
   )
 }
 

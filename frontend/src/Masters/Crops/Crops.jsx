@@ -1,6 +1,83 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { cropService } from '../../services/cropService';
 import './crops.css';
+
+/* ─── Crop Activity File & Photo Upload Utilities ─── */
+const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
+
+const formatUploadDate = (dateObj = new Date()) => {
+  const d = new Date(dateObj);
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const formatUploadTime = (dateObj = new Date()) => {
+  const d = new Date(dateObj);
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const strHours = String(hours).padStart(2, '0');
+  return `${strHours}:${minutes} ${ampm}`;
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+};
+
+const getFileInfo = (file) => {
+  const name = file.name || 'unnamed-file';
+  const ext = name.slice(((name.lastIndexOf('.') - 1) >>> 0) + 2).toLowerCase();
+
+  if (['jpg', 'jpeg', 'png', 'webp'].includes(ext) || file.type?.startsWith('image/')) {
+    return {
+      category: 'image',
+      displayType: `${(ext || 'IMG').toUpperCase()} Image`,
+      iconColor: '#059669',
+      iconBadge: 'IMG'
+    };
+  }
+  if (ext === 'pdf' || file.type === 'application/pdf') {
+    return {
+      category: 'pdf',
+      displayType: 'PDF Document',
+      iconColor: '#dc2626',
+      iconBadge: 'PDF'
+    };
+  }
+  if (['doc', 'docx'].includes(ext) || file.type?.includes('word')) {
+    return {
+      category: 'word',
+      displayType: 'Word Document',
+      iconColor: '#2563eb',
+      iconBadge: 'DOC'
+    };
+  }
+  if (['xls', 'xlsx', 'csv'].includes(ext) || file.type?.includes('sheet') || file.type?.includes('excel')) {
+    return {
+      category: 'excel',
+      displayType: 'Excel Spreadsheet',
+      iconColor: '#16a34a',
+      iconBadge: 'XLS'
+    };
+  }
+  return {
+    category: 'doc',
+    displayType: 'Document',
+    iconColor: '#64748b',
+    iconBadge: 'DOC'
+  };
+};
+
 
 function CropsInner({ initialTab = 'crops', onNavigate }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -28,6 +105,256 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 8;
+
+  // Upload state for Crop Activity
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+  const [previewModalFile, setPreviewModalFile] = useState(null);
+
+  // Camera state for Crop Activity
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  const startCameraStream = async (facing = 'environment') => {
+    setCameraError('');
+    setCapturedPhoto(null);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+        setCameraActive(false);
+      } else {
+        setCameraError('Camera API is not supported in this browser. Please use the file upload option.');
+      }
+      return;
+    }
+
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[Camera error]:', err);
+      let msg = 'Could not access camera. Please allow camera permissions in your browser.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        msg = 'Camera access was blocked. Please enable camera permission in your browser address bar settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = 'No camera hardware found on this computer or device.';
+      }
+      setCameraError(msg);
+    }
+  };
+
+  const handleStartCamera = () => {
+    setCameraActive(true);
+    startCameraStream(cameraFacing);
+  };
+
+  const handleStopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+    setCapturedPhoto(null);
+    setCameraError('');
+  };
+
+  const handleSwitchCamera = () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    startCameraStream(nextFacing);
+  };
+
+  const handleSnapPhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    setCapturedPhoto(dataUrl);
+  };
+
+  const handleAcceptCapturedPhoto = () => {
+    if (!capturedPhoto) return;
+    const now = new Date();
+    const uploadDate = formatUploadDate(now);
+    const uploadTime = formatUploadTime(now);
+
+    const stringLength = capturedPhoto.length - 'data:image/jpeg;base64,'.length;
+    const sizeInBytes = Math.round(stringLength * 0.75);
+
+    const fileObj = {
+      id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      name: `Crop_Capture_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}.jpg`,
+      size: sizeInBytes,
+      formattedSize: formatFileSize(sizeInBytes),
+      type: 'image/jpeg',
+      displayType: 'JPG Image',
+      category: 'image',
+      iconColor: '#059669',
+      iconBadge: 'IMG',
+      uploadDate,
+      uploadTime,
+      timestamp: now.getTime(),
+      previewUrl: capturedPhoto,
+      fileUrl: capturedPhoto,
+    };
+
+    setActivityForm((prev) => ({
+      ...prev,
+      attachments: [...(prev.attachments || []), fileObj],
+    }));
+
+    handleStopCamera();
+    showToast('Field photo captured and attached.');
+  };
+
+  useEffect(() => {
+    if (cameraActive && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraActive, capturedPhoto]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const processFiles = (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    setUploadError('');
+
+    const errors = [];
+    const validFiles = [];
+
+    Array.from(fileList).forEach((file) => {
+      const ext = file.name.slice(((file.name.lastIndexOf('.') - 1) >>> 0) + 2).toLowerCase();
+      const isSupported = SUPPORTED_EXTENSIONS.includes(ext) || file.type?.startsWith('image/') || file.type === 'application/pdf';
+
+      if (!isSupported) {
+        errors.push(`"${file.name}" has an unsupported format. Supported formats: JPG, JPEG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX.`);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`"${file.name}" exceeds the 15 MB size limit (${formatFileSize(file.size)}).`);
+        return;
+      }
+
+      validFiles.push(file);
+    });
+
+    if (errors.length > 0) {
+      setUploadError(errors.join(' '));
+    }
+
+    if (validFiles.length === 0) return;
+
+    const now = new Date();
+    const uploadDate = formatUploadDate(now);
+    const uploadTime = formatUploadTime(now);
+
+    validFiles.forEach((file) => {
+      const info = getFileInfo(file);
+      const baseObj = {
+        id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        name: file.name,
+        size: file.size,
+        formattedSize: formatFileSize(file.size),
+        type: file.type,
+        displayType: info.displayType,
+        category: info.category,
+        iconColor: info.iconColor,
+        iconBadge: info.iconBadge,
+        uploadDate,
+        uploadTime,
+        timestamp: now.getTime(),
+        previewUrl: null
+      };
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        const fileObj = {
+          ...baseObj,
+          previewUrl: info.category === 'image' ? dataUrl : null,
+          fileUrl: dataUrl
+        };
+        setActivityForm((prev) => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), fileObj]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileInputChange = (e) => {
+    processFiles(e.target.files);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRemoveAttachment = (fileId) => {
+    setActivityForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((f) => f.id !== fileId)
+    }));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
+    }
+  };
+
 
   // Reset pagination on search, tab, or filter change
   useEffect(() => {
@@ -58,7 +385,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
     totalCost: '₹ 5,000',
     status: 'In Progress',
     supervisor: 'Niranjan Reddy',
-    notes: ''
+    notes: '',
+    attachments: []
   });
   const [varietyForm, setVarietyForm] = useState({
     code: '', cropName: 'Paddy', varietyName: '', durationDays: 120,
@@ -589,8 +917,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         totalCost: '₹ 5,000',
         status: 'In Progress',
         supervisor: 'Niranjan Reddy',
-        notes: ''
+        notes: '',
+        attachments: []
       });
+      setUploadError('');
       setModalType('activity');
     }
   };
@@ -671,7 +1001,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         }
       } catch {}
       setEditingItem(itemToEdit);
-      setActivityForm({ ...itemToEdit });
+      setActivityForm({ ...itemToEdit, attachments: itemToEdit.attachments || [] });
+      setUploadError('');
       setModalType('activity');
     }
   };
@@ -2369,6 +2700,169 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     placeholder="Field observations, weather conditions, water levels..."
                   />
                 </div>
+
+                {/* ─── UPLOAD FILES & PHOTOS SECTION ─── */}
+                <div className="cr-upload-section">
+                  <div className="cr-upload-header">
+                    <div className="cr-upload-title">
+                      <label>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                        </svg>
+                        Upload Files &amp; Photos
+                      </label>
+                      <span>Attach field photos, geo-tagged crop pictures, soil test reports, chemical bills, or machinery logs</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        style={{ display: 'none' }}
+                        onChange={handleFileInputChange}
+                      />
+
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        style={{ display: 'none' }}
+                        onChange={handleFileInputChange}
+                      />
+
+                      <button
+                        type="button"
+                        className="cr-upload-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <span>+</span> Upload Files / Photos
+                      </button>
+
+                      <button
+                        type="button"
+                        className="cr-upload-btn cr-camera-btn"
+                        onClick={handleStartCamera}
+                        title="Capture field photo using camera"
+                      >
+                        <span>📷</span> Use Camera
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Validation Error Banner */}
+                  {uploadError && (
+                    <div className="cr-upload-error">
+                      <span>⚠️ {uploadError}</span>
+                      <button type="button" onClick={() => setUploadError('')} aria-label="Dismiss error">✕</button>
+                    </div>
+                  )}
+
+                  {/* Drag & Drop Area / Empty State */}
+                  {(!activityForm.attachments || activityForm.attachments.length === 0) ? (
+                    <div
+                      className={`cr-upload-dropzone ${isDragging ? 'dragging' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="cr-upload-dropzone-icon">📁</div>
+                      <p>No files or photos attached yet</p>
+                      <small>Click <strong>"+ Upload Files / Photos"</strong> or drag and drop files here</small>
+                      <small style={{ color: '#94a3b8', fontSize: '10px' }}>
+                        Supports JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX (up to 15 MB each)
+                      </small>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Dropzone bar when files already exist */}
+                      <div
+                        className={`cr-upload-dropzone ${isDragging ? 'dragging' : ''}`}
+                        style={{ padding: '10px 14px', flexDirection: 'row', justifyContent: 'space-between' }}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                          Drag &amp; drop more files here, or click to browse
+                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#15803d' }}>
+                          {activityForm.attachments.length} {activityForm.attachments.length === 1 ? 'file' : 'files'} attached
+                        </span>
+                      </div>
+
+                      {/* Uploaded Files List */}
+                      <div className="cr-upload-list">
+                        {activityForm.attachments.map((file) => (
+                          <div
+                            key={file.id}
+                            className="cr-file-card clickable"
+                            onClick={() => setPreviewModalFile(file)}
+                            title={`Click to view ${file.name}`}
+                          >
+                            {/* Preview Thumbnail or Document Icon */}
+                            <div className="cr-file-preview">
+                              {file.category === 'image' && (file.previewUrl || file.fileUrl) ? (
+                                <img src={file.previewUrl || file.fileUrl} alt={file.name} />
+                              ) : (
+                                <span
+                                  className="cr-file-icon-badge"
+                                  style={{ background: file.iconColor || '#64748b' }}
+                                >
+                                  {file.iconBadge || 'DOC'}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* File Info & Timestamps */}
+                            <div className="cr-file-info">
+                              <div className="cr-file-name-row">
+                                <span className="cr-file-name" title={file.name}>
+                                  {file.name}
+                                </span>
+                                <span className="cr-file-type-pill">{file.displayType}</span>
+                                <span className="cr-file-size">{file.formattedSize}</span>
+                              </div>
+                              <div className="cr-file-meta-row">
+                                <span className="cr-file-meta-item">
+                                  <span>📅</span>
+                                  <span>Upload Date: <strong>{file.uploadDate}</strong></span>
+                                </span>
+                                <span style={{ color: '#cbd5e1' }}>•</span>
+                                <span className="cr-file-meta-item">
+                                  <span>⏰</span>
+                                  <span>Upload Time: <strong>{file.uploadTime}</strong></span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="cr-file-open-hint" style={{ marginRight: '6px' }}>
+                              <span>👁</span> View
+                            </div>
+
+                            {/* Remove / Delete Button */}
+                            <button
+                              type="button"
+                              className="cr-file-remove-btn"
+                              title={`Remove ${file.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveAttachment(file.id);
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
               </div>
 
               <div className="cr-modal-foot">
@@ -2396,7 +2890,51 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
             <div className="cr-form-body">
               <div className="cr-view-grid">
-                {viewTarget.fields.map((f, i) => (
+                
+                {viewTarget.rawItem?.attachments && viewTarget.rawItem.attachments.length > 0 && (
+                  <div style={{ gridColumn: '1 / -1', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                    <span className="cr-view-label" style={{ marginBottom: '8px', display: 'block' }}>
+                      Attached Files &amp; Photos ({viewTarget.rawItem.attachments.length})
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {viewTarget.rawItem.attachments.map((file) => (
+                        <div
+                          key={file.id}
+                          className="cr-file-card clickable"
+                          onClick={() => setPreviewModalFile(file)}
+                          title={`Click to view ${file.name}`}
+                        >
+                          <div className="cr-file-preview">
+                            {file.category === 'image' && (file.previewUrl || file.fileUrl) ? (
+                              <img src={file.previewUrl || file.fileUrl} alt={file.name} />
+                            ) : (
+                              <span className="cr-file-icon-badge" style={{ background: file.iconColor || '#64748b' }}>
+                                {file.iconBadge || 'DOC'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="cr-file-info">
+                            <div className="cr-file-name-row">
+                              <span className="cr-file-name">{file.name}</span>
+                              <span className="cr-file-type-pill">{file.displayType}</span>
+                              <span className="cr-file-size">{file.formattedSize}</span>
+                            </div>
+                            <div className="cr-file-meta-row">
+                              <span>📅 Upload Date: <strong>{file.uploadDate}</strong></span>
+                              <span style={{ color: '#cbd5e1' }}>•</span>
+                              <span>⏰ Upload Time: <strong>{file.uploadTime}</strong></span>
+                            </div>
+                          </div>
+                          <div className="cr-file-open-hint">
+                            <span>👁</span> View File
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+{viewTarget.fields.map((f, i) => (
                   <div key={i} className={`cr-view-item ${f.fullWidth ? 'full-width' : ''}`}>
                     <span className="cr-view-label">{f.label}</span>
                     <span className="cr-view-value">{f.value || '-'}</span>
@@ -2444,6 +2982,421 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       )}
 
       {/* ─── TOAST NOTIFICATION ─────────────────────────────────────────── */}
+      
+      
+      {/* ─── MODAL: CAMERA LIVE CAPTURE ─────────────────────────────────── */}
+      {cameraActive && (
+        <div
+          className="cr-overlay"
+          style={{ zIndex: 10001 }}
+          role="dialog"
+          aria-modal="true"
+          onClick={handleStopCamera}
+        >
+          <div
+            className="cr-modal"
+            style={{
+              maxWidth: '640px',
+              maxHeight: '92vh',
+              background: '#ffffff',
+              borderRadius: '14px',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="cr-modal-head"
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  📷 Camera Field Photo Capture
+                </h2>
+                <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                  Capture live crop conditions, field operations, or plant health
+                </p>
+              </div>
+              <button
+                type="button"
+                className="cr-close"
+                onClick={handleStopCamera}
+                style={{ fontSize: '18px', padding: '4px 8px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div
+              style={{
+                padding: '20px',
+                background: '#0f172a',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '320px',
+                position: 'relative'
+              }}
+            >
+              {cameraError ? (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '24px 20px',
+                    textAlign: 'center',
+                    maxWidth: '420px'
+                  }}
+                >
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
+                  <h3 style={{ margin: '0 0 8px', fontSize: '14px', color: '#b91c1c' }}>
+                    Camera Access Needed
+                  </h3>
+                  <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+                    {cameraError}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="cr-btn-primary"
+                      onClick={() => {
+                        handleStopCamera();
+                        if (cameraInputRef.current) cameraInputRef.current.click();
+                      }}
+                    >
+                      Use Device Camera / Gallery
+                    </button>
+                    <button
+                      type="button"
+                      className="cr-btn-secondary"
+                      onClick={handleStopCamera}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : capturedPhoto ? (
+                <div style={{ width: '100%', textAlign: 'center' }}>
+                  <img
+                    src={capturedPhoto}
+                    alt="Captured Field Photo"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '380px',
+                      borderRadius: '8px',
+                      objectFit: 'contain',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+                    }}
+                  />
+                  <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '10px' }}>
+                    Preview captured photo. Click "Attach to Activity" to keep, or "Retake" to shoot again.
+                  </div>
+                </div>
+              ) : (
+                <div className="cr-camera-viewfinder">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer Controls */}
+            <div className="cr-camera-controls">
+              {capturedPhoto ? (
+                <>
+                  <button
+                    type="button"
+                    className="cr-btn-secondary"
+                    onClick={() => {
+                      setCapturedPhoto(null);
+                      startCameraStream(cameraFacing);
+                    }}
+                  >
+                    🔄 Retake Photo
+                  </button>
+                  <button
+                    type="button"
+                    className="cr-btn-primary"
+                    onClick={handleAcceptCapturedPhoto}
+                    style={{ padding: '9px 20px', fontWeight: 700 }}
+                  >
+                    ✓ Attach to Activity
+                  </button>
+                </>
+              ) : !cameraError ? (
+                <>
+                  <button
+                    type="button"
+                    className="cr-btn-secondary"
+                    onClick={handleSwitchCamera}
+                    title="Switch between front and back camera"
+                    style={{ fontSize: '12px' }}
+                  >
+                    🔄 Switch Camera
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cr-camera-snap-btn"
+                    onClick={handleSnapPhoto}
+                  >
+                    <span>⚪</span> Capture Photo
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cr-btn-secondary"
+                    onClick={handleStopCamera}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: FILE & PHOTO PREVIEW LIGHTBOX ──────────────────────── */}
+      {previewModalFile && (
+        <div
+          className="cr-overlay"
+          style={{ zIndex: 10000 }}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewModalFile(null)}
+        >
+          <div
+            className="cr-modal"
+            style={{
+              maxWidth: '820px',
+              maxHeight: '92vh',
+              background: '#ffffff',
+              borderRadius: '14px',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="cr-modal-head"
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #f1f5f9',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    background: previewModalFile.iconColor || '#16a34a',
+                    color: '#ffffff',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    flexShrink: 0
+                  }}
+                >
+                  {previewModalFile.iconBadge || 'FILE'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '480px'
+                    }}
+                    title={previewModalFile.name}
+                  >
+                    {previewModalFile.name}
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+                    {previewModalFile.displayType} • {previewModalFile.formattedSize} • Uploaded on {previewModalFile.uploadDate} at {previewModalFile.uploadTime}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {(previewModalFile.previewUrl || previewModalFile.fileUrl) && (
+                  <a
+                    href={previewModalFile.previewUrl || previewModalFile.fileUrl}
+                    download={previewModalFile.name}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cr-btn-secondary"
+                    style={{
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '11.5px',
+                      padding: '6px 12px'
+                    }}
+                  >
+                    <span>⬇</span> Download / Open
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="cr-close"
+                  onClick={() => setPreviewModalFile(null)}
+                  style={{ fontSize: '18px', padding: '4px 8px' }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '20px',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '280px',
+                maxHeight: 'calc(92vh - 120px)'
+              }}
+            >
+              {previewModalFile.category === 'image' && (previewModalFile.previewUrl || previewModalFile.fileUrl) ? (
+                <img
+                  src={previewModalFile.previewUrl || previewModalFile.fileUrl}
+                  alt={previewModalFile.name}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '68vh',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                    background: '#ffffff'
+                  }}
+                />
+              ) : previewModalFile.category === 'pdf' && (previewModalFile.fileUrl || previewModalFile.previewUrl) ? (
+                <iframe
+                  src={previewModalFile.fileUrl || previewModalFile.previewUrl}
+                  title={previewModalFile.name}
+                  style={{
+                    width: '100%',
+                    height: '65vh',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: '#ffffff'
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    background: '#ffffff',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    maxWidth: '420px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '12px',
+                      background: previewModalFile.iconColor || '#2563eb',
+                      color: '#ffffff',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      margin: '0 auto 16px'
+                    }}
+                  >
+                    {previewModalFile.iconBadge || 'DOC'}
+                  </div>
+                  <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#0f172a' }}>
+                    {previewModalFile.name}
+                  </h3>
+                  <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#64748b' }}>
+                    {previewModalFile.displayType} • {previewModalFile.formattedSize}
+                  </p>
+                  {(previewModalFile.fileUrl || previewModalFile.previewUrl) && (
+                    <a
+                      href={previewModalFile.fileUrl || previewModalFile.previewUrl}
+                      download={previewModalFile.name}
+                      className="cr-btn-primary"
+                      style={{
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '9px 18px'
+                      }}
+                    >
+                      <span>⬇</span> Download &amp; View Document
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              className="cr-modal-foot"
+              style={{
+                padding: '12px 20px',
+                background: '#ffffff',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Captured on <strong>{previewModalFile.uploadDate}</strong> at <strong>{previewModalFile.uploadTime}</strong>
+              </span>
+              <button
+                type="button"
+                className="cr-btn-secondary"
+                onClick={() => setPreviewModalFile(null)}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className={`cr-toast cr-toast-${toast.type}`}>
           {toast.type === 'success' ? '✓' : '⚠️'} {toast.message}

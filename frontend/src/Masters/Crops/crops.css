@@ -871,3 +871,376 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ─── CROP ACTIVITY FILE & PHOTO UPLOAD STYLES ───────────────────────────────── */
+.cr-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.cr-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cr-upload-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cr-upload-title label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cr-upload-title span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.cr-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 15px;
+  border: 1px solid #16a34a;
+  border-radius: 7px;
+  background: #f0fdf4;
+  color: #15803d;
+  font: 600 12px var(--sans, sans-serif);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cr-upload-btn:hover {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+}
+
+.cr-upload-dropzone {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafbf9;
+  text-align: center;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cr-upload-dropzone.dragging {
+  border-color: #16a34a;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.cr-upload-dropzone-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.cr-upload-dropzone p {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.cr-upload-dropzone small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.cr-upload-error {
+  padding: 9px 12px;
+  border-radius: 7px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cr-upload-error span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.cr-upload-error button {
+  border: none;
+  background: transparent;
+  color: #991b1b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.cr-upload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cr-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.cr-file-card:hover {
+  border-color: #cbd5e1;
+  background: #fbfdfc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.cr-file-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.cr-file-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cr-file-icon-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.cr-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-file-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr-file-name {
+  font-size: 12px;
+  font-weight: 650;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.cr-file-type-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cr-file-size {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.cr-file-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.cr-file-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cr-file-meta-item strong {
+  color: #334155;
+  font-weight: 600;
+}
+
+.cr-file-remove-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.cr-file-remove-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+
+/* Clickable File Card & View Hint */
+.cr-file-card.clickable {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.cr-file-card.clickable:hover {
+  border-color: #16a34a !important;
+  background: #f0fdf4 !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.cr-file-open-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #15803d;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cr-file-card.clickable:hover .cr-file-open-hint {
+  background: #15803d;
+  color: #ffffff;
+  border-color: #15803d;
+}
+
+
+/* Camera Action Button & Viewfinder Styling */
+.cr-camera-btn {
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+  border: 1px solid #86efac !important;
+}
+
+.cr-camera-btn:hover {
+  background: #15803d !important;
+  color: #ffffff !important;
+  border-color: #15803d !important;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25) !important;
+}
+
+.cr-camera-viewfinder {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.cr-camera-viewfinder video {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.cr-camera-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+}
+
+.cr-camera-snap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  font: 700 13px var(--sans, sans-serif);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+  transition: all 0.18s ease;
+}
+
+.cr-camera-snap-btn:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45);
+}
+
+.cr-camera-snap-btn:active {
+  transform: translateY(0);
+}
