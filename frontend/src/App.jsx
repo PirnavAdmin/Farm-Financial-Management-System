@@ -35,12 +35,13 @@ import ProfitLoss from './Reports/P&L/p&l.jsx'
 import AuditLog from './Settings/Audit Log/audit log.jsx'
 import Company from './Settings/Company/company.jsx'
 import Roles from './Settings/Roles/roles.jsx'
+import Labour from './Agriculture/Labour Attendance/Labour.jsx'
 
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
   { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products'] },
-  { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Machinery Usage'] },
+  { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
   { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
   { label: 'Inventory', icon: '▣', children: ['Purchases', 'Stock In', 'Stock Out', 'Stock Adjustment', 'Stock Ledger'] },
   { label: 'Sales', icon: '▱', children: ['Sales', 'Customers', 'Receivables'] },
@@ -382,6 +383,21 @@ function App() {
         ) : active === 'Crop Season' || active === 'Crop Seasons' ? (
           <section className="page-content">
             <Crops initialTab="seasons" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Labour Attendance' ? (
+          <section className="page-content">
+            <Labour initialTab="attendance" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Labour Management' || active === 'Labour' || active === 'Labour Master' ? (
+          <section className="page-content">
+            <Labour initialTab="labourers" onNavigate={selectItem} />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
+        ) : active === 'Labour Payments' ? (
+          <section className="page-content">
+            <Labour initialTab="payments" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : active === 'Crop Activities' ? (

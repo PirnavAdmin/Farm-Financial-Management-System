@@ -11,7 +11,7 @@ import './farmers.css'
 const EMPTY = {
   code: '', name: '', fatherName: '', mobile: '', altMobile: '',
   email: '', aadhaar: '', village: '', mandal: '',
-  district: '', state: '', pin: '', bankName: '', accountNo: '',
+  district: '', state: '', pin: '', bankName: '', branchName: '', bankPhone: '', accountNo: '',
   ifsc: '', totalLand: '', status: 'Active',
   // hasAddress / hasBank track whether the farmer already has these records
   hasAddress: false,
@@ -39,7 +39,47 @@ function validate(form) {
     errs.aadhaar = 'Format: 1234 5678 9012'
   }
   if (form.pin && !/^\d{6}$/.test(form.pin.trim())) errs.pin = 'Enter a valid 6-digit PIN'
+  if (form.bankPhone && !/^\d{10}$/.test(form.bankPhone.trim())) errs.bankPhone = 'Enter a valid 10-digit phone number'
   return errs
+}
+
+// ─── Local Metadata Persistence (Fallback for Extended Bank Fields) ───────────
+const BANK_META_KEY = 'agriman_farmer_bank_meta';
+
+function getFarmerBankMeta(farmerId, code) {
+  try {
+    const raw = localStorage.getItem(BANK_META_KEY);
+    if (!raw) return {};
+    const map = JSON.parse(raw);
+    return (farmerId && map[farmerId]) || (code && map[code]) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveFarmerBankMeta(farmerId, code, data) {
+  try {
+    const raw = localStorage.getItem(BANK_META_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    const entry = {
+      branchName: data.branchName || '',
+      bankPhone: data.bankPhone || '',
+    };
+    if (farmerId) map[farmerId] = entry;
+    if (code) map[code] = entry;
+    localStorage.setItem(BANK_META_KEY, JSON.stringify(map));
+  } catch (_) {}
+}
+
+function deleteFarmerBankMeta(farmerId, code) {
+  try {
+    const raw = localStorage.getItem(BANK_META_KEY);
+    if (!raw) return;
+    const map = JSON.parse(raw);
+    if (farmerId) delete map[farmerId];
+    if (code) delete map[code];
+    localStorage.setItem(BANK_META_KEY, JSON.stringify(map));
+  } catch (_) {}
 }
 
 // ─── Response mappers ─────────────────────────────────────────────────────────
@@ -74,16 +114,29 @@ function mapFarmer(f) {
   if (Array.isArray(bankArr) && bankArr.length > 0) bank = bankArr[0]
 
   const farmerId = f.id ?? f.Id ?? f.farmerId ?? f.FarmerId
+  const farmerCode = f.farmerCode || f.FarmerCode || f.code || f.Code || ''
+
+  // Look up any cached / local metadata if backend response omits extended bank fields
+  const meta = getFarmerBankMeta(farmerId, farmerCode)
+
+  const branchName =
+    bank.branchName || bank.BranchName || bank.branch || bank.Branch ||
+    f.branchName || f.BranchName || meta.branchName || ''
+
+  const bankPhone =
+    bank.phoneNumber || bank.PhoneNumber || bank.phone || bank.Phone ||
+    bank.bankPhone || bank.BankPhone || bank.contactNumber || bank.ContactNumber ||
+    f.bankPhone || f.BankPhone || meta.bankPhone || ''
 
   const hasAddress = !!(addr.village || addr.Village || addr.mandal || addr.Mandal ||
     addr.district || addr.District || addr.state || addr.State ||
     addr.pinCode || addr.PinCode)
 
-  const hasBank = !!(bank.bankName || bank.BankName || bank.accountNumber || bank.AccountNumber)
+  const hasBank = !!(bank.bankName || bank.BankName || branchName || bank.accountNumber || bank.AccountNumber || bankPhone || f.bankName || f.BankName)
 
   return {
     id:         farmerId,
-    code:       f.farmerCode  || f.FarmerCode  || f.code  || f.Code  || '',
+    code:       farmerCode,
     name:       f.farmerName  || f.FarmerName  || f.name  || f.Name  || '',
     fatherName: f.fatherOrHusbandName || f.FatherOrHusbandName || f.fatherHusbandName || f.fatherName || '',
     mobile:     f.mobile      || f.Mobile      || '',
@@ -103,6 +156,8 @@ function mapFarmer(f) {
     // Bank (FarmerId is PK — no separate bankAccountId)
     hasBank,
     bankName:   bank.bankName      || bank.BankName      || f.bankName || f.BankName || '',
+    branchName,
+    bankPhone,
     accountNo:  bank.accountNumber || bank.AccountNumber || f.accountNo || f.AccountNo || '',
     ifsc:       bank.ifsc          || bank.IFSC          || f.ifsc     || f.IFSC     || '',
   }
@@ -181,9 +236,11 @@ async function saveAddress(farmerId, form, hasAddress) {
 async function saveBank(farmerId, form, hasBank) {
   const payload = {
     farmerId,
-    bankName:      form.bankName  || '',
-    accountNumber: form.accountNo || '',
-    ifsc:          form.ifsc      || '',
+    bankName:      form.bankName   || '',
+    branchName:    form.branchName || '',
+    phoneNumber:   form.bankPhone  || '',
+    accountNumber: form.accountNo  || '',
+    ifsc:          form.ifsc       || '',
   }
   if (hasBank) {
     await farmerBankService.updateBankAccount(farmerId, payload)
@@ -227,8 +284,8 @@ function FarmerForm({ initial, onSave, onClose }) {
       setErrs(errors)
       if (errors.code || errors.name || errors.mobile || errors.altMobile || errors.email || errors.aadhaar) {
         setActiveTab('personal')
-      } else if (errors.pin) {
-        setActiveTab('address')
+      } else if (errors.pin || errors.bankPhone) {
+        setActiveTab('addressBank')
       }
       return
     }
@@ -254,9 +311,8 @@ function FarmerForm({ initial, onSave, onClose }) {
 
   const isEdit = Boolean(initial.id)
   const tabs = [
-    { id: 'personal', label: '👤 Personal' },
-    { id: 'address',  label: '📍 Address' },
-    { id: 'bank',     label: '🏦 Bank' },
+    { id: 'personal',    label: '👤 Personal' },
+    { id: 'addressBank', label: '📍 Address & Bank' },
   ]
 
   return (
@@ -362,9 +418,9 @@ function FarmerForm({ initial, onSave, onClose }) {
               </div>
             </>)}
 
-            {/* ── Address Tab ── */}
-            {/* Fields match FarmerAddresses schema: Village, Mandal, District, State, PinCode */}
-            {activeTab === 'address' && (<>
+            {/* ── Address & Bank Tab ── */}
+            {activeTab === 'addressBank' && (<>
+              {/* Address Details Group */}
               <div className="fm-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Address Details <span className="fm-endpoint-hint">· POST /api/FarmerAddresses</span></span>
                 {form.hasAddress && <span className="fm-linked-badge">● Existing Address</span>}
@@ -375,7 +431,7 @@ function FarmerForm({ initial, onSave, onClose }) {
                   <input value={form.village} onChange={e => set('village', e.target.value)} placeholder="Village" />
                 </div>
                 <div className="fm-field">
-                  <label>Mandal</label>
+                  <label>Mandal / Taluk</label>
                   <input value={form.mandal} onChange={e => set('mandal', e.target.value)} placeholder="Mandal / Taluk" />
                 </div>
                 <div className="fm-field">
@@ -383,7 +439,7 @@ function FarmerForm({ initial, onSave, onClose }) {
                   <input value={form.district} onChange={e => set('district', e.target.value)} placeholder="District" />
                 </div>
               </div>
-              <div className="fm-row fm-row-2">
+              <div className="fm-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
                 <div className="fm-field">
                   <label>State</label>
                   <select value={form.state} onChange={e => set('state', e.target.value)}>
@@ -398,13 +454,10 @@ function FarmerForm({ initial, onSave, onClose }) {
                   {errs.pin && <span className="fm-err">{errs.pin}</span>}
                 </div>
               </div>
-            </>)}
 
-            {/* ── Bank Tab ── */}
-            {/* Fields match FarmerBankAccounts schema: BankName, AccountNumber, IFSC */}
-            {activeTab === 'bank' && (<>
-              <div className="fm-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Bank Credentials <span className="fm-endpoint-hint">· POST /api/FarmerBankAccounts</span></span>
+              {/* Bank Details Group */}
+              <div className="fm-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px' }}>
+                <span>Bank Details <span className="fm-endpoint-hint">· POST /api/FarmerBankAccounts</span></span>
                 {form.hasBank && <span className="fm-linked-badge fm-linked-blue">● Existing Bank Record</span>}
               </div>
               <div className="fm-row">
@@ -413,6 +466,19 @@ function FarmerForm({ initial, onSave, onClose }) {
                   <input value={form.bankName} onChange={e => set('bankName', e.target.value)}
                     placeholder="e.g. State Bank of India" />
                 </div>
+                <div className="fm-field">
+                  <label>Branch Name</label>
+                  <input value={form.branchName} onChange={e => set('branchName', e.target.value)}
+                    placeholder="e.g. Main Branch" />
+                </div>
+                <div className="fm-field">
+                  <label>Phone Number</label>
+                  <input value={form.bankPhone} onChange={e => set('bankPhone', e.target.value)}
+                    placeholder="10-digit phone" maxLength={10} className={errs.bankPhone ? 'err' : ''} />
+                  {errs.bankPhone && <span className="fm-err">{errs.bankPhone}</span>}
+                </div>
+              </div>
+              <div className="fm-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
                 <div className="fm-field">
                   <label>Account Number</label>
                   <input value={form.accountNo} onChange={e => set('accountNo', e.target.value)}
@@ -433,16 +499,16 @@ function FarmerForm({ initial, onSave, onClose }) {
           {/* Footer */}
           <div className="fm-modal-foot">
             <div className="fm-tab-nav-btns">
-              {activeTab !== 'personal' && (
+              {activeTab === 'addressBank' && (
                 <button type="button" className="fm-btn-secondary"
-                  onClick={() => setActiveTab(activeTab === 'bank' ? 'address' : 'personal')}>
+                  onClick={() => setActiveTab('personal')}>
                   ← Back
                 </button>
               )}
-              {activeTab !== 'bank' && (
+              {activeTab === 'personal' && (
                 <button type="button" className="fm-btn-secondary"
-                  onClick={() => setActiveTab(activeTab === 'personal' ? 'address' : 'bank')}>
-                  Next →
+                  onClick={() => setActiveTab('addressBank')}>
+                  Next: Address & Bank →
                 </button>
               )}
             </div>
@@ -532,6 +598,8 @@ function ViewFarmer({ farmer, onClose, onEdit }) {
           <div className="fm-section-label">Bank Information</div>
           <div className="fm-view-grid">
             {row('Bank Name', farmer.bankName)}
+            {row('Branch Name', farmer.branchName)}
+            {row('Phone Number', farmer.bankPhone)}
             {row('Account No', farmer.accountNo ? '••••' + farmer.accountNo.slice(-4) : null)}
             {row('IFSC Code', farmer.ifsc)}
           </div>
@@ -606,6 +674,16 @@ export default function Farmers() {
     setModal({ mode: 'add', data: { ...EMPTY, code: farmerService.generateFarmerCode(farmers) } })
   }
 
+  // ── Open View drawer — re-fetch fresh data for the single farmer ─────────────
+  async function openView(farmer) {
+    try {
+      const fresh = await farmerService.getFarmerById(farmer.id)
+      setViewTarget(mapFarmer(fresh))
+    } catch (_) {
+      setViewTarget(farmer)
+    }
+  }
+
   // ── Open Edit form — re-fetch fresh data for the single farmer ─────────────
   async function openEdit(farmer) {
     try {
@@ -638,6 +716,8 @@ export default function Farmers() {
       const farmerId = extractFarmerId(res)
 
       if (farmerId) {
+        saveFarmerBankMeta(farmerId, form.code, form)
+
         // 2. Create Address
         const hasAddressInfo = form.village || form.mandal || form.district || form.state || form.pin
         if (hasAddressInfo) {
@@ -645,7 +725,7 @@ export default function Farmers() {
           catch (e) { console.warn('[FarmerAddress] create note:', e) }
         }
         // 3. Create Bank Account
-        const hasBankInfo = form.bankName && form.accountNo && form.ifsc
+        const hasBankInfo = form.bankName || form.accountNo || form.ifsc || form.branchName || form.bankPhone
         if (hasBankInfo) {
           try { await saveBank(farmerId, form, false) }
           catch (e) { console.warn('[FarmerBankAccount] create note:', e) }
@@ -656,6 +736,7 @@ export default function Farmers() {
     } else {
       // 1. Update Farmer
       await farmerService.updateFarmer(form.id, form)
+      saveFarmerBankMeta(form.id, form.code, form)
 
       // 2. Update / create Address using farmerId as the key
       const hasAddressInfo = form.village || form.mandal || form.district || form.state || form.pin
@@ -665,7 +746,7 @@ export default function Farmers() {
       }
 
       // 3. Update / create Bank using farmerId as the key
-      const hasBankInfo = form.bankName && form.accountNo && form.ifsc
+      const hasBankInfo = form.bankName || form.accountNo || form.ifsc || form.branchName || form.bankPhone
       if (hasBankInfo) {
         try { await saveBank(form.id, form, form.hasBank) }
         catch (e) { console.warn('[FarmerBankAccount] update note:', e) }
@@ -689,6 +770,7 @@ export default function Farmers() {
         try { await farmerAddressService.deleteAddress(deleteTarget.id) } catch (_) {}
       }
       await farmerService.deleteFarmer(deleteTarget.id)
+      deleteFarmerBankMeta(deleteTarget.id, deleteTarget.code)
       showToast(`Farmer "${deleteTarget.name}" deleted`, 'error')
       setDeleteTarget(null)
       await fetchFarmers()
@@ -870,7 +952,7 @@ export default function Farmers() {
                   </td>
                   <td>
                     <div className="fm-actions">
-                      <button className="fm-action-btn fm-view"   onClick={() => setViewTarget(f)}  title="View"   type="button">👁</button>
+                      <button className="fm-action-btn fm-view"   onClick={() => openView(f)}        title="View"   type="button">👁</button>
                       <button className="fm-action-btn fm-edit"   onClick={() => openEdit(f)}        title="Edit"   type="button">✎</button>
                       <button className="fm-action-btn fm-delete" onClick={() => setDeleteTarget(f)} title="Delete" type="button">⛌</button>
                     </div>

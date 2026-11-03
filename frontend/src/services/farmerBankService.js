@@ -40,6 +40,8 @@ export const farmerBankService = {
     const payload = {
       farmerId: Number(data.farmerId),
       bankName: data.bankName?.trim() || '',
+      ...(data.branchName ? { branchName: data.branchName.trim() } : {}),
+      ...(data.phoneNumber || data.bankPhone ? { phoneNumber: String(data.phoneNumber || data.bankPhone).trim() } : {}),
       accountNumber: String(data.accountNumber || data.accountNo || '').trim(),
       ifsc: (data.ifsc?.trim() || '').toUpperCase()
     };
@@ -55,6 +57,8 @@ export const farmerBankService = {
     const payload = {
       farmerId: Number(data.farmerId),
       bankName: data.bankName?.trim() || '',
+      ...(data.branchName ? { branchName: data.branchName.trim() } : {}),
+      ...(data.phoneNumber || data.bankPhone ? { phoneNumber: String(data.phoneNumber || data.bankPhone).trim() } : {}),
       accountNumber: String(data.accountNumber || data.accountNo || '').trim(),
       ifsc: (data.ifsc?.trim() || '').toUpperCase()
     };
