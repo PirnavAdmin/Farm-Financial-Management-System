@@ -247,7 +247,7 @@ export default function Purchases() {
   }
 
   return (
-    <div className="users-page inventory-screen">
+    <div className="users-page inventory-screen purchases-page">
       <div className="users-title-row">
         <div>
           <div className="users-eyebrow">
@@ -359,11 +359,11 @@ export default function Purchases() {
             <thead>
               <tr>
                 {fields.map((field) => (
-                  <th key={field} style={{ fontWeight: 'bold' }}>
+                  <th key={field}>
                     {field.toUpperCase()}
                   </th>
                 ))}
-                <th style={{ fontWeight: 'bold' }}>ACTIONS</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -372,7 +372,18 @@ export default function Purchases() {
                 return (
                   <tr key={`${screenName}-${index}`}>
                     {fields.map((field, fieldIndex) => (
-                      <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>
+                      <td
+                        className={
+                          fieldIndex === 0
+                            ? 'user-id purchase-code'
+                            : field === 'Product'
+                            ? 'purchase-product'
+                            : field === 'Total'
+                            ? 'purchase-total'
+                            : ''
+                        }
+                        key={field}
+                      >
                         {field === 'Payment Status' ? (
                           <span className={`status-badge ${record[field] === 'Paid' ? 'active' : 'inactive'}`}>
                             <i />

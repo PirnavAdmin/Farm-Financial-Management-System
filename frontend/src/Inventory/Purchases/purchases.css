@@ -1,27 +1,549 @@
 @import '../../Settings/Users/Users.css';
 
-.inventory-screen .users-table { min-width: 1100px; }
-.inventory-screen .users-table th { font-weight: bold; }
-.inventory-screen .users-table td { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+/* ==========================================================================
+   Purchases Module Typography (Matched to Crop Master Reference Style)
+   Scope: Scoped strictly to .purchases-page and its sub-elements to avoid
+   affecting any other page, module, or global font setting.
+   ========================================================================== */
 
-.status-badge.part-paid { color: #b26a00; background: #fff8e6; }
-.status-badge.overdue { color: #c43d3d; background: #fdf0f0; }
+.purchases-page {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif);
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-.inventory-mode-badge {
+/* 1. Page Title & Header */
+.purchases-page .users-title-row {
+  margin-bottom: 20px;
+}
+
+.purchases-page .users-eyebrow {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #6b8272;
+  margin-bottom: 4px;
+}
+
+.purchases-page .users-eyebrow span {
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+.purchases-page .users-title-row h1 {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  color: #1e3325;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.purchases-page .users-title-row p {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* Primary Button (+ Add Purchase) */
+.purchases-page .users-add {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #15803d;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.2);
+  transition: background 0.15s ease;
+}
+
+.purchases-page .users-add span {
+  font-size: 15px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.purchases-page .users-add:hover {
+  background: #166534;
+}
+
+/* 2. Summary KPI Cards */
+.purchases-page .users-stats {
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.purchases-page .users-stats article {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.purchases-page .users-stats article small {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.purchases-page .users-stats article strong {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+.purchases-page .stat-hint {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.purchases-page .stat-arrow {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* 3. Search and Filter Controls */
+.purchases-page .users-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.purchases-page .users-toolbar {
+  padding: 12px 16px;
+  gap: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.purchases-page .user-search {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  height: 38px;
+  padding: 0 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.purchases-page .user-search:focus-within {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.purchases-page .user-search span {
+  font-size: 15px;
+  color: #94a3b8;
+}
+
+.purchases-page .user-search input {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.purchases-page .user-search input::placeholder {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.purchases-page .users-toolbar select {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  height: 38px;
+  padding: 0 28px 0 12px;
+  transition: border-color 0.15s ease;
+}
+
+.purchases-page .users-toolbar select:focus {
+  border-color: #16a34a;
+  outline: none;
+}
+
+.purchases-page .reset-button {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  letter-spacing: 0.1px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.purchases-page .reset-button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* 4. Table Headers and Rows */
+.purchases-page .users-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.purchases-page .users-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+.purchases-page .users-table thead tr {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.purchases-page .users-table th {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  padding: 12px 14px;
+  height: 42px;
+  white-space: nowrap;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  border-top: none;
+}
+
+.purchases-page .users-table td {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #1e293b;
+  padding: 12px 14px;
+  height: 52px;
+  border-top: 1px solid #f1f5f9;
+  vertical-align: middle;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.purchases-page .users-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+/* Column Specific Typography */
+.purchases-page .users-table td.purchase-code,
+.purchases-page .users-table td.user-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #15803d;
+  letter-spacing: 0.2px;
+}
+
+.purchases-page .users-table td.purchase-product {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.purchases-page .users-table td.purchase-total {
+  font-weight: 650;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status Badges */
+.purchases-page .status-badge {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.purchases-page .status-badge i {
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+}
+
+.purchases-page .status-badge.active {
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.purchases-page .status-badge.inactive {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.purchases-page .status-badge.part-paid {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.purchases-page .status-badge.overdue {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+/* Action Buttons */
+.purchases-page .user-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.purchases-page .user-actions button {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.purchases-page .user-actions button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* 5. Table Footer & Pagination */
+.purchases-page .users-table-footer {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.purchases-page .users-table-footer strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.purchases-page .pagination {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.purchases-page .pagination button {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.purchases-page .pagination button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.purchases-page .pagination button.current {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.purchases-page .pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 6. Empty & Error States */
+.purchases-page .users-empty {
+  padding: 40px 16px;
+}
+
+.purchases-page .users-empty strong {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 14px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.purchases-page .users-empty p {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 6px 0 12px;
+}
+
+.purchases-page .users-empty button {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+}
+
+/* 7. Bottom Disclaimer & Badges */
+.purchases-page .users-disclaimer {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 14px;
+}
+
+.purchases-page .inventory-mode-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
   border-radius: 12px;
-  font-size: 10px;
-  font-weight: 600;
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
   background: #edf6ee;
-  color: #398150;
+  color: #15803d;
   vertical-align: middle;
   margin-left: 10px;
 }
-.inventory-mode-badge.offline {
-  background: #fff8e6;
-  color: #946200;
-  border: 1px solid #fae2b4;
+
+.purchases-page .inventory-mode-badge.offline {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* 8. Modal & Form Controls */
+.purchases-page .user-modal {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  border-radius: 10px;
+}
+
+.purchases-page .user-modal .modal-header span {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #6b8272;
+}
+
+.purchases-page .user-modal .modal-header h2 {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3325;
+  letter-spacing: -0.3px;
+  margin: 4px 0 2px;
+}
+
+.purchases-page .user-modal .modal-header p {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  color: #64748b;
+}
+
+.purchases-page .user-modal .form-grid label {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: 0.1px;
+}
+
+.purchases-page .user-modal .form-grid input,
+.purchases-page .user-modal .form-grid select {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.purchases-page .user-modal .form-grid input:focus,
+.purchases-page .user-modal .form-grid select:focus {
+  border-color: #16a34a;
+  outline: none;
+}
+
+.purchases-page .user-modal .form-grid input::placeholder {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.purchases-page .user-modal .modal-footer span {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.purchases-page .user-modal .modal-footer button {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  height: 35px;
+}
+
+.purchases-page .user-modal .modal-footer .save-button {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.purchases-page .user-modal .modal-footer .save-button:hover {
+  background: #166534;
+}
+
+/* 9. Feedback Toast */
+.purchases-page .user-toast {
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
 }
