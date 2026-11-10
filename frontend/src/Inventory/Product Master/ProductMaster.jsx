@@ -49,8 +49,7 @@ export default function ProductMaster() {
       const matchesQuery =
         !q ||
         p.productName.toLowerCase().includes(q) ||
-        p.productCode.toLowerCase().includes(q) ||
-        (p.supplier && p.supplier.toLowerCase().includes(q))
+        p.productCode.toLowerCase().includes(q)
 
       const matchesCat = selectedCategory === 'All' || p.category === selectedCategory
 
@@ -268,12 +267,7 @@ export default function ProductMaster() {
                         <strong style={{ color: 'var(--inv-text-dark)', fontSize: '12.5px' }}>
                           {product.productName}
                         </strong>
-                        {product.description && (
-                          <span style={{ color: '#64748b', fontSize: '11px' }}>
-                            {product.description.slice(0, 55)}
-                            {product.description.length > 55 ? '...' : ''}
-                          </span>
-                        )}
+
                       </div>
                     </td>
                     <td>
@@ -499,17 +493,7 @@ export default function ProductMaster() {
                     </label>
                   )}
 
-                  <label>
-                    Estimated Unit Cost (₹)
-                    <input
-                      name="costPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      defaultValue={editModalProduct.costPrice ?? 0}
-                      placeholder="e.g. 850"
-                    />
-                  </label>
+
 
                   <label>
                     Status
@@ -522,33 +506,7 @@ export default function ProductMaster() {
                     </select>
                   </label>
 
-                  <label className="field-wide">
-                    Primary Supplier Name
-                    <input
-                      name="supplier"
-                      defaultValue={editModalProduct.supplier || ''}
-                      placeholder="e.g. National Seeds Corporation"
-                    />
-                  </label>
 
-                  <label className="field-wide">
-                    Description & Specifications
-                    <textarea
-                      name="description"
-                      rows={2}
-                      defaultValue={editModalProduct.description || ''}
-                      placeholder="Provide technical specifications, active ingredients, or usage instructions..."
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        border: '1px solid #e2e8e1',
-                        borderRadius: '5px',
-                        font: 'inherit',
-                        fontSize: '11px',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </label>
                 </div>
               </div>
             </div>
@@ -611,15 +569,7 @@ export default function ProductMaster() {
                   <span>{viewProduct.openingStock ?? 0} {viewProduct.unit}</span>
                 </div>
 
-                <div className="inv-detail-item">
-                  <small>Unit Cost</small>
-                  <span>₹{viewProduct.costPrice ? Number(viewProduct.costPrice).toLocaleString('en-IN') : '—'}</span>
-                </div>
 
-                <div className="inv-detail-item">
-                  <small>Default Supplier</small>
-                  <span>{viewProduct.supplier || 'Not specified'}</span>
-                </div>
 
                 <div className="inv-detail-item">
                   <small>Stock Health</small>
@@ -635,12 +585,7 @@ export default function ProductMaster() {
                   </div>
                 </div>
 
-                <div className="inv-detail-item full-width">
-                  <small>Description / Technical Notes</small>
-                  <p style={{ margin: '4px 0 0', color: '#475569', fontSize: '12px', lineHeight: 1.5 }}>
-                    {viewProduct.description || 'No additional specifications provided.'}
-                  </p>
-                </div>
+
               </div>
             </div>
 

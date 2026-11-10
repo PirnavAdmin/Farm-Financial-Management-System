@@ -248,7 +248,7 @@ export default function StockIn() {
               <div>
                 <span>INVENTORY / STOCK IN</span>
                 <h2>Record Incoming Consignment</h2>
-                <p>Enter invoice details, supplier rates, and verified received quantities.</p>
+                <p>Enter consignment details, supplier rates, and verified received quantities.</p>
               </div>
               <button
                 type="button"
@@ -380,16 +380,7 @@ export default function StockIn() {
                     />
                   </label>
 
-                  {/* Invoice / Reference Number */}
-                  <label>
-                    Invoice / DC Number
-                    <input
-                      type="text"
-                      placeholder="e.g. INV-2026-884"
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
-                    />
-                  </label>
+
 
                   {/* Remarks */}
                   <label className="field-wide">
@@ -432,7 +423,7 @@ export default function StockIn() {
             <span>⌕</span>
             <input
               type="text"
-              placeholder="Search by product, code, supplier or invoice..."
+              placeholder="Search by product, code or supplier..."
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
@@ -483,7 +474,6 @@ export default function StockIn() {
                 <th style={{ textAlign: 'right' }}>Unit Rate</th>
                 <th style={{ textAlign: 'right' }}>Total Amount</th>
                 <th>Supplier</th>
-                <th>Invoice / DC</th>
                 <th>Remarks</th>
               </tr>
             </thead>
@@ -526,11 +516,6 @@ export default function StockIn() {
                     </span>
                   </td>
                   <td>
-                    <span style={{ color: '#64748b', fontSize: '11px' }}>
-                      {record.invoiceNumber || '—'}
-                    </span>
-                  </td>
-                  <td>
                     <span
                       style={{
                         color: '#64748b',
@@ -548,7 +533,7 @@ export default function StockIn() {
 
               {pagedRecords.length === 0 && (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={9}>
                     <div className="inv-empty">
                       <span className="inv-empty-icon">⌕</span>
                       <strong>No stock in records found</strong>

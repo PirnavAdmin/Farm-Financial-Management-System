@@ -132,7 +132,7 @@
 
 .ir-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -176,6 +176,12 @@
   background: #f0fdf4;
   color: #16a34a;
   border: 1px solid #dcfce7;
+}
+
+.ir-icon-loss {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .ir-icon-avg {

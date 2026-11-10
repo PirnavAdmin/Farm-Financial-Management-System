@@ -275,27 +275,31 @@ export default function StockTransfer() {
                     </select>
                   </label>
 
-                  {/* Available Quantity Display */}
+                  {/* Category Display */}
                   <label>
-                    Available Balance
-                    <input
-                      readOnly
-                      value={
-                        selectedProduct
-                          ? `${selectedProduct.currentStock} ${selectedProduct.unit}`
-                          : 'Select a product first'
-                      }
+                    Category
+                    <div
                       style={{
-                        fontWeight: 700,
-                        color: selectedProduct
-                          ? selectedProduct.currentStock <= 0
-                            ? '#dc2626'
-                            : selectedProduct.currentStock <= selectedProduct.minimumStockLevel
-                            ? '#d97706'
-                            : '#15803d'
-                          : '#94a3b8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '38px',
+                        padding: '0 12px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        boxSizing: 'border-box',
                       }}
-                    />
+                    >
+                      {selectedProduct ? (
+                        <span className={`inv-cat-pill ${getCategoryClass(selectedProduct.category)}`}>
+                          {selectedProduct.category}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                          Select a product first
+                        </span>
+                      )}
+                    </div>
                   </label>
 
                   {/* Transfer Quantity */}
@@ -358,16 +362,7 @@ export default function StockTransfer() {
                     />
                   </label>
 
-                  {/* Reference Number */}
-                  <label>
-                    Transfer Voucher / Gate Pass Ref
-                    <input
-                      type="text"
-                      placeholder="e.g. TR-2026-104"
-                      value={referenceNumber}
-                      onChange={(e) => setReferenceNumber(e.target.value)}
-                    />
-                  </label>
+
 
                   {/* Remarks */}
                   <label className="field-wide">
@@ -457,7 +452,6 @@ export default function StockTransfer() {
                 <th>Category</th>
                 <th style={{ textAlign: 'right' }}>Transfer Qty</th>
                 <th>Location Route (Source ➔ Destination)</th>
-                <th>Gate Pass Ref</th>
                 <th>Remarks</th>
               </tr>
             </thead>
@@ -496,11 +490,6 @@ export default function StockTransfer() {
                     </span>
                   </td>
                   <td>
-                    <span style={{ color: '#64748b', fontSize: '11px' }}>
-                      {record.referenceNumber || '—'}
-                    </span>
-                  </td>
-                  <td>
                     <span
                       style={{
                         color: '#64748b',
@@ -518,7 +507,7 @@ export default function StockTransfer() {
 
               {pagedRecords.length === 0 && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={7}>
                     <div className="inv-empty">
                       <span className="inv-empty-icon">⌕</span>
                       <strong>No transfer records found</strong>

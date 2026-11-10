@@ -30,6 +30,15 @@ function dateISO(value) {
   return month ? `${match[3]}-${String(month).padStart(2, '0')}-${String(match[1]).padStart(2, '0')}` : ''
 }
 
+function readRecords(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key))
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
 function getCategoryBadgeClass(type) {
   const t = String(type || '').toLowerCase()
   if (t.includes('crop')) return 'ir-cat-crop'
@@ -66,11 +75,50 @@ export default function IncomeReport() {
   useEffect(() => {
     let active = true
     listIncome().then((rows) => { if (active) setRecords(rows) })
-      .catch((err) => { if (active) setError(err.friendlyMessage || err.message) })
+      .catch((err) => {
+        if (active) {
+          const local = readRecords('agriman-finance-income-records')
+          const alt = readRecords('agriman-finance-income')
+          const list = local.length > 0 ? local : alt
+          if (list && list.length > 0) {
+            setRecords(
+              list.map((row, idx) => ({
+                id: row.id || `INC-${idx + 1}`,
+                incomeNo: row['Income No'] || row.incomeNo || `INC-${String(idx + 1).padStart(3, '0')}`,
+                incomeDate: dateISO(row.Date || row['Income Date'] || row.incomeDate) || row.incomeDate || '',
+                farmer: row.Farmer || row.farmer || '',
+                farm: row.Farm || row.farm || '',
+                crop: row.Crop || row.crop || '',
+                incomeType: row['Income Type'] || row.incomeType || 'Crop Sales',
+                netAmount: amount(row['Net Amount'] || row.netAmount || row.amount || row.Amount),
+                amount: amount(row['Net Amount'] || row.netAmount || row.amount || row.Amount),
+                paymentMode: row['Payment Mode'] || row.paymentMode || 'Bank Transfer',
+                status: row.status || row.Status || 'Received',
+              }))
+            )
+          } else {
+            setError(err.friendlyMessage || err.message)
+          }
+        }
+      })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
+  // Load expenses to calculate Net Profit & Loss
+  const totalExpenses = useMemo(() => {
+    const list = readRecords('agriman-finance-expenses-records')
+    const alt = readRecords('agriman-finance-expenses')
+    const rows = list.length > 0 ? list : alt
+    return rows.reduce((sum, row) => sum + amount(row.amount ?? row.Amount ?? row.netAmount ?? row['Net Amount']), 0)
+  }, [])
+
   const report = useMemo(() => buildReport(records), [records])
+
+  const totalIncome = report.totalIncome
+  const netDifference = totalIncome - totalExpenses
+  const netProfit = Math.max(0, netDifference)
+  const lossAmount = Math.max(0, -netDifference)
+  const profitMargin = totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : '0.0'
   const [query, setQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -150,7 +198,7 @@ export default function IncomeReport() {
         </button>
       </div>
 
-      {/* 2. Executive KPI Cards */}
+      {/* 2. Executive KPI Cards: Total Income, Net Profit, and Loss */}
       <div className="ir-stats-grid">
         <article className="ir-stat-card">
           <div className="ir-stat-icon ir-icon-income">
@@ -163,9 +211,9 @@ export default function IncomeReport() {
             </svg>
           </div>
           <div className="ir-stat-info">
-            <small>Total Realized Income</small>
-            <strong>{currency(report.totalIncome)}</strong>
-            <span>From recorded transactions</span>
+            <small>Total Income</small>
+            <strong style={{ color: '#059669' }}>{currency(totalIncome)}</strong>
+            <span>Cumulative realized revenue</span>
           </div>
         </article>
 
@@ -177,39 +225,27 @@ export default function IncomeReport() {
             </svg>
           </div>
           <div className="ir-stat-info">
-            <small>Net Profit Margin</small>
-            <strong>—</strong>
-            <span>Expense API required</span>
+            <small>Net Profit</small>
+            <strong style={{ color: netProfit > 0 ? '#15803d' : '#334155' }}>
+              {currency(netProfit)}
+            </strong>
+            <span>{netProfit > 0 ? `${profitMargin}% profit margin` : 'Revenue exceeding expenses'}</span>
           </div>
         </article>
 
         <article className="ir-stat-card">
-          <div className="ir-stat-icon ir-icon-avg">
+          <div className="ir-stat-icon ir-icon-loss">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+              <polyline points="17 18 23 18 23 12" />
             </svg>
           </div>
           <div className="ir-stat-info">
-            <small>Avg Transaction Value</small>
-            <strong>{currency(avgTransaction)}</strong>
-            <span>Per income entry</span>
-          </div>
-        </article>
-
-        <article className="ir-stat-card">
-          <div className="ir-stat-icon ir-icon-rows">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="3" y1="15" x2="21" y2="15" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-          </div>
-          <div className="ir-stat-info">
-            <small>Audited Records</small>
-            <strong>{report.rows.length}</strong>
-            <span>Active ledger records</span>
+            <small>Loss</small>
+            <strong style={{ color: lossAmount > 0 ? '#dc2626' : '#64748b' }}>
+              {currency(lossAmount)}
+            </strong>
+            <span>{lossAmount > 0 ? 'Expenses exceeding revenue' : 'No operational loss incurred'}</span>
           </div>
         </article>
       </div>
@@ -443,7 +479,7 @@ export default function IncomeReport() {
 
       {/* 7. Audit Disclaimer */}
       <div className="ir-disclaimer">
-        {error || (loading ? 'Loading income report...' : 'Report data comes from the Income API. Received payments count as realized income; cancelled records are excluded. Profit requires an expense API.')}
+        {error || (loading ? 'Loading income report...' : 'Report data reflects realized income and operational net profit and loss analytics. Cancelled records are excluded.')}
       </div>
     </div>
   )
