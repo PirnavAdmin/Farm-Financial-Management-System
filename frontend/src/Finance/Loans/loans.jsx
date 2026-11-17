@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import './loans.css'
+import { loanService } from './loanService'
 
-const moduleName = 'Loans'
-const storeKey = 'agriman-finance-loans'
+
+
 
 // Available Loan Types tailored for Indian Agriculture & Farm Operations
 const LOAN_TYPES = [
@@ -38,114 +39,6 @@ const PAYMENT_MODES = [
   'Cheque',
   'UPI',
   'Other',
-]
-
-// Initial Seed Data for Loans
-const SEED_LOANS = [
-  {
-    loanNo: 'LOAN-2026-001',
-    bankName: 'District Cooperative Central Bank (DCCB)',
-    loanType: 'Crop Loan (KCC)',
-    sanctionAmount: 500000,
-    interestRate: 7.0,
-    startDate: '2026-06-01',
-    endDate: '2027-05-31',
-    emi: 42500,
-    outstandingAmount: 372000,
-    status: 'Active',
-    remarks: 'Kharif season subsidized crop loan sanctioned against 10 acres land survey.',
-  },
-  {
-    loanNo: 'LOAN-2026-002',
-    bankName: 'State Bank of India (Agri Branch)',
-    loanType: 'Tractor / Equipment Loan',
-    sanctionAmount: 750000,
-    interestRate: 8.5,
-    startDate: '2025-11-15',
-    endDate: '2030-11-14',
-    emi: 15400,
-    outstandingAmount: 620000,
-    status: 'Active',
-    remarks: 'Financed for Mahindra 575 DI Tractor purchase.',
-  },
-  {
-    loanNo: 'LOAN-2026-003',
-    bankName: 'Nabard Primary Agri Co-op (PACS)',
-    loanType: 'Drip Irrigation Loan',
-    sanctionAmount: 200000,
-    interestRate: 4.0,
-    startDate: '2025-04-10',
-    endDate: '2027-04-09',
-    emi: 8680,
-    outstandingAmount: 85000,
-    status: 'Active',
-    remarks: 'Government subsidized micro-irrigation installation loan.',
-  },
-  {
-    loanNo: 'LOAN-2026-004',
-    bankName: 'Canara Bank (Kisan Credit)',
-    loanType: 'Dairy / Livestock Loan',
-    sanctionAmount: 150000,
-    interestRate: 9.0,
-    startDate: '2024-08-01',
-    endDate: '2026-07-31',
-    emi: 6850,
-    outstandingAmount: 0,
-    status: 'Closed',
-    remarks: 'Financed for 2 Murrah buffaloes purchase. Fully repaid.',
-  },
-]
-
-// Initial Seed Data for Loan Payments
-const SEED_PAYMENTS = [
-  {
-    id: 'LN-PAY-2026-001',
-    loanNo: 'LOAN-2026-001',
-    paymentDate: '2026-07-05',
-    principal: 39580,
-    interest: 2920,
-    penalty: 0,
-    totalPayment: 42500,
-    paymentMode: 'Bank Transfer / NEFT / RTGS',
-    referenceNo: 'UTR-SBIN-892104',
-    remarks: 'July 2026 monthly installment',
-  },
-  {
-    id: 'LN-PAY-2026-002',
-    loanNo: 'LOAN-2026-001',
-    paymentDate: '2026-08-05',
-    principal: 39810,
-    interest: 2690,
-    penalty: 0,
-    totalPayment: 42500,
-    paymentMode: 'Bank Transfer / NEFT / RTGS',
-    referenceNo: 'UTR-SBIN-912044',
-    remarks: 'August 2026 monthly installment',
-  },
-  {
-    id: 'LN-PAY-2026-003',
-    loanNo: 'LOAN-2026-002',
-    paymentDate: '2026-09-10',
-    principal: 11000,
-    interest: 4400,
-    penalty: 0,
-    totalPayment: 15400,
-    paymentMode: 'Auto Debit / ECS',
-    referenceNo: 'ECS-SBI-00912',
-    remarks: 'September 2026 tractor EMI deduction',
-  },
-  {
-    id: 'LN-PAY-2026-004',
-    loanNo: 'LOAN-2026-003',
-    paymentDate: '2026-10-15',
-    principal: 8100,
-    interest: 580,
-    penalty: 0,
-    totalPayment: 8680,
-    paymentMode: 'UPI',
-    referenceNo: 'UPI-HDFC-99210',
-    remarks: 'October 2026 drip loan EMI payment',
-  },
 ]
 
 // Formatting Helpers
@@ -192,118 +85,49 @@ function formatPct(val) {
   return `${num.toFixed(1)}%`
 }
 
-// Normalize raw or legacy record from LocalStorage
 function normalizeLoan(raw) {
-  if (!raw) return null
-  const sanction = parseAmount(raw.sanctionAmount || raw['Sanction Amount'])
-  const outstanding = raw.outstandingAmount !== undefined || raw['Outstanding Amount'] !== undefined
-    ? parseAmount(raw.outstandingAmount || raw['Outstanding Amount'])
-    : sanction
-  const st = raw.status || raw['Status'] || (outstanding <= 0 ? 'Closed' : 'Active')
-
-  return {
-    loanNo: raw.loanNo || raw['Loan No'] || '',
-    bankName: raw.bankName || raw['Bank / Lender'] || '',
-    loanType: raw.loanType || raw['Loan Type'] || 'Crop Loan (KCC)',
-    sanctionAmount: sanction,
-    interestRate: parseRate(raw.interestRate || raw['Interest Rate']),
-    startDate: raw.startDate || raw['Start Date'] || '',
-    endDate: raw.endDate || raw['End Date'] || '',
-    emi: parseAmount(raw.emi || raw['EMI']),
-    outstandingAmount: outstanding,
-    status: st,
-    remarks: raw.remarks || raw['Remarks'] || '',
-  }
+  return { ...raw, bankName: raw.bankLender || '', startDate: raw.startDate?.slice(0, 10) || '', endDate: raw.endDate?.slice(0, 10) || '' }
 }
-
 function normalizePayment(raw) {
-  if (!raw) return null
-  const principal = parseAmount(raw.principal || raw['Principal'])
-  const interest = parseAmount(raw.interest || raw['Interest'])
-  const penalty = parseAmount(raw.penalty || raw['Penalty'])
-  const total = raw.totalPayment || raw['Total Payment']
-    ? parseAmount(raw.totalPayment || raw['Total Payment'])
-    : (principal + interest + penalty)
-
-  return {
-    id: raw.id || raw.paymentNo || raw['Reference No'] || `LN-PAY-${Date.now().toString().slice(-4)}`,
-    loanNo: raw.loanNo || raw['Loan No'] || '',
-    paymentDate: raw.paymentDate || raw['Payment Date'] || todayDate(),
-    principal,
-    interest,
-    penalty,
-    totalPayment: total,
-    paymentMode: raw.paymentMode || raw['Payment Mode'] || 'Bank Transfer / NEFT / RTGS',
-    referenceNo: raw.referenceNo || raw['Reference No'] || '',
-    remarks: raw.remarks || raw['Remarks'] || '',
-  }
-}
-
-// Convert to legacy shape when saving so any external/generic consumers still work
-function toStorageLoan(loan) {
-  return {
-    ...loan,
-    'Loan No': loan.loanNo,
-    'Bank / Lender': loan.bankName,
-    'Loan Type': loan.loanType,
-    'Sanction Amount': formatCurrency(loan.sanctionAmount),
-    'Interest Rate': `${loan.interestRate}%`,
-    'Start Date': loan.startDate,
-    'End Date': loan.endDate,
-    'EMI': formatCurrency(loan.emi),
-    'Outstanding Amount': formatCurrency(loan.outstandingAmount),
-    'Status': loan.status,
-  }
-}
-
-function toStoragePayment(p) {
-  return {
-    ...p,
-    'Loan No': p.loanNo,
-    'Payment Date': p.paymentDate,
-    'Principal': formatCurrency(p.principal),
-    'Interest': formatCurrency(p.interest),
-    'Penalty': formatCurrency(p.penalty),
-    'Total Payment': formatCurrency(p.totalPayment),
-    'Payment Mode': p.paymentMode,
-    'Reference No': p.referenceNo,
-  }
+  return { ...raw, id: raw.voucherNo || String(raw.paymentId), paymentDate: raw.paymentDate?.slice(0, 10) || '' }
 }
 
 export default function Loans() {
   const [view, setView] = useState('loans') // 'loans' | 'payments'
 
-  // Load Loans from LocalStorage
-  const [loans, setLoans] = useState(() => {
+  const [loans, setLoans] = useState([])
+  const [payments, setPayments] = useState([])
+  const [summary, setSummary] = useState(null)
+  const [paymentSummary, setPaymentSummary] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const loadData = async () => {
+    const [records, paid, totals, paidTotals] = await Promise.all([
+      loanService.list(), loanService.payments(), loanService.summary(), loanService.paymentSummary(),
+    ])
+    setLoans(records.map(normalizeLoan))
+    setPayments(paid.map(normalizePayment))
+    setSummary(totals)
+    setPaymentSummary(paidTotals)
+  }
+  useEffect(() => {
+    loadData().catch((error) => setApiError(error.friendlyMessage || error.message)).finally(() => setLoading(false))
+  }, [])
+  const mutate = async (action, close, message) => {
+    if (saving) return
+    setSaving(true)
+    setApiError('')
     try {
-      const saved = localStorage.getItem(`${storeKey}-records`)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizeLoan).filter(Boolean)
-        }
+      await action()
+      close()
+      showToast(message)
+      try { await loadData() } catch (error) {
+        setApiError('Saved, but could not refresh the records. ' + (error.friendlyMessage || error.message))
       }
-    } catch {
-      // fallback
-    }
-    return SEED_LOANS
-  })
-
-  // Load Payments from LocalStorage
-  const [payments, setPayments] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${storeKey}-payments`)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizePayment).filter(Boolean)
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return SEED_PAYMENTS
-  })
+    } catch (error) { setApiError(error.friendlyMessage || error.message) }
+    finally { setSaving(false) }
+  }
 
   // Payment totals per loan
   const loanPaymentStats = useMemo(() => {
@@ -330,32 +154,7 @@ export default function Loans() {
     return Math.max(0, sanction - out)
   }
 
-  const getLoanOutstanding = (loan) => {
-    if (!loan) return 0
-    const sanction = loan.sanctionAmount || 0
-    const stats = loanPaymentStats[loan.loanNo]
-    if (stats && stats.count > 0) {
-      return Math.max(0, sanction - stats.totalPaid)
-    }
-    return loan.outstandingAmount !== undefined ? loan.outstandingAmount : sanction
-  }
-
-  // Save to LocalStorage
-  useEffect(() => {
-    const synchronizedLoans = loans.map((loan) => {
-      const out = getLoanOutstanding(loan)
-      return {
-        ...loan,
-        outstandingAmount: out,
-        status: out <= 0 ? 'Closed' : (loan.status === 'Closed' && out > 0 ? 'Active' : loan.status),
-      }
-    })
-    localStorage.setItem(`${storeKey}-records`, JSON.stringify(synchronizedLoans.map(toStorageLoan)))
-  }, [loans, payments, loanPaymentStats])
-
-  useEffect(() => {
-    localStorage.setItem(`${storeKey}-payments`, JSON.stringify(payments.map(toStoragePayment)))
-  }, [payments])
+  const getLoanOutstanding = (loan) => loan?.outstandingAmount ?? loan?.sanctionAmount ?? 0
 
   // Filters & State
   const [query, setQuery] = useState('')
@@ -384,21 +183,13 @@ export default function Loans() {
   }, [query, statusFilter, typeFilter, paymentModeFilter, selectedLoanFilter, view])
 
   // KPI Calculations
-  const totalSanctioned = useMemo(() => loans.reduce((acc, l) => acc + (l.sanctionAmount || 0), 0), [loans])
-  const totalOutstanding = useMemo(() => loans.reduce((acc, l) => acc + getLoanOutstanding(l), 0), [loans, loanPaymentStats])
-  const activeLoansCount = useMemo(() => {
-    const active = loans.filter((l) => getLoanOutstanding(l) > 0 && l.status !== 'Closed')
-    return active.length || loans.filter((l) => l.status === 'Active').length
-  }, [loans, loanPaymentStats])
-
-  const totalPaymentsAmount = useMemo(() => payments.reduce((acc, p) => acc + (p.totalPayment || 0), 0), [payments])
-  const totalPrincipalPaid = useMemo(() => payments.reduce((acc, p) => acc + (p.principal || 0), 0), [payments])
-  const totalInterestPaid = useMemo(() => payments.reduce((acc, p) => acc + (p.interest || 0) + (p.penalty || 0), 0), [payments])
-
-  // Paid amount displayed in Loan Screen matching Loan Payment Screen
-  const totalPaidDisplay = useMemo(() => {
-    return payments.length > 0 ? totalPaymentsAmount : Math.max(0, totalSanctioned - totalOutstanding)
-  }, [payments, totalPaymentsAmount, totalSanctioned, totalOutstanding])
+  const totalSanctioned = summary?.totalSanctioned ?? 0
+  const totalOutstanding = summary?.totalOutstanding ?? 0
+  const activeLoansCount = summary?.activeLoans ?? 0
+  const totalPaymentsAmount = paymentSummary?.totalAmountPaid ?? 0
+  const totalPrincipalPaid = paymentSummary?.principalReductions ?? 0
+  const totalInterestPaid = paymentSummary?.interestAndCharges ?? 0
+  const totalPaidDisplay = summary?.totalAmountPaid ?? 0
 
   const totalRepaidPct = totalSanctioned > 0 ? (totalPaidDisplay / totalSanctioned) * 100 : 0
 
@@ -443,8 +234,8 @@ export default function Loans() {
 
   // Handlers for Loans
   const handleOpenAddLoan = () => {
-    const nextNum = loans.length + 1
-    const generatedCode = `LOAN-2026-${String(nextNum).padStart(3, '0')}`
+    const nextNum = Math.max(0, ...loans.map((loan) => Number(loan.loanNo.split('-').at(-1)) || 0)) + 1
+    const generatedCode = `LOAN-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`
     setLoanModal({
       isEdit: false,
       data: {
@@ -498,27 +289,17 @@ export default function Loans() {
       remarks: formData.get('remarks')?.trim() || '',
     }
 
-    if (loanModal.isEdit) {
-      setLoans((prev) => prev.map((l) => (l.loanNo === loanModal.data.loanNo ? newLoanObj : l)))
-      showToast(`Loan ${newLoanObj.loanNo} updated successfully.`)
-    } else {
-      if (loans.some((l) => l.loanNo === newLoanObj.loanNo)) {
-        alert(`Loan number "${newLoanObj.loanNo}" already exists!`)
-        return
-      }
-      setLoans((prev) => [newLoanObj, ...prev])
-      showToast(`Loan ${newLoanObj.loanNo} registered successfully.`)
+    if (!loanModal.isEdit && loans.some((loan) => loan.loanNo === newLoanObj.loanNo)) {
+      setApiError('This loan number already exists.')
+      return
     }
-
-    setLoanModal(null)
+    mutate(() => loanService.save(newLoanObj, loanModal.isEdit ? loanModal.data.loanId : undefined),
+      () => setLoanModal(null), 'Loan ' + newLoanObj.loanNo + ' saved successfully.')
   }
-
   const handleDeleteLoan = () => {
     if (!deleteConfirm || deleteConfirm.type !== 'loan') return
-    const targetNo = deleteConfirm.item.loanNo
-    setLoans((prev) => prev.filter((l) => l.loanNo !== targetNo))
-    setDeleteConfirm(null)
-    showToast(`Loan ${targetNo} deleted.`)
+    const target = deleteConfirm.item
+    mutate(() => loanService.remove(target.loanId), () => setDeleteConfirm(null), 'Loan ' + target.loanNo + ' deleted.')
   }
 
   // Handlers for Loan Payments
@@ -544,13 +325,6 @@ export default function Loans() {
     })
   }
 
-  const handleOpenEditPayment = (payment) => {
-    setPaymentModal({
-      isEdit: true,
-      data: { ...payment },
-    })
-  }
-
   const handleSavePayment = (e) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -568,7 +342,7 @@ export default function Loans() {
     }
 
     const targetLoan = loans.find((l) => l.loanNo === loanNo)
-    if (!targetLoan && loans.length > 0) {
+    if (!targetLoan) {
       alert('Selected loan was not found.')
       return
     }
@@ -586,79 +360,31 @@ export default function Loans() {
       remarks: formData.get('remarks')?.trim() || '',
     }
 
-    if (paymentModal.isEdit) {
-      const oldPayment = paymentModal.data
-      const diff = totalPayment - (oldPayment.totalPayment || 0)
-
-      setPayments((prev) => prev.map((p) => (p.id === newPaymentObj.id ? newPaymentObj : p)))
-
-      // Adjust loan outstanding
-      setLoans((prev) =>
-        prev.map((l) => {
-          if (l.loanNo !== loanNo) return l
-          const updatedPaid = (loanPaymentStats[loanNo]?.totalPaid || 0) + diff
-          const updatedBal = Math.max(0, (l.sanctionAmount || 0) - updatedPaid)
-          return {
-            ...l,
-            outstandingAmount: updatedBal,
-            status: updatedBal <= 0 ? 'Closed' : l.status,
-          }
-        })
-      )
-
-      showToast(`Payment ${newPaymentObj.id} updated successfully.`)
-    } else {
-      setPayments((prev) => [newPaymentObj, ...prev])
-
-      // Automatically reduce Loan Outstanding Amount by payment
-      setLoans((prev) =>
-        prev.map((l) => {
-          if (l.loanNo !== loanNo) return l
-          const updatedPaid = (loanPaymentStats[loanNo]?.totalPaid || 0) + totalPayment
-          const updatedBal = Math.max(0, (l.sanctionAmount || 0) - updatedPaid)
-          return {
-            ...l,
-            outstandingAmount: updatedBal,
-            status: updatedBal <= 0 ? 'Closed' : l.status,
-          }
-        })
-      )
-
-      showToast(`Payment of ${formatCurrency(totalPayment)} recorded for ${loanNo}.`)
+    if (principal > getLoanOutstanding(targetLoan)) {
+      setApiError('Principal payment cannot exceed the outstanding principal.')
+      return
     }
-
-    setPaymentModal(null)
+    mutate(() => loanService.recordPayment(targetLoan.loanId, newPaymentObj),
+      () => setPaymentModal(null), 'Payment recorded for ' + loanNo + '.')
   }
-
-  const handleDeletePayment = () => {
-    if (!deleteConfirm || deleteConfirm.type !== 'payment') return
-    const target = deleteConfirm.item
-
-    setPayments((prev) => prev.filter((p) => p.id !== target.id))
-
-    // Revert the deduction from the loan
-    setLoans((prev) =>
-      prev.map((l) => {
-        if (l.loanNo !== target.loanNo) return l
-        const updatedPaid = Math.max(0, (loanPaymentStats[l.loanNo]?.totalPaid || 0) - (target.totalPayment || 0))
-        const restoredBal = Math.max(0, (l.sanctionAmount || 0) - updatedPaid)
-        return {
-          ...l,
-          outstandingAmount: restoredBal,
-          status: restoredBal > 0 && l.status === 'Closed' ? 'Active' : l.status,
-        }
-      })
-    )
-
-    setDeleteConfirm(null)
-    showToast(`Payment ${target.id} deleted.`)
+  const openDetails = async (loan) => {
+    try { setViewLoanDetails(normalizeLoan(await loanService.detail(loan.loanId))) }
+    catch (error) { setApiError(error.friendlyMessage || error.message) }
   }
 
   // Get payments for a specific loan
   const getLoanPayments = (lNo) => payments.filter((p) => p.loanNo === lNo)
 
   return (
-    <div className="users-page finance-screen">
+    <div className="users-page finance-screen" aria-busy={loading || saving}>
+      {loading && <p role="status">Loading loans?</p>}
+      {apiError && <div role="alert" style={{ color: '#b91c1c', padding: '12px', background: '#fef2f2', position: 'relative', zIndex: 1100 }}>
+        {apiError} <button type="button" disabled={loading || saving} onClick={async () => {
+          setLoading(true)
+          try { await loadData(); setApiError('') } catch (error) { setApiError(error.friendlyMessage || error.message) }
+          finally { setLoading(false) }
+        }}>Retry loading</button>
+      </div>}
       {/* 1. Title Row */}
       <div className="users-title-row">
         <div>
@@ -671,11 +397,11 @@ export default function Loans() {
 
         <div>
           {view === 'loans' ? (
-            <button className="users-add" type="button" onClick={handleOpenAddLoan}>
+            <button className="users-add" type="button" onClick={handleOpenAddLoan} disabled={loading || saving}>
               <span>＋</span> Add New Loan
             </button>
           ) : (
-            <button className="users-add" type="button" onClick={() => handleOpenAddPayment()}>
+            <button className="users-add" type="button" onClick={() => handleOpenAddPayment()} disabled={loading || saving || !loans.length}>
               <span>＋</span> Record Loan Payment
             </button>
           )}
@@ -826,7 +552,7 @@ export default function Loans() {
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
                 <option value="All">All Loan Types</option>
-                {LOAN_TYPES.map((t) => (
+                {[...new Set([...LOAN_TYPES, ...loans.map((loan) => loan.loanType)])].map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -982,7 +708,7 @@ export default function Loans() {
                             type="button"
                             className="loan-btn-action"
                             title="View Loan Details and History"
-                            onClick={() => setViewLoanDetails(loan)}
+                            onClick={() => openDetails(loan)}
                           >
                             👁
                           </button>
@@ -1061,7 +787,7 @@ export default function Loans() {
                         title="Click to view loan details"
                         onClick={() => {
                           const matched = loans.find((l) => l.loanNo === payment.loanNo)
-                          if (matched) setViewLoanDetails(matched)
+                          if (matched) openDetails(matched)
                         }}
                       >
                         {payment.loanNo}
@@ -1096,16 +822,16 @@ export default function Loans() {
                         <button
                           type="button"
                           className="loan-btn-action"
-                          title="Edit Payment"
-                          onClick={() => handleOpenEditPayment(payment)}
+                          title="The API does not support editing payments" disabled
+
                         >
                           ✎
                         </button>
                         <button
                           type="button"
                           className="loan-btn-action loan-btn-danger"
-                          title="Delete Payment"
-                          onClick={() => setDeleteConfirm({ type: 'payment', item: payment })}
+                          title="The API does not support deleting payments" disabled
+
                         >
                           ♲
                         </button>
@@ -1231,7 +957,7 @@ export default function Loans() {
                   <label>
                     Loan Type <em>*</em>
                     <select name="loanType" defaultValue={loanModal.data.loanType}>
-                      {LOAN_TYPES.map((t) => (
+                      {[...new Set([...LOAN_TYPES, ...loans.map((loan) => loan.loanType)])].map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>
@@ -1328,6 +1054,7 @@ export default function Loans() {
                   <label className="field-wide">
                     Remarks / Purpose
                     <input
+                      disabled title="Loan remarks are not supported by the API"
                       name="remarks"
                       defaultValue={loanModal.data.remarks || ''}
                       placeholder="e.g. Paddy cultivation seasonal working capital, subsidised interest rate"
@@ -1343,7 +1070,7 @@ export default function Loans() {
                 <button type="button" onClick={() => setLoanModal(null)}>
                   Cancel
                 </button>
-                <button className="save-button" type="submit">
+                <button className="save-button" type="submit" disabled={saving}>
                   {loanModal.isEdit ? 'Save Changes' : 'Register Loan'}
                 </button>
               </div>
@@ -1355,6 +1082,7 @@ export default function Loans() {
       {/* ── MODAL 2: ADD / EDIT LOAN PAYMENT ───────────────────────────────── */}
       {paymentModal && (
         <LoanPaymentModal
+          saving={saving}
           isEdit={paymentModal.isEdit}
           initialData={paymentModal.data}
           loans={loans}
@@ -1538,7 +1266,7 @@ export default function Loans() {
               <button
                 className="delete-button"
                 type="button"
-                onClick={deleteConfirm.type === 'loan' ? handleDeleteLoan : handleDeletePayment}
+                onClick={handleDeleteLoan} disabled={saving}
               >
                 Yes, Delete
               </button>
@@ -1562,7 +1290,7 @@ export default function Loans() {
 }
 
 // Subcomponent for Loan Payment Modal with Real-time Auto-Calculation
-function LoanPaymentModal({ isEdit, initialData, loans, onClose, onSave, getLoanOutstanding }) {
+function LoanPaymentModal({ saving, isEdit, initialData, loans, onClose, onSave, getLoanOutstanding }) {
   const [loanNo, setLoanNo] = useState(initialData.loanNo || loans[0]?.loanNo || '')
   const [paymentDate, setPaymentDate] = useState(initialData.paymentDate || todayDate())
   const [principal, setPrincipal] = useState(initialData.principal || '')
@@ -1744,7 +1472,7 @@ function LoanPaymentModal({ isEdit, initialData, loans, onClose, onSave, getLoan
             <button type="button" onClick={onClose}>
               Cancel
             </button>
-            <button className="save-button" type="submit">
+            <button className="save-button" type="submit" disabled={saving}>
               {isEdit ? 'Save Changes' : 'Record Payment'}
             </button>
           </div>

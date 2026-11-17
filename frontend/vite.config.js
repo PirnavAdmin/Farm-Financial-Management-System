@@ -15,6 +15,12 @@ export default defineConfig(({ mode }) => {
     cacheDir: '.vite-cache',
     server: {
       proxy: {
+        '/api/Loan': {
+          target: env.VITE_LOAN_API_URL || dashboardTarget,
+          changeOrigin: true,
+          secure: false,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        },
         '/api/Income': {
           target: incomeTarget,
           changeOrigin: true,
