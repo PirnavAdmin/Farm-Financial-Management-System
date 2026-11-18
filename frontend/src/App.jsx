@@ -267,7 +267,7 @@ function App() {
 
   return (
     <InventoryProvider>
-      <div className="app-shell">
+      <div className={`app-shell${active === 'Dashboard' ? ' dashboard-shell' : ''}`}>
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <a className="brand" href="#dashboard" onClick={() => selectItem('Dashboard')}>
           <img className="brand-mark" src="/agriman-logo.png" alt="AGRIMAN Farm Management" />
@@ -478,7 +478,7 @@ function App() {
           ) : active === 'Suppliers' ? (
             <Suppliers onNavigate={selectItem} />
           ) : active === 'Dashboard' ? (
-              <Dashboard onNavigate={selectItem} />
+              <Dashboard onNavigate={selectItem} userName={userName} />
             ) : (
               <div className="module-view-container">
                 <div className="page-heading">

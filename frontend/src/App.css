@@ -1029,3 +1029,40 @@ html, body {
     padding: 14px 12px 20px;
   }
 }
+
+.app-shell.dashboard-shell .sidebar {
+  background: #edf5eb;
+  border-right-color: #dce8da;
+}
+
+.app-shell.dashboard-shell .brand {
+  border-bottom: 1px solid #d7e5d6;
+  margin-bottom: 12px;
+}
+
+.app-shell.dashboard-shell .menu-caption {
+  color: #78917b;
+}
+
+.app-shell.dashboard-shell .menu-item {
+  color: #405c46;
+}
+
+.app-shell.dashboard-shell .menu-item:hover,
+.app-shell.dashboard-shell .submenu-item:hover {
+  background: #e4efe2;
+  color: #285b39;
+}
+
+.app-shell.dashboard-shell .menu-item.selected {
+  background: #dceedd;
+  color: #285b39;
+}
+
+.app-shell.dashboard-shell .menu-item.selected .menu-icon {
+  color: #326843;
+}
+
+.app-shell.dashboard-shell .submenu {
+  border-left-color: #d4e3d3;
+}
