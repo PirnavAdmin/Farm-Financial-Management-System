@@ -199,9 +199,9 @@ public class FarmersController : ControllerBase
             AadhaarNo = dto.AadhaarNo?.Trim(),
             TotalLand = dto.TotalLand,
             Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
-            Village = dto.Village?.Trim() ?? dto.Address?.Village?.Trim(),
-            Mandal = dto.Mandal?.Trim() ?? dto.Address?.Mandal?.Trim(),
-            District = dto.District?.Trim() ?? dto.Address?.District?.Trim(),
+            Village = dto.Village?.Trim() ?? dto.Address?.Village?.Trim() ?? string.Empty,
+            Mandal = dto.Mandal?.Trim() ?? dto.Address?.Mandal?.Trim() ?? string.Empty,
+            District = dto.District?.Trim() ?? dto.Address?.District?.Trim() ?? string.Empty,
             CreatedAt = DateTime.UtcNow
         };
 

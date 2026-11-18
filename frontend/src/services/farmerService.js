@@ -30,6 +30,9 @@ export const farmerService = {
       alternateMobile: data.alternateMobile?.trim() || data.altMobile?.trim() || null,
       email: data.email?.trim() || null,
       aadhaarNo: data.aadhaarNo?.trim() || (data.aadhaar ? data.aadhaar.replace(/\s/g, '') : null),
+      village: data.village?.trim() || '',
+      mandal: data.mandal?.trim() || '',
+      district: data.district?.trim() || '',
       totalLand: data.totalLand !== undefined && data.totalLand !== '' ? Number(data.totalLand) : 0,
       status: data.status || 'Active'
     };
@@ -47,6 +50,9 @@ export const farmerService = {
       alternateMobile: data.alternateMobile?.trim() || data.altMobile?.trim() || null,
       email: data.email?.trim() || null,
       aadhaarNo: data.aadhaarNo?.trim() || (data.aadhaar ? data.aadhaar.replace(/\s/g, '') : null),
+      village: data.village?.trim() || '',
+      mandal: data.mandal?.trim() || '',
+      district: data.district?.trim() || '',
       totalLand: data.totalLand !== undefined && data.totalLand !== '' ? Number(data.totalLand) : 0,
       status: data.status || 'Active'
     };
