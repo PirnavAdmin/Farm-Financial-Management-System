@@ -207,9 +207,9 @@ html {
 
 .navbar-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -220,22 +220,54 @@ html {
   align-items: center;
 }
 
+.navbar-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .navbar-logo {
-  height: 50px;
+  height: 48px;
   width: auto;
   object-fit: contain;
   display: block;
   transition: transform 0.25s ease;
 }
 
-.navbar-logo:hover {
-  transform: scale(1.02);
+.navbar-brand-link:hover .navbar-logo {
+  transform: scale(1.03);
+}
+
+.navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.navbar-brand-name {
+  font-size: 21px;
+  font-weight: 850;
+  color: #126334;
+  letter-spacing: 0.8px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.navbar-brand-tagline {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475467;
+  letter-spacing: 0.15px;
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .desktop-nav {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
 }
 
 .nav-link {
@@ -276,8 +308,27 @@ html {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: 8px;
+  margin-left: 12px;
+}
+
+.nav-login-btn {
+  background-color: #126334;
+  color: #FFFFFF;
+  border: 1.5px solid #126334;
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 8.5px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(18, 99, 52, 0.18);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-login-btn:hover {
+  background-color: #168044;
+  border-color: #168044;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(18, 99, 52, 0.26);
 }
 
 .nav-login-outline-btn {
@@ -1221,6 +1272,18 @@ html {
 }
 
 @media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 18px;
+  }
+
+  .navbar-brand-tagline {
+    display: none;
+  }
+
+  .navbar-brand-name {
+    font-size: 18.5px;
+  }
+
   .desktop-nav {
     display: none;
   }

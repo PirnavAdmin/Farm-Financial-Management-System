@@ -1,6 +1,7 @@
-import { useEffect, useState, Component } from 'react'
+import { useEffect, useState, Component, useCallback, useRef } from 'react'
 import './App.css'
 import Login from './login.jsx'
+import LandingPage from './LandingPage/LandingPage.jsx'
 import Farmers from './Masters/Farmers/index.jsx'
 import Users from './Settings/Users/Users.jsx'
 import Dashboard from './Dashboard/Dashboard.jsx'
@@ -174,7 +175,78 @@ function App() {
   const [active, setActive] = useState('Dashboard')
   const [expanded, setExpanded] = useState({ Masters: true })
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [publicRoute, setPublicRoute] = useState(() => {
+    return window.location.hash === '#login' ? 'login' : 'landing'
+  })
+  const [transitionStage, setTransitionStage] = useState('active') // 'active' | 'exiting' | 'entering'
+  const isTransitioningRef = useRef(false)
+  const publicScrollRef = useRef(null)
   const sidebarCollapsed = false
+
+  const handleNavigateToLogin = useCallback(() => {
+    if (isTransitioningRef.current || publicRoute === 'login') return
+    isTransitioningRef.current = true
+    setTransitionStage('exiting')
+
+    setTimeout(() => {
+      window.location.hash = '#login'
+      setPublicRoute('login')
+      setTransitionStage('entering')
+
+      if (publicScrollRef.current) {
+        publicScrollRef.current.scrollTop = 0
+      }
+      window.scrollTo(0, 0)
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTransitionStage('active')
+          isTransitioningRef.current = false
+        })
+      })
+    }, 220)
+  }, [publicRoute])
+
+  const handleBackToHome = useCallback(() => {
+    if (isTransitioningRef.current || publicRoute === 'landing') return
+    isTransitioningRef.current = true
+    setTransitionStage('exiting')
+
+    setTimeout(() => {
+      window.location.hash = '#home'
+      setPublicRoute('landing')
+      setTransitionStage('entering')
+
+      if (publicScrollRef.current) {
+        publicScrollRef.current.scrollTop = 0
+      }
+      window.scrollTo(0, 0)
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTransitionStage('active')
+          isTransitioningRef.current = false
+        })
+      })
+    }, 220)
+  }, [publicRoute])
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (isTransitioningRef.current) return
+      const hash = window.location.hash.toLowerCase()
+      if (hash === '#login' && publicRoute !== 'login') {
+        handleNavigateToLogin()
+      } else if (
+        (hash === '#home' || hash === '' || hash === '#features' || hash === '#about' || hash === '#how-it-works') &&
+        publicRoute !== 'landing'
+      ) {
+        handleBackToHome()
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [publicRoute, handleNavigateToLogin, handleBackToHome])
 
   useEffect(() => {
     const storage = localStorage.getItem('agriman_access_token') ? localStorage : sessionStorage
@@ -263,7 +335,27 @@ function App() {
 
   const userInitials = getInitials(userName, userEmail)
 
-  if (!loggedIn) return <Login onLogin={handleLogin} />
+  if (!loggedIn) {
+    return (
+      <div className="public-route-wrapper">
+        <div
+          ref={publicScrollRef}
+          className={`public-route-scroll-container public-route-stage-${transitionStage}`}
+        >
+          {publicRoute === 'login' ? (
+            <Login
+              onLogin={handleLogin}
+              onBackToHome={handleBackToHome}
+            />
+          ) : (
+            <LandingPage
+              onNavigateToLogin={handleNavigateToLogin}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <InventoryProvider>

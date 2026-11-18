@@ -1,0 +1,478 @@
+/* ==========================================================================
+   ABOUT PLATFORM SECTION
+   - Exact recreation of approved reference design
+   - Left Column: Agricultural image with floating decorative icon badges & label
+   - Right Column: Kicker, Heading with leaf, 2-paragraph intro & 3 feature cards
+   - Feature cards: Left vibrant green vertical accent border, icon container & text
+   - Background: Soft pale cream/green gradient, corner foliage & bottom waves
+   ========================================================================== */
+
+.about-platform-section {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Soft off-white and pale-green subtle gradient */
+  background: linear-gradient(135deg, #F8FCF8 0%, #FFFFFF 42%, #F2FAF4 100%);
+  padding: 72px 0 110px 0;
+  border-top: 1px solid rgba(22, 128, 68, 0.08);
+  border-bottom: 1px solid rgba(22, 128, 68, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Botanical Corner Foliage & Bottom Waves
+   -------------------------------------------------------------------------- */
+.about-corner-leaves-tl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+
+.about-corner-leaves-tr {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+
+.about-bottom-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 85px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.about-bottom-waves svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Centered Content Container & Split Layout
+   -------------------------------------------------------------------------- */
+.about-container {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+}
+
+.about-split-layout {
+  display: grid;
+  grid-template-columns: 1.05fr 1.15fr;
+  gap: 56px;
+  align-items: center;
+}
+
+/* --------------------------------------------------------------------------
+   Left Side: Agricultural Image with Floating Decorative Icons
+   -------------------------------------------------------------------------- */
+.about-image-column {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Organic soft green radial glow backdrop behind the image */
+.about-organic-blob {
+  position: absolute;
+  top: -24px;
+  left: -28px;
+  right: 36px;
+  bottom: -28px;
+  border-radius: 46% 54% 50% 50% / 44% 46% 54% 56%;
+  background: radial-gradient(circle at 40% 40%, #DCFCE7 0%, rgba(220, 252, 231, 0.5) 70%, transparent 100%);
+  z-index: 1;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Main Image Frame (approx 560px × 430px, 38px rounded corners) */
+.about-image-frame {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 560px;
+  height: 430px;
+  border-radius: 38px;
+  overflow: hidden;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 20px 48px rgba(18, 99, 52, 0.14), 0 4px 14px rgba(0, 0, 0, 0.04);
+  background-color: #E2E8F0;
+}
+
+.about-farm-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.about-image-frame:hover .about-farm-photo {
+  transform: scale(1.03);
+}
+
+/* Bottom-Left Translucent Dark-Green Label Badge */
+.about-image-badge {
+  position: absolute;
+  bottom: 22px;
+  left: 22px;
+  background: rgba(19, 78, 38, 0.88);
+  color: #FFFFFF;
+  padding: 8px 18px 8px 14px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+  user-select: none;
+}
+
+.badge-leaf-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Floating Decorative Icons (Non-clickable, decorative only) */
+.about-floating-icon {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  user-select: none;
+}
+
+.about-floating-icon-inner {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: #FFFFFF;
+  border: 1px solid rgba(22, 128, 68, 0.12);
+  box-shadow: 0 10px 24px rgba(18, 99, 52, 0.16), 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Position 1: Upper-left corner */
+.about-float-tl {
+  top: 24px;
+  left: -20px;
+}
+
+/* Position 2: Upper-right corner */
+.about-float-tr {
+  top: 14px;
+  right: -20px;
+}
+
+/* Position 3: Lower-right corner */
+.about-float-br {
+  bottom: 30px;
+  right: -20px;
+}
+
+/* --------------------------------------------------------------------------
+   Right Side: Heading, Introduction & Feature Information Cards
+   -------------------------------------------------------------------------- */
+.about-content-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Kicker with thin horizontal green lines */
+.about-kicker-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  width: auto;
+}
+
+.about-kicker-text {
+  color: #126334;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.about-kicker-line {
+  display: inline-block;
+  width: 34px;
+  height: 2.5px;
+  background-color: #126334;
+  border-radius: 2px;
+}
+
+/* Main Heading: "About AGRIMAN" + Leaf */
+.about-main-heading {
+  color: #0F172A;
+  font-size: clamp(34px, 2.7vw, 44px);
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: -0.5px;
+  margin: 0 0 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.about-brand-highlight {
+  color: #126334;
+  font-weight: 850;
+}
+
+.about-heading-leaf {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(18, 99, 52, 0.2));
+}
+
+/* Primary Lead Introduction */
+.about-lead-intro {
+  color: #0F172A;
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.48;
+  margin: 0 0 10px 0;
+  max-width: 600px;
+}
+
+/* Supporting Description */
+.about-sub-intro {
+  color: #64748B;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+  max-width: 600px;
+}
+
+/* Three Feature Information Cards List */
+.about-feature-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Feature Information Card */
+.about-feature-card {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border: 1px solid rgba(22, 128, 68, 0.12);
+  border-left: 5px solid #22C55E;
+  border-radius: 20px;
+  padding: 18px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 6px 20px rgba(18, 99, 52, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+}
+
+.about-feature-card:hover {
+  transform: translateX(6px);
+  border-color: rgba(22, 128, 68, 0.28);
+  border-left-color: #16A34A;
+  box-shadow: 0 10px 26px rgba(18, 99, 52, 0.1);
+}
+
+/* Pale-Green Rounded Icon Container */
+.about-card-icon-wrap {
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: 16px;
+  background-color: #E8F8ED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #137C20;
+  flex-shrink: 0;
+  transition: transform 0.25s ease, background-color 0.25s ease;
+}
+
+.about-feature-card:hover .about-card-icon-wrap {
+  transform: scale(1.06);
+  background-color: #DCFCE7;
+}
+
+/* Card Content: Title & Description */
+.about-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: left;
+}
+
+.about-card-title {
+  color: #0F172A;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 5px 0;
+}
+
+.about-card-desc {
+  color: #64748B;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .about-platform-section {
+    padding: 60px 0 90px 0;
+  }
+
+  .about-split-layout {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .about-image-frame {
+    max-width: 500px;
+    height: 380px;
+  }
+
+  .about-content-column {
+    align-items: center;
+    text-align: center;
+  }
+
+  .about-main-heading {
+    justify-content: center;
+  }
+
+  .about-lead-intro,
+  .about-sub-intro {
+    text-align: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .about-container {
+    padding: 0 20px;
+  }
+
+  .about-image-frame {
+    height: 280px;
+    border-radius: 26px;
+  }
+
+  .about-floating-icon-inner {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .about-floating-icon-inner svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .about-float-tl {
+    top: 10px;
+    left: -10px;
+  }
+
+  .about-float-tr {
+    top: 8px;
+    right: -10px;
+  }
+
+  .about-float-br {
+    bottom: 16px;
+    right: -10px;
+  }
+
+  .about-image-badge {
+    bottom: 14px;
+    left: 14px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .about-main-heading {
+    font-size: 28px;
+  }
+
+  .about-lead-intro {
+    font-size: 16px;
+  }
+
+  .about-sub-intro {
+    font-size: 14px;
+  }
+
+  .about-feature-card {
+    padding: 14px 16px;
+    gap: 14px;
+  }
+
+  .about-card-icon-wrap {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 12px;
+  }
+
+  .about-card-icon-wrap svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .about-card-title {
+    font-size: 15.5px;
+  }
+
+  .about-card-desc {
+    font-size: 12.5px;
+  }
+
+  .about-corner-leaves-tl svg,
+  .about-corner-leaves-tr svg {
+    width: 140px;
+    height: 100px;
+  }
+
+  .about-bottom-waves {
+    height: 55px;
+  }
+}

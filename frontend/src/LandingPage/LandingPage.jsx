@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './LandingPage.css'
 import HowItWorks from './HowItWorks'
+import EssentialTools from './EssentialTools'
+import AboutSection from './AboutSection'
+import Footer from './Footer'
 
 export default function LandingPage({ onNavigateToLogin }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -93,12 +96,16 @@ export default function LandingPage({ onNavigateToLogin }) {
       <header className="landing-navbar">
         <div className="navbar-container">
           <div className="navbar-brand">
-            <a href="#home" onClick={(e) => { e.preventDefault(); handleNavClick('home') }}>
+            <a href="#home" className="navbar-brand-link" onClick={(e) => { e.preventDefault(); handleNavClick('home') }}>
               <img
                 src="/agriman-logo.png"
-                alt="AGRIMAN Farm Management"
+                alt="AGRIMAN Logo"
                 className="navbar-logo"
               />
+              <div className="navbar-brand-text">
+                <span className="navbar-brand-name">AGRIMAN</span>
+                <span className="navbar-brand-tagline">From Traditional Wisdom to Modern Management</span>
+              </div>
             </a>
           </div>
 
@@ -131,28 +138,14 @@ export default function LandingPage({ onNavigateToLogin }) {
             >
               How It Works
             </button>
-            <button
-              type="button"
-              className={`nav-link ${activeNav === 'user-guide' ? 'active' : ''}`}
-              onClick={() => handleNavClick('how-it-works')}
-            >
-              User Guide
-            </button>
 
             <div className="nav-actions">
               <button
                 type="button"
-                className="nav-login-outline-btn"
+                className="nav-login-btn"
                 onClick={onNavigateToLogin}
               >
                 Login
-              </button>
-              <button
-                type="button"
-                className="nav-get-started-btn"
-                onClick={onNavigateToLogin}
-              >
-                Get Started
               </button>
             </div>
           </nav>
@@ -193,9 +186,6 @@ export default function LandingPage({ onNavigateToLogin }) {
             <button type="button" className="mobile-nav-link" onClick={() => handleNavClick('how-it-works')}>
               How It Works
             </button>
-            <button type="button" className="mobile-nav-link" onClick={() => handleNavClick('how-it-works')}>
-              User Guide
-            </button>
             <div className="mobile-drawer-actions">
               <button
                 type="button"
@@ -203,13 +193,6 @@ export default function LandingPage({ onNavigateToLogin }) {
                 onClick={() => { setMobileMenuOpen(false); onNavigateToLogin(); }}
               >
                 Login
-              </button>
-              <button
-                type="button"
-                className="mobile-get-started-btn"
-                onClick={() => { setMobileMenuOpen(false); onNavigateToLogin(); }}
-              >
-                Get Started
               </button>
             </div>
           </div>
@@ -506,13 +489,6 @@ export default function LandingPage({ onNavigateToLogin }) {
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </button>
-            <button
-              type="button"
-              className="hero-btn-secondary"
-              onClick={onNavigateToLogin}
-            >
-              Login to Your Account
-            </button>
           </div>
 
           {/* Era Quick Switcher Toggle */}
@@ -585,317 +561,22 @@ export default function LandingPage({ onNavigateToLogin }) {
       <HowItWorks onNavigateToLogin={onNavigateToLogin} />
 
       {/* ====================================================================
-          4. FEATURES SECTION
-             - Exactly 6 Feature Cards (3 columns x 2 rows on desktop)
+          4. ESSENTIAL TOOLS / FEATURES SECTION
+             - Premium horizontal scrolling card carousel
           ==================================================================== */}
-      <section id="features" className="features-section">
-        <div className="section-container">
-          <div className="section-header">
-            <span className="section-kicker">ESSENTIAL TOOLS</span>
-            <h2 className="section-title">Everything Your Farm Needs</h2>
-            <p className="section-subtitle">
-              Essential tools to manage your agricultural operations in one place.
-            </p>
-          </div>
-
-          <div className="features-grid">
-            {/* CARD 1: CROP MANAGEMENT */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-                  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Crop Management</h3>
-              <p className="feature-card-desc">
-                Manage crop details, cultivation activities and crop-related records.
-              </p>
-            </div>
-
-            {/* CARD 2: FARM & LAND MANAGEMENT */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Farm &amp; Land Management</h3>
-              <p className="feature-card-desc">
-                Maintain farm information, land details and property records.
-              </p>
-            </div>
-
-            {/* CARD 3: INCOME & EXPENDITURE */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Income &amp; Expenditure</h3>
-              <p className="feature-card-desc">
-                Record farming income and expenses and monitor financial transactions.
-              </p>
-            </div>
-
-            {/* CARD 4: PURCHASE & SALES */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="8" cy="21" r="1" />
-                  <circle cx="19" cy="21" r="1" />
-                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Purchase &amp; Sales</h3>
-              <p className="feature-card-desc">
-                Organize agricultural purchases, sales and transaction records.
-              </p>
-            </div>
-
-            {/* CARD 5: INVENTORY & MACHINERY */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m7.5 4.27 9 5.15" />
-                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                  <path d="m3.3 7 8.7 5 8.7-5" />
-                  <path d="M12 22V12" />
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Inventory &amp; Machinery</h3>
-              <p className="feature-card-desc">
-                Maintain inventory records and organize agricultural machinery details.
-              </p>
-            </div>
-
-            {/* CARD 6: FARM ANALYTICS */}
-            <div className="feature-card">
-              <div className="feature-icon-container">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </svg>
-              </div>
-              <h3 className="feature-card-title">Farm Analytics</h3>
-              <p className="feature-card-desc">
-                Review farm performance through organized summaries, charts and reports.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <EssentialTools onNavigateToLogin={onNavigateToLogin} />
 
       {/* ====================================================================
           5. ABOUT AGRIMAN SECTION
-             - Left: Realistic Farm Photograph
-             - Right: Heading, Description & 3 Core Benefits
+             - Left: Agricultural Photograph with floating decorative icons
+             - Right: Heading, Description & 3 Feature Information Cards
           ==================================================================== */}
-      <section id="about" className="about-agriman-section">
-        <div className="section-container">
-          <div className="about-split-layout">
-            {/* Left Side: Realistic Farm Photography */}
-            <div className="about-image-column">
-              <div className="about-image-wrapper">
-                <img
-                  src="/about-farm-landscape.jpg"
-                  alt="Realistic modern green agricultural farm landscape"
-                  className="about-farm-photo"
-                />
-                <div className="about-image-badge">
-                  <span className="badge-pulse-dot" />
-                  <span>Organized Farm Management</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side: Content & 3 Benefits */}
-            <div className="about-text-column">
-              <span className="section-kicker">ABOUT PLATFORM</span>
-              <h2 className="section-title">About AGRIMAN</h2>
-              <p className="about-lead-paragraph">
-                AGRIMAN is a farm management platform designed to organize everyday agricultural operations.
-              </p>
-              <p className="about-body-paragraph">
-                It brings essential farming activities, financial records and resource management together in one centralized platform.
-              </p>
-
-              <div className="about-benefits-list">
-                {/* Benefit 1 */}
-                <div className="benefit-row">
-                  <div className="benefit-icon-ring">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <div className="benefit-content">
-                    <h4 className="benefit-heading">Organized Farm Records.</h4>
-                    <p className="benefit-subtext">Maintain structured registries for farmers, land survey numbers, and ownership.</p>
-                  </div>
-                </div>
-
-                {/* Benefit 2 */}
-                <div className="benefit-row">
-                  <div className="benefit-icon-ring">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <div className="benefit-content">
-                    <h4 className="benefit-heading">Simplified Operational Management.</h4>
-                    <p className="benefit-subtext">Coordinate daily labor attendance, machinery maintenance, and seasonal activities.</p>
-                  </div>
-                </div>
-
-                {/* Benefit 3 */}
-                <div className="benefit-row">
-                  <div className="benefit-icon-ring">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <div className="benefit-content">
-                    <h4 className="benefit-heading">Better Financial Visibility.</h4>
-                    <p className="benefit-subtext">Track crop input costs, harvest income, supplier vouchers, and profitability.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AboutSection />
 
       {/* ====================================================================
-          6. FINAL AGRICULTURAL CTA BANNER
-             - Cultivated field background with dark-green gradient overlay
-             - Clean white & transparent green buttons
+          6. PREMIUM CTA BANNER & THREE-COLUMN FOOTER
           ==================================================================== */}
-      <section className="final-cta-banner-section">
-        <div className="cta-banner-bg" style={{ backgroundImage: "url('/hero-modern-farming.jpg')" }}>
-          <div className="cta-banner-overlay" />
-        </div>
-
-        <div className="section-container cta-banner-container">
-          <div className="cta-banner-box">
-            <h2 className="cta-banner-heading">Ready to Manage Your Farm Better?</h2>
-            <p className="cta-banner-subtext">
-              Bring your agricultural operations together with AGRIMAN.
-            </p>
-            <div className="cta-banner-buttons">
-              <button
-                type="button"
-                className="banner-btn-white"
-                onClick={onNavigateToLogin}
-              >
-                <span>Get Started</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
-              <button
-                type="button"
-                className="banner-btn-transparent"
-                onClick={onNavigateToLogin}
-              >
-                Login
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================================
-          7. FOOTER
-             - Left: Original AGRIMAN logo & description
-             - Middle: Quick Links
-             - Right: Agricultural illustration / field accents & copyright
-          ==================================================================== */}
-      <footer className="landing-footer">
-        <div className="section-container footer-content-grid">
-          {/* Left Column */}
-          <div className="footer-brand-col">
-            <img
-              src="/agriman-logo.png"
-              alt="AGRIMAN Farm Management"
-              className="footer-logo"
-            />
-            <p className="footer-desc">
-              A comprehensive farm management platform to organize crops, land, finance, inventory and daily farming operations.
-            </p>
-          </div>
-
-          {/* Middle Column: Quick Links */}
-          <div className="footer-links-col">
-            <h4 className="footer-heading">Quick Links</h4>
-            <ul className="footer-nav-list">
-              <li>
-                <button type="button" onClick={() => handleNavClick('about')}>
-                  About
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => handleNavClick('features')}>
-                  Features
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => handleNavClick('how-it-works')}>
-                  How It Works
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => handleNavClick('how-it-works')}>
-                  User Guide
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={onNavigateToLogin}>
-                  Login
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Right Column: Subtle Agricultural Landscape Illustration */}
-          <div className="footer-landscape-col">
-            <h4 className="footer-heading">Agricultural Operations</h4>
-            <div className="footer-agri-illustration">
-              <svg width="100%" height="80" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Rolling Farm Hills */}
-                <path d="M0 60 Q75 35 150 55 T300 50 L300 80 L0 80 Z" fill="#E8F8EE" />
-                <path d="M0 68 Q100 48 200 62 T300 65 L300 80 L0 80 Z" fill="#C8F2D5" />
-                {/* Distant Trees */}
-                <circle cx="60" cy="48" r="6" fill="#168044" opacity="0.6" />
-                <circle cx="70" cy="46" r="8" fill="#126334" opacity="0.8" />
-                <circle cx="82" cy="50" r="5" fill="#168044" opacity="0.6" />
-                <circle cx="220" cy="52" r="7" fill="#126334" opacity="0.7" />
-                <circle cx="232" cy="50" r="9" fill="#168044" opacity="0.8" />
-                {/* Small Tractor Silhouette */}
-                <rect x="140" y="50" width="16" height="7" rx="1.5" fill="#126334" />
-                <circle cx="143" cy="58" r="3" fill="#1F2937" />
-                <circle cx="153" cy="58" r="2.2" fill="#1F2937" />
-              </svg>
-            </div>
-            <p className="footer-landscape-subtext">
-              Built for farmers, landowners, and agricultural managers across India.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer Bottom Bar */}
-        <div className="footer-bottom-bar">
-          <div className="section-container footer-bottom-inner">
-            <p className="copyright-text">© 2026 AGRIMAN Farm Management. All rights reserved.</p>
-            <p className="footer-tagline-text">From Traditional Wisdom to Modern Management.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer onNavigateToLogin={onNavigateToLogin} onNavClick={handleNavClick} />
     </div>
   )
 }

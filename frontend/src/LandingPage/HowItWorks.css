@@ -1,13 +1,13 @@
 /* ==========================================================================
    HOW AGRIMAN WORKS SECTION
-   - HD Panoramic agricultural background asset (3072x1023)
-   - Left Column: The AGRIMAN Process intro, heading, description & CTA
-   - Right Column: Exactly THREE separate white React cards (260px × 370px)
-   - 60px forest-green number badges overlapping top center
-   - 70px × 70px rounded icon containers (18px radius) with outline green icons
-   - 23px bold titles & 17-18px descriptions
-   - 48px circular white connector badges with green dotted borders & arrows
-   - Bottom: Background farmland, tractor with cultivator, crop rows, and waves
+   - Exact recreation of approved reference illustration
+   - Scalable vector backdrop (leaves, rings, farm scenery, rolling waves)
+   - Left column: The AGRIMAN Process intro & CTA button
+   - Right column: Three white workflow cards (255px × 370px) + connector arrows
+   - Unclipped 54px forest-green number badges with thick white borders
+   - 68px × 68px rounded icon squares with green outline icons
+   - Dual-layer bottom waves + small sprout on bottom-right of each card
+   - High visual fidelity & crisp display on all screen resolutions
    ========================================================================== */
 
 .how-it-works-section {
@@ -15,14 +15,78 @@
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
-  background-image: url('./how-it-works-bg.jpg');
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  min-height: 620px;
-  height: clamp(620px, 36vw, 680px);
-  padding: 50px 0 0 0;
-  border-bottom: 1px solid #E2E8F0;
+  /* Pale cream and light-green gradient background */
+  background: linear-gradient(135deg, #F6FCF7 0%, #FFFFFF 38%, #EFF8F2 100%);
+  min-height: 580px;
+  height: clamp(580px, 35vw, 640px);
+  padding: 44px 0 0 0;
+  border-bottom: 1px solid rgba(22, 128, 68, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Scalable Vector Backdrop Elements
+   -------------------------------------------------------------------------- */
+.hiw-svg-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Top-Left Hanging Foliage */
+.hiw-corner-leaves-tl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Top-Right Concentric Arcs / Rings */
+.hiw-corner-rings-tr {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Bottom-Left Illustrated Farm Scenery */
+.hiw-farm-landscape-bl {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Bottom Full-Width Rolling Waves */
+.hiw-bottom-rolling-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 110px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hiw-bottom-rolling-waves svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bottom-Right Corner Leaves */
+.hiw-corner-leaves-br {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 4;
+  pointer-events: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -43,28 +107,28 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 40px;
+  gap: 36px;
 }
 
 /* --------------------------------------------------------------------------
    Left Column: Introduction & CTA
    -------------------------------------------------------------------------- */
 .hiw-left-column {
-  flex: 1;
-  max-width: 440px;
-  padding-top: 32px;
+  flex: 0 0 380px;
+  max-width: 400px;
+  padding-top: 145px;
 }
 
 .hiw-kicker-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
 .hiw-kicker-text {
   color: #126334;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -72,18 +136,18 @@
 
 .hiw-kicker-line {
   display: inline-block;
-  width: 36px;
-  height: 3px;
+  width: 32px;
+  height: 2.5px;
   background-color: #126334;
   border-radius: 2px;
 }
 
-/* Heading: Navy & Green bold */
+/* Heading: Navy with Green Highlight */
 .hiw-main-heading {
-  color: #101828;
-  font-size: clamp(30px, 2.4vw, 40px);
+  color: #0F172A;
+  font-size: clamp(32px, 2.5vw, 42px);
   font-weight: 850;
-  line-height: 1.15;
+  line-height: 1.18;
   letter-spacing: -0.5px;
   margin: 0 0 14px 0;
   white-space: nowrap;
@@ -95,33 +159,33 @@
 }
 
 .hiw-description {
-  color: #475467;
-  font-size: 16.5px;
+  color: #64748B;
+  font-size: 16px;
   line-height: 1.55;
-  max-width: 400px;
-  margin: 0 0 24px 0;
+  max-width: 360px;
+  margin: 0 0 28px 0;
 }
 
 .hiw-get-started-btn {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background-color: #126334;
+  background-color: #117922;
   color: #FFFFFF;
   border: none;
-  font-size: 15.5px;
+  font-size: 15px;
   font-weight: 700;
   padding: 12px 28px;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(18, 99, 52, 0.25);
+  box-shadow: 0 6px 18px rgba(18, 99, 52, 0.22);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hiw-get-started-btn:hover {
-  background-color: #168044;
+  background-color: #0E661C;
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(18, 99, 52, 0.32);
+  box-shadow: 0 10px 24px rgba(18, 99, 52, 0.3);
 }
 
 .hiw-get-started-btn svg {
@@ -133,166 +197,118 @@
 }
 
 /* --------------------------------------------------------------------------
-   Right Column: Three Workflow Cards & Connectors
+   Right Column: Three Workflow Cards & Connecting Arrows
    -------------------------------------------------------------------------- */
 .hiw-right-column {
-  position: relative;
-  flex: 0 0 852px;
-  width: 852px;
-  padding-top: 30px;
-  overflow: visible;
-}
-
-/* Visible dotted green connecting track running behind cards */
-.hiw-connecting-track {
-  position: absolute;
-  top: 215px;
-  left: 240px;
-  right: 240px;
-  height: 0;
-  border-top: 2px dotted #16A34A;
-  opacity: 0.85;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Centered circular arrow indicators between cards (48px diameter) */
-.hiw-arrow-indicator {
-  position: absolute;
-  top: 215px;
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: #FFFFFF;
-  border: 2px dotted #16A34A;
-  box-shadow: 0 4px 12px rgba(18, 99, 52, 0.12);
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 4;
-  pointer-events: none;
-  transition: transform 0.25s ease, border-color 0.25s ease;
-}
-
-.hiw-arrow-1-2 {
-  left: 278px;
-}
-
-.hiw-arrow-2-3 {
-  left: 574px;
-}
-
-/* Workflow Cards Grid: exactly 852px wide (3 * 260px + 2 * 36px) */
-.hiw-cards-grid {
-  display: flex;
-  gap: 36px;
-  width: 852px;
+  gap: 0;
+  padding-top: 32px;
   position: relative;
-  z-index: 2;
-  overflow: visible;
+  z-index: 6;
 }
 
-/* Standardized Workflow Card: 260px × 370px, 28px border radius */
+/* Standardized Workflow Card: 255px × 370px, 28px border radius */
 .hiw-workflow-card {
   position: relative;
-  width: 260px;
-  min-width: 260px;
-  max-width: 260px;
+  width: 255px;
+  min-width: 255px;
+  max-width: 255px;
   height: 370px;
-  min-height: 370px;
-  max-height: 370px;
   background: #FFFFFF;
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(22, 128, 68, 0.12);
   border-radius: 28px;
-  padding: 48px 22px 28px 22px;
+  padding: 46px 20px 24px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 14px 34px rgba(18, 99, 52, 0.1), 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 14px 34px rgba(18, 99, 52, 0.08), 0 3px 8px rgba(0, 0, 0, 0.03);
   box-sizing: border-box;
   overflow: visible;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .hiw-workflow-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(22, 128, 68, 0.35);
-  box-shadow: 0 18px 40px rgba(18, 99, 52, 0.16), 0 6px 14px rgba(0, 0, 0, 0.04);
+  border-color: rgba(22, 128, 68, 0.32);
+  box-shadow: 0 18px 40px rgba(18, 99, 52, 0.14), 0 6px 14px rgba(0, 0, 0, 0.04);
 }
 
-/* Unclipped Numbered Circle Badge: 60px diameter, centered, top: -30px */
+/* Numbered Circle Badge: 54px diameter, centered, top: -27px (Unclipped) */
 .hiw-card-badge {
   position: absolute;
-  top: -30px;
+  top: -27px;
   left: 50%;
   transform: translateX(-50%);
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background-color: #126334;
+  background-color: #137C20;
   color: #FFFFFF;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   border: 4px solid #FFFFFF;
-  box-shadow: 0 6px 16px rgba(18, 99, 52, 0.28);
+  box-shadow: 0 4px 14px rgba(18, 99, 52, 0.24);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 5;
 }
 
-/* Light-green rounded square icon container: 70px × 70px, 18px radius */
+/* Light-green rounded square icon container: 68px × 68px, 18px radius */
 .hiw-icon-container {
-  width: 70px;
-  height: 70px;
+  width: 68px;
+  height: 68px;
   border-radius: 18px;
-  background-color: rgba(34, 197, 94, 0.12);
-  color: #16A34A;
+  background-color: #E8F8ED;
+  color: #137C20;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
-  transition: transform 0.3s ease, background-color 0.3s ease;
+  margin-top: 8px;
+  margin-bottom: 22px;
+  transition: transform 0.25s ease, background-color 0.25s ease;
 }
 
 .hiw-workflow-card:hover .hiw-icon-container {
-  transform: scale(1.06);
-  background-color: rgba(34, 197, 94, 0.18);
+  transform: scale(1.05);
+  background-color: #DCFCE7;
 }
 
-/* Card Title: Navy, bold, 23px */
+/* Card Title: Navy, bold, 21px */
 .hiw-card-title {
-  color: #101828;
-  font-size: 23px;
+  color: #0F172A;
+  font-size: 21px;
   font-weight: 800;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
   line-height: 1.25;
   text-align: center;
 }
 
-/* Card Description: Muted slate/blue-grey, 17px */
+/* Card Description: Muted slate/blue-grey, 14.5px */
 .hiw-card-desc {
   color: #64748B;
-  font-size: 17px;
+  font-size: 14.5px;
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
   text-align: center;
+  padding: 0 12px;
 }
 
-/* Subtle light-green curved wave at bottom of each card */
+/* Dual-Layered Wave at bottom of each card */
 .hiw-card-wave {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 46px;
   border-bottom-left-radius: 27px;
   border-bottom-right-radius: 27px;
   overflow: hidden;
   pointer-events: none;
+  z-index: 1;
 }
 
 .hiw-card-wave svg {
@@ -301,150 +317,112 @@
   height: 100%;
 }
 
-/* Decorative plant / chart illustrations near bottom-right */
-.hiw-card-illustration {
+/* Small decorative sprout emerging on bottom-right of each card */
+.hiw-card-sprout {
   position: absolute;
-  bottom: 8px;
-  right: 12px;
-  opacity: 0.85;
+  bottom: 10px;
+  right: 18px;
   pointer-events: none;
   z-index: 2;
 }
 
-/* --------------------------------------------------------------------------
-   Responsive Breakpoints
-   -------------------------------------------------------------------------- */
-@media (max-width: 1360px) and (min-width: 1081px) {
-  .hiw-relative-container {
-    padding: 0 24px;
-  }
-  .hiw-right-column {
-    flex: 0 0 740px;
-    width: 740px;
-  }
-  .hiw-cards-grid {
-    gap: 22px;
-    width: 740px;
-  }
-  .hiw-workflow-card {
-    width: 232px;
-    min-width: 232px;
-    max-width: 232px;
-    height: 350px;
-    min-height: 350px;
-    max-height: 350px;
-    padding: 44px 18px 24px 18px;
-  }
-  .hiw-card-title {
-    font-size: 20px;
-  }
-  .hiw-card-desc {
-    font-size: 15px;
-  }
-  .hiw-arrow-indicator {
-    top: 205px;
-    width: 42px;
-    height: 42px;
-  }
-  .hiw-arrow-1-2 { left: 243px; }
-  .hiw-arrow-2-3 { left: 497px; }
-  .hiw-connecting-track {
-    top: 205px;
-    left: 210px;
-    right: 210px;
-  }
+/* Connecting Arrow Badges between cards (36px diameter, green dashed border) */
+.hiw-connecting-arrow-badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px dashed #22C55E;
+  box-shadow: 0 2px 8px rgba(18, 99, 52, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+  margin: 0 -8px;
 }
 
-@media (max-width: 1080px) {
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+  .how-it-works-section {
+    height: auto;
+    min-height: unset;
+    padding: 44px 0 60px 0;
+  }
+
   .hiw-layout-grid {
     flex-direction: column;
     align-items: center;
-    gap: 40px;
+    gap: 48px;
   }
 
   .hiw-left-column {
-    max-width: 100%;
+    flex: unset;
+    max-width: 600px;
     text-align: center;
-  }
-
-  .hiw-kicker-wrap {
-    justify-content: center;
-  }
-
-  .hiw-main-heading {
-    white-space: normal;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 55px;
   }
 
   .hiw-description {
-    margin: 0 auto 20px auto;
-  }
-
-  .how-it-works-section {
-    height: auto;
-    min-height: 600px;
-    max-height: none;
-    padding: 40px 0 220px 0;
+    max-width: 500px;
   }
 
   .hiw-right-column {
-    flex: 0 0 auto;
-    width: 100%;
-    max-width: 852px;
+    padding-top: 24px;
+    justify-content: center;
   }
 
-  .hiw-cards-grid {
-    justify-content: center;
+  .hiw-farm-landscape-bl {
+    opacity: 0.35;
   }
 }
 
-@media (max-width: 860px) {
-  .how-it-works-section {
-    height: auto;
-    min-height: auto;
-    max-height: none;
-    padding: 36px 0 160px 0;
+@media (max-width: 900px) {
+  .hiw-right-column {
+    flex-direction: column;
+    gap: 24px;
   }
 
+  .hiw-connecting-arrow-badge {
+    transform: rotate(90deg);
+    margin: -4px 0;
+  }
+
+  .hiw-workflow-card {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    height: 340px;
+  }
+}
+
+@media (max-width: 640px) {
   .hiw-relative-container {
     padding: 0 20px;
   }
 
-  .hiw-right-column {
-    width: 100%;
-    max-width: 300px;
+  .hiw-main-heading {
+    font-size: 28px;
+    white-space: normal;
   }
 
-  .hiw-cards-grid {
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 48px;
+  .hiw-corner-leaves-tl svg {
+    width: 180px;
+    height: 140px;
   }
 
-  .hiw-connecting-track {
-    top: 40px;
-    bottom: 40px;
-    left: 50%;
-    right: auto;
-    width: 0;
-    height: auto;
-    border-top: none;
-    border-left: 2px dotted #16A34A;
+  .hiw-corner-rings-tr svg {
+    width: 280px;
+    height: 220px;
   }
 
-  .hiw-arrow-indicator {
-    display: none;
-  }
-}
-
-/* Reduced Motion Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .hiw-get-started-btn,
-  .hiw-workflow-card,
-  .hiw-icon-container,
-  .hiw-arrow-indicator {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
+  .hiw-corner-leaves-br svg {
+    width: 140px;
+    height: 110px;
   }
 }

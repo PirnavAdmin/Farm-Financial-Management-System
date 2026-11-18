@@ -1,0 +1,490 @@
+/* ==========================================================================
+   ESSENTIAL TOOLS SECTION
+   - Premium continuous infinite horizontal carousel (Right to Left)
+   - Original clean, luminous background (No agricultural/tractor photos)
+   - Decorative corner leaves & section bottom wave matching reference
+   - Compact cards: 230px wide × 310px tall, 24px border radius
+   - Layered green decorative bottom waves inside each card
+   - Non-interactive promotional showcase cards (No buttons, no links)
+   - Continuous movement: never pauses, slows, or stops on hover
+   - Individual hover scale(1.06) with soft green shadow & border highlight
+   - Decoupled transform layers: outer translation + inner card scaling
+   ========================================================================== */
+
+.essential-tools-section {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Original clean luminous background with subtle pale-green tint */
+  background: linear-gradient(180deg, #F8FCF8 0%, #FFFFFF 45%, #F4FBF6 100%);
+  padding: 68px 0 82px 0;
+  border-top: 1px solid rgba(22, 128, 68, 0.08);
+  border-bottom: 1px solid rgba(22, 128, 68, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Decorative Background Accents (Corner Foliage & Section Bottom Waves)
+   -------------------------------------------------------------------------- */
+.et-corner-leaves-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.92;
+}
+
+.et-corner-leaves-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.92;
+}
+
+.et-section-bottom-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.et-section-bottom-waves svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Content Container
+   -------------------------------------------------------------------------- */
+.et-content-container {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Section Header (Centered)
+   -------------------------------------------------------------------------- */
+.et-section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Small label with horizontal green accent lines: — ESSENTIAL TOOLS — */
+.et-kicker-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  width: auto;
+}
+
+.et-kicker-text {
+  color: #126334;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.et-kicker-line {
+  display: inline-block;
+  width: 32px;
+  height: 2.5px;
+  background-color: #126334;
+  border-radius: 2px;
+}
+
+/* Main Heading: "Everything Your Farm Needs" + Leaf Accent */
+.et-main-heading {
+  color: #101828;
+  font-size: clamp(30px, 2.6vw, 42px);
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.et-heading-highlight {
+  color: #126334;
+  font-weight: 850;
+}
+
+.et-heading-leaf-accent {
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  margin-top: -10px;
+  display: inline-block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(18, 99, 52, 0.2));
+}
+
+.et-subtitle {
+  color: #64748B;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 580px;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Continuous Infinite Marquee Viewport & Track
+   - Generous vertical padding to prevent scale(1.06) hover clipping
+   - Edge gradient masks for seamless entering/exiting
+   - Constant linear speed (42s duration)
+   - Never pauses or slows down on hover
+   -------------------------------------------------------------------------- */
+.et-marquee-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 24px 0 32px 0;
+  box-sizing: border-box;
+  user-select: none;
+  /* Soft edge fade so cards glide in and out seamlessly */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 3%,
+    black 97%,
+    transparent 100%
+  );
+}
+
+.et-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 24px;
+}
+
+/* Each animated marquee group */
+.et-marquee-group {
+  display: flex;
+  gap: 24px;
+  flex-shrink: 0;
+  animation: etMarqueeScroll 42s linear infinite;
+  will-change: transform;
+}
+
+/* NO PAUSE ON HOVER! Continuous movement is non-negotiable. */
+
+/* Seamless Continuous Infinite Keyframes: Right to Left */
+@keyframes etMarqueeScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 24px));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Decoupled Transform Layer: Card Item Wrapper
+   - Maintains fixed slot in flex group
+   - Allows inner card to scale freely around center without clipping
+   -------------------------------------------------------------------------- */
+.et-card-item {
+  flex: 0 0 230px;
+  width: 230px;
+  height: 310px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+}
+
+/* --------------------------------------------------------------------------
+   Compact Feature Card
+   - Exact Dimensions: 230px wide × 310px tall
+   - 24px border radius
+   - Non-clickable promotional showcase (cursor: default)
+   - Layered green decorative waves at bottom
+   - Independent hover scale(1.06) with soft green shadow
+   -------------------------------------------------------------------------- */
+.et-card {
+  position: relative;
+  width: 230px;
+  height: 310px;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(22, 128, 68, 0.12);
+  border-radius: 24px;
+  padding: 18px 16px 24px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  cursor: default;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(18, 99, 52, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02);
+  transform-origin: center center;
+  will-change: transform, box-shadow;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+}
+
+/* Independent card hover scale(1.06) with deeper green shadow & highlight */
+.et-card:hover {
+  transform: scale(1.06);
+  border-color: rgba(22, 128, 68, 0.35);
+  box-shadow: 0 16px 36px rgba(18, 99, 52, 0.16), 0 4px 10px rgba(0, 0, 0, 0.04);
+  z-index: 10;
+}
+
+/* Top Illustration Area */
+.et-card-top-visual {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 84px;
+  margin-bottom: 10px;
+}
+
+.et-illustration-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.et-card:hover .et-illustration-wrapper {
+  transform: scale(1.04);
+}
+
+/* Card Body & Typography */
+.et-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  z-index: 2;
+}
+
+.et-card-title {
+  color: #101828;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+  margin: 0 0 6px 0;
+  text-align: left;
+}
+
+.et-card-desc {
+  color: #64748B;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+  text-align: left;
+}
+
+/* Layered Green Decorative Wave at bottom of card */
+.et-card-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  border-bottom-left-radius: 23px;
+  border-bottom-right-radius: 23px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.et-card-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .essential-tools-section {
+    padding: 54px 0 68px 0;
+  }
+
+  .et-section-header {
+    margin-bottom: 32px;
+  }
+
+  .et-card-item {
+    flex: 0 0 215px;
+    width: 215px;
+    height: 300px;
+  }
+
+  .et-card {
+    width: 215px;
+    height: 300px;
+    padding: 16px 14px 22px 14px;
+  }
+
+  .et-card-title {
+    font-size: 16px;
+  }
+
+  .et-card-desc {
+    font-size: 12px;
+  }
+
+  .et-marquee-track {
+    gap: 20px;
+  }
+
+  .et-marquee-group {
+    gap: 20px;
+    animation-duration: 36s;
+  }
+
+  @keyframes etMarqueeScroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - 20px));
+    }
+  }
+
+  .et-corner-leaves-left svg,
+  .et-corner-leaves-right svg {
+    width: 160px;
+    height: 100px;
+  }
+
+  .et-section-bottom-waves {
+    height: 42px;
+  }
+}
+
+@media (max-width: 640px) {
+  .essential-tools-section {
+    padding: 44px 0 58px 0;
+  }
+
+  .et-main-heading {
+    font-size: 25px;
+  }
+
+  .et-subtitle {
+    font-size: 14px;
+  }
+
+  .et-card-item {
+    flex: 0 0 200px;
+    width: 200px;
+    height: 290px;
+  }
+
+  .et-card {
+    width: 200px;
+    height: 290px;
+    border-radius: 20px;
+    padding: 14px 12px 20px 12px;
+  }
+
+  .et-card-top-visual {
+    height: 74px;
+  }
+
+  .et-card-title {
+    font-size: 15px;
+  }
+
+  .et-card-desc {
+    font-size: 11.5px;
+  }
+
+  .et-card-wave {
+    height: 28px;
+    border-bottom-left-radius: 19px;
+    border-bottom-right-radius: 19px;
+  }
+
+  .et-marquee-track {
+    gap: 16px;
+  }
+
+  .et-marquee-group {
+    gap: 16px;
+    animation-duration: 30s;
+  }
+
+  @keyframes etMarqueeScroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - 16px));
+    }
+  }
+
+  .et-corner-leaves-left svg,
+  .et-corner-leaves-right svg {
+    width: 120px;
+    height: 75px;
+  }
+
+  .et-section-bottom-waves {
+    height: 34px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility: Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .et-marquee-group {
+    animation: none !important;
+  }
+
+  .et-marquee-viewport {
+    overflow-x: auto;
+    scroll-behavior: auto;
+  }
+
+  .et-card,
+  .et-illustration-wrapper {
+    transition: none !important;
+    transform: none !important;
+  }
+}
