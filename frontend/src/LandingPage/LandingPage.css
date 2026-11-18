@@ -1,0 +1,1344 @@
+/* ==========================================================================
+   AGRIMAN - Premium Animated Farm Management Landing Page
+   Design System:
+   - Primary Forest Green:       #126334
+   - Secondary Green:            #168044
+   - Light Agricultural Green:   #A8F0BF
+   - White:                      #FFFFFF
+   - Light Background:           #F7FAF7
+   - Heading Text:               #101828
+   - Description Text:           #64748B
+   - Card Border:                #E2E8F0
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+#home,
+#about,
+#features,
+#how-it-works {
+  scroll-margin-top: 86px;
+}
+
+/* Animations */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spinTractorWheel {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes driveTractor {
+  0% {
+    transform: translateX(-240px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 240px));
+  }
+}
+
+@keyframes driveTraditionalPlough {
+  0% {
+    transform: translateX(-340px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 340px));
+  }
+}
+
+@keyframes bullockLegSwing {
+  0% {
+    transform: rotate(-14deg);
+  }
+  100% {
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes farmerLegStride {
+  0% {
+    transform: rotate(-16deg);
+  }
+  100% {
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes dustPuff1 {
+  0% {
+    opacity: 0.8;
+    transform: translate(0, 0) scale(0.6);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(-30px, -12px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-55px, -20px) scale(1.6);
+  }
+}
+
+@keyframes dustPuff2 {
+  0% {
+    opacity: 0.7;
+    transform: translate(0, 0) scale(0.5);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translate(-25px, -8px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50px, -16px) scale(1.8);
+  }
+}
+
+@keyframes exhaustSmoke {
+  0% {
+    opacity: 0.7;
+    transform: translate(0, 0) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-14px, -18px) scale(2);
+  }
+}
+
+@keyframes pulseGlowDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
+}
+
+.agriman-landing {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #101828;
+  background-color: #FFFFFF;
+  line-height: 1.5;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  animation: pageFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.agriman-landing * {
+  box-sizing: border-box;
+}
+
+.section-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+}
+
+.section-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 52px auto;
+}
+
+.section-kicker {
+  display: inline-block;
+  color: #168044;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  color: #101828;
+  font-size: clamp(28px, 3.2vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 14px 0;
+  line-height: 1.25;
+}
+
+.section-subtitle {
+  color: #64748B;
+  font-size: 16.5px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   1. NAVBAR
+   ========================================================================== */
+.landing-navbar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.navbar-logo:hover {
+  transform: scale(1.02);
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-link {
+  background: transparent;
+  border: none;
+  color: #101828;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2.5px;
+  background-color: #126334;
+  border-radius: 2px;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #126334;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+  left: 0;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+}
+
+.nav-login-outline-btn {
+  background-color: #FFFFFF;
+  color: #126334;
+  border: 1.5px solid #126334;
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-login-outline-btn:hover {
+  background-color: #E8F8EE;
+  transform: translateY(-1px);
+}
+
+.nav-get-started-btn {
+  background-color: #126334;
+  color: #FFFFFF;
+  border: none;
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 9.5px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(18, 99, 52, 0.18);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-get-started-btn:hover {
+  background-color: #168044;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(18, 99, 52, 0.25);
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #101828;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.mobile-nav-drawer {
+  display: none;
+}
+
+/* ==========================================================================
+   2. CINEMATIC HERO SECTION
+   ========================================================================== */
+.hero-cinematic-section {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  padding: 80px 24px 90px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #0d381e;
+}
+
+/* Background image crossfade layers */
+.hero-background-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.hero-slide-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1), transform 8s linear;
+}
+
+.hero-slide-layer.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hero-cinematic-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 36, 20, 0.5) 0%, rgba(10, 36, 20, 0.72) 60%, rgba(8, 30, 16, 0.85) 100%),
+    radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.6) 100%);
+  z-index: 2;
+}
+
+/* Foreground Moving Tractor Track */
+.hero-foreground-tractor-track {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.moving-tractor-unit {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 220px;
+  height: 115px;
+  animation: driveTractor 18s linear infinite;
+  display: flex;
+  align-items: flex-end;
+}
+
+.tractor-svg {
+  display: block;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
+}
+
+/* Wheel rotation animation */
+.tractor-wheel {
+  animation: spinTractorWheel 1.2s linear infinite;
+}
+
+.front-wheel {
+  animation: spinTractorWheel 0.9s linear infinite;
+}
+
+.exhaust-puff {
+  animation: exhaustSmoke 1.4s ease-out infinite;
+}
+
+/* Trailing soil dust animation */
+.tractor-dust-particles {
+  position: absolute;
+  left: 30px;
+  bottom: 16px;
+  width: 70px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.dust-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 180, 140, 0.8) 0%, rgba(180, 140, 95, 0.4) 60%, transparent 100%);
+}
+
+.dust-1 {
+  width: 24px;
+  height: 18px;
+  left: 0;
+  bottom: 0;
+  animation: dustPuff1 1s ease-out infinite;
+}
+
+.dust-2 {
+  width: 20px;
+  height: 15px;
+  left: 8px;
+  bottom: 6px;
+  animation: dustPuff2 1.3s ease-out infinite 0.3s;
+}
+
+.dust-3 {
+  width: 28px;
+  height: 20px;
+  left: -12px;
+  bottom: 4px;
+  animation: dustPuff1 1.5s ease-out infinite 0.6s;
+}
+
+.dust-4 {
+  width: 16px;
+  height: 12px;
+  left: 18px;
+  bottom: 2px;
+  animation: dustPuff2 1.1s ease-out infinite 0.8s;
+}
+
+/* Foreground Traditional Ploughing Track */
+.hero-foreground-traditional-track {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.moving-traditional-unit {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 320px;
+  height: 115px;
+  animation: driveTraditionalPlough 23s linear infinite;
+  display: flex;
+  align-items: flex-end;
+}
+
+.traditional-plough-svg {
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Bullock Walking Leg Swings */
+.bullock-leg-front-left,
+.bullock-far-leg-back {
+  transform-origin: 276px 84px;
+  animation: bullockLegSwing 1s ease-in-out infinite alternate;
+}
+.bullock-leg-front-right,
+.bullock-far-leg-front {
+  transform-origin: 284px 84px;
+  animation: bullockLegSwing 1s ease-in-out infinite alternate-reverse;
+}
+.bullock-leg-back-left {
+  transform-origin: 204px 84px;
+  animation: bullockLegSwing 1s ease-in-out infinite alternate-reverse;
+}
+.bullock-leg-back-right {
+  transform-origin: 214px 84px;
+  animation: bullockLegSwing 1s ease-in-out infinite alternate;
+}
+
+/* Farmer Leg Strides */
+.farmer-leg-front {
+  transform-origin: 42px 86px;
+  animation: farmerLegStride 1s ease-in-out infinite alternate;
+}
+.farmer-leg-back {
+  transform-origin: 34px 86px;
+  animation: farmerLegStride 1s ease-in-out infinite alternate-reverse;
+}
+
+/* Trailing Soil Dust for Plough */
+.traditional-soil-dust {
+  position: absolute;
+  left: 95px;
+  bottom: 8px;
+  width: 60px;
+  height: 35px;
+  pointer-events: none;
+}
+.soil-dust-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180, 140, 95, 0.75) 0%, rgba(130, 95, 60, 0.35) 60%, transparent 100%);
+}
+.s-dust-1 {
+  width: 20px;
+  height: 15px;
+  left: 0;
+  bottom: 0;
+  animation: dustPuff1 1.2s ease-out infinite;
+}
+.s-dust-2 {
+  width: 16px;
+  height: 12px;
+  left: 10px;
+  bottom: 4px;
+  animation: dustPuff2 1.4s ease-out infinite 0.4s;
+}
+.s-dust-3 {
+  width: 24px;
+  height: 18px;
+  left: -8px;
+  bottom: 2px;
+  animation: dustPuff1 1.6s ease-out infinite 0.8s;
+}
+
+/* Hero Centered Content */
+.hero-content-container {
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 4;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.hero-evolution-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(168, 240, 191, 0.18);
+  border: 1px solid rgba(168, 240, 191, 0.4);
+  color: #FFFFFF;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 550;
+  margin-bottom: 24px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.badge-leaf-icon {
+  color: #A8F0BF;
+}
+
+.hero-main-title {
+  color: #FFFFFF;
+  font-size: clamp(34px, 4.8vw, 54px);
+  font-weight: 850;
+  letter-spacing: -0.8px;
+  line-height: 1.18;
+  margin: 0 0 18px 0;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtext {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(16px, 1.8vw, 18.5px);
+  line-height: 1.6;
+  max-width: 660px;
+  margin: 0 auto 36px auto;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.hero-cta-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+
+.hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FFFFFF;
+  color: #126334;
+  border: none;
+  font-size: 15.5px;
+  font-weight: 700;
+  padding: 13.5px 28px;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-btn-primary:hover {
+  background-color: #F7FAF7;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+}
+
+.hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  background-color: transparent;
+  color: #FFFFFF;
+  border: 1.5px solid #FFFFFF;
+  font-size: 15.5px;
+  font-weight: 600;
+  padding: 12.5px 26px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(4px);
+}
+
+.hero-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-color: #A8F0BF;
+  color: #A8F0BF;
+  transform: translateY(-2px);
+}
+
+/* Era Quick Switcher Toggle */
+.hero-scene-toggle {
+  display: inline-flex;
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 4px;
+  gap: 4px;
+  backdrop-filter: blur(8px);
+}
+
+.scene-toggle-pill {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.toggle-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.scene-toggle-pill.active {
+  background-color: #126334;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.scene-toggle-pill.active .toggle-dot {
+  background-color: #A8F0BF;
+}
+
+/* Hero Circular Previous/Next Navigation Arrows */
+.hero-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(6px);
+}
+
+.hero-nav-arrow:hover {
+  background-color: #126334;
+  border-color: #A8F0BF;
+  color: #FFFFFF;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.arrow-prev {
+  left: 24px;
+}
+
+.arrow-next {
+  right: 24px;
+}
+
+/* Slide Indicators near bottom right */
+.hero-slide-indicators {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.slide-indicator-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+}
+
+.indicator-bars {
+  display: flex;
+  gap: 6px;
+}
+
+.indicator-dot {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.indicator-dot.active {
+  width: 38px;
+  background-color: #A8F0BF;
+}
+
+/* ==========================================================================
+   3. HOW AGRIMAN WORKS SECTION
+   - Replaced by standalone modular HowItWorks.jsx and HowItWorks.css
+   ========================================================================== */
+
+/* ==========================================================================
+   4. FEATURES SECTION
+   ========================================================================== */
+.features-section {
+  padding: 96px 0;
+  background-color: #FFFFFF;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.feature-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+}
+
+.feature-card:hover {
+  border-color: #168044;
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px -8px rgba(18, 99, 52, 0.12);
+}
+
+.feature-icon-container {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background-color: rgba(18, 99, 52, 0.08);
+  color: #126334;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  transition: all 0.25s ease;
+}
+
+.feature-card:hover .feature-icon-container {
+  background-color: #126334;
+  color: #FFFFFF;
+  transform: scale(1.08);
+}
+
+.feature-card-title {
+  color: #101828;
+  font-size: 18.5px;
+  font-weight: 750;
+  margin: 0 0 10px 0;
+  transition: color 0.2s ease;
+}
+
+.feature-card:hover .feature-card-title {
+  color: #126334;
+}
+
+.feature-card-desc {
+  color: #64748B;
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ==========================================================================
+   5. ABOUT AGRIMAN SECTION
+   ========================================================================== */
+.about-agriman-section {
+  padding: 96px 0;
+  background-color: #F7FAF7;
+  border-top: 1px solid #E2E8F0;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.about-split-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.about-image-column {
+  position: relative;
+}
+
+.about-image-wrapper {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid #E2E8F0;
+}
+
+.about-farm-photo {
+  width: 100%;
+  height: 380px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.about-image-wrapper:hover .about-farm-photo {
+  transform: scale(1.03);
+}
+
+.about-image-badge {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background-color: rgba(18, 99, 52, 0.9);
+  color: #FFFFFF;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.badge-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #A8F0BF;
+  animation: pulseGlowDot 2s infinite;
+}
+
+.about-text-column {
+  padding-left: 8px;
+}
+
+.about-lead-paragraph {
+  color: #101828;
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.about-body-paragraph {
+  color: #64748B;
+  font-size: 15.5px;
+  line-height: 1.65;
+  margin: 0 0 28px 0;
+}
+
+.about-benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.benefit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.benefit-row:hover {
+  transform: translateX(6px);
+  border-color: #126334;
+  box-shadow: 0 8px 18px rgba(18, 99, 52, 0.08);
+}
+
+.benefit-icon-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #E8F8EE;
+  color: #126334;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefit-heading {
+  color: #101828;
+  font-size: 15.5px;
+  font-weight: 750;
+  margin: 0 0 4px 0;
+}
+
+.benefit-subtext {
+  color: #64748B;
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ==========================================================================
+   6. FINAL CALL-TO-ACTION BANNER
+   ========================================================================== */
+.final-cta-banner-section {
+  position: relative;
+  width: 100%;
+  padding: 88px 0;
+  overflow: hidden;
+  background-color: #0E4A27;
+}
+
+.cta-banner-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  z-index: 1;
+}
+
+.cta-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(14, 74, 39, 0.94) 0%, rgba(18, 99, 52, 0.96) 60%, rgba(9, 52, 27, 0.95) 100%);
+  z-index: 2;
+}
+
+.cta-banner-container {
+  position: relative;
+  z-index: 3;
+}
+
+.cta-banner-box {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+  color: #FFFFFF;
+}
+
+.cta-banner-heading {
+  font-size: clamp(30px, 3.8vw, 44px);
+  font-weight: 850;
+  margin: 0 0 14px 0;
+  letter-spacing: -0.6px;
+}
+
+.cta-banner-subtext {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  margin: 0 0 34px 0;
+  line-height: 1.6;
+}
+
+.cta-banner-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.banner-btn-white {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  color: #126334;
+  border: none;
+  font-size: 15.5px;
+  font-weight: 700;
+  padding: 13px 30px;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.banner-btn-white:hover {
+  background-color: #F7FAF7;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.banner-btn-transparent {
+  display: inline-flex;
+  align-items: center;
+  background-color: transparent;
+  color: #FFFFFF;
+  border: 1.5px solid #A8F0BF;
+  font-size: 15.5px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.banner-btn-transparent:hover {
+  background-color: rgba(168, 240, 191, 0.16);
+  border-color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   7. FOOTER
+   ========================================================================== */
+.landing-footer {
+  background-color: #FFFFFF;
+  border-top: 1px solid #E2E8F0;
+  padding-top: 64px;
+}
+
+.footer-content-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1.4fr;
+  gap: 48px;
+  padding-bottom: 48px;
+}
+
+.footer-logo {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.footer-desc {
+  color: #64748B;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 420px;
+  margin: 0;
+}
+
+.footer-heading {
+  color: #101828;
+  font-size: 15.5px;
+  font-weight: 750;
+  margin: 0 0 18px 0;
+}
+
+.footer-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-nav-list li button {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+  text-align: left;
+}
+
+.footer-nav-list li button:hover {
+  color: #126334;
+  transform: translateX(3px);
+}
+
+.footer-agri-illustration {
+  margin-bottom: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #E8F8EE;
+  background-color: #F7FAF7;
+}
+
+.footer-landscape-subtext {
+  color: #64748B;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.footer-bottom-bar {
+  border-top: 1px solid #E2E8F0;
+  padding: 20px 0;
+  background-color: #F7FAF7;
+}
+
+.footer-bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.footer-bottom-inner p {
+  margin: 0;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Desktop-First, Tablet & Mobile)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-split-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .footer-content-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+
+  .footer-landscape-col {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-menu-toggle {
+    display: block;
+  }
+
+  .mobile-nav-drawer {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    right: 0;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    padding: 20px 24px 28px 24px;
+    gap: 14px;
+    z-index: 999;
+  }
+
+  .mobile-nav-link {
+    background: transparent;
+    border: none;
+    color: #101828;
+    font-size: 15.5px;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 0;
+    cursor: pointer;
+    border-bottom: 1px solid #F1F5F9;
+  }
+
+  .mobile-drawer-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .mobile-login-btn {
+    flex: 1;
+    background-color: #FFFFFF;
+    color: #126334;
+    border: 1.5px solid #126334;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .mobile-get-started-btn {
+    flex: 1;
+    background-color: #126334;
+    color: #FFFFFF;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .hero-cinematic-section {
+    padding: 60px 18px 70px 18px;
+    min-height: 420px;
+  }
+
+  .hero-evolution-badge {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  .hero-scene-toggle {
+    flex-direction: column;
+    border-radius: 12px;
+  }
+
+  .scene-toggle-pill {
+    justify-content: center;
+  }
+
+  .hero-nav-arrow {
+    display: none;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .footer-content-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .footer-landscape-col {
+    grid-column: span 1;
+  }
+
+  .footer-bottom-inner {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+/* Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .moving-tractor-unit,
+  .tractor-wheel,
+  .exhaust-puff,
+  .dust-particle,
+  .hero-slide-layer {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
