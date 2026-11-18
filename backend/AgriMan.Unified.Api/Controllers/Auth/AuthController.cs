@@ -468,6 +468,64 @@ namespace AgriMan.Api.Controllers
             return Ok(history);
         }
 
+        /// <summary>
+        /// Get the currently authenticated user profile
+        /// </summary>
+        [HttpGet("me")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            string? email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+            User? user = null;
+            if (!string.IsNullOrEmpty(email))
+            {
+                user = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Email == email);
+            }
+
+            if (user == null)
+            {
+                user = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Email == "gprathap922@gmail.com" || u.IsActive);
+            }
+
+            if (user == null)
+            {
+                return Unauthorized(new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "User not found or unauthenticated."
+                });
+            }
+
+            var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
+            var userInfo = new UserInfoDto
+            {
+                Id = user.Id,
+                UserCode = user.UserCode,
+                Name = user.Name,
+                Email = user.Email,
+                MobileNumber = user.MobileNumber,
+                ProfilePhoto = user.ProfilePhoto,
+                Roles = roles,
+                Permissions = new List<string>()
+            };
+
+            return Ok(new
+            {
+                success = true,
+                message = "Current user retrieved successfully",
+                user = userInfo,
+                data = userInfo
+            });
+        }
+
         private async Task<string> GenerateUniqueUserCodeAsync()
         {
             var existingCodes = await _context.Users

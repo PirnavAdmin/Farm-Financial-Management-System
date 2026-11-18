@@ -1,10 +1,11 @@
 @echo off
-title AgriMan Unified API (Port 5200)
+title AgriMan Unified API (Port 5147 & 5200)
 cd /d "%~dp0backend\AgriMan.Unified.Api"
 echo ===================================================
-echo Starting AgriMan Unified Backend API on ports 5200 and 5147...
+echo Starting AgriMan Unified Backend API on ports 5147 and 5200...
 echo Connected to MySQL database: agriman_db
-echo Swagger Documentation: http://localhost:5200/swagger
+echo Swagger Documentation: http://localhost:5147/swagger
+echo Ngrok Tunnel Target:   http://localhost:5147
 echo ===================================================
-dotnet run --urls "http://localhost:5200;http://localhost:5147"
+dotnet run --urls "http://0.0.0.0:5147;http://0.0.0.0:5200"
 pause
