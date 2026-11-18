@@ -21,7 +21,7 @@ const routes = {
 
 const options = (timeout = 2500) => {
   const token = localStorage.getItem('agriman_access_token') || sessionStorage.getItem('agriman_access_token')
-  const baseURL = import.meta.env.DEV ? '' : (import.meta.env.VITE_INVENTORY_API_URL || api.defaults.baseURL)
+  const baseURL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || api.defaults.baseURL)
   return {
     baseURL,
     timeout,

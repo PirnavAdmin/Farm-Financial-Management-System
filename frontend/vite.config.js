@@ -4,83 +4,13 @@ import { defineConfig, loadEnv } from 'vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const dashboardTarget = env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
-  const farmersTarget = env.VITE_FARMERS_API_URL || dashboardTarget
-  const inventoryTarget = env.VITE_INVENTORY_API_URL || farmersTarget
-  const incomeTarget = env.VITE_INCOME_API_URL || dashboardTarget
-  const backendTarget = env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'https://lesser-chomp-stomp.ngrok-free.dev'
+  const backendTarget = env.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev'
 
   return {
     plugins: [react()],
     cacheDir: '.vite-cache',
     server: {
       proxy: {
-        '/api/Loan': {
-          target: env.VITE_LOAN_API_URL || dashboardTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        },
-        '/api/Income': {
-          target: incomeTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        },
-        ...Object.fromEntries(['Inventory', 'StockIn', 'StockOut', 'StockAdjustment', 'StockLedger', 'Purchases'].map((route) => [`/api/${route}`, {
-          target: inventoryTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        }])),
-        '/api/Dashboard': {
-          target: dashboardTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
-        '/api/Farmers': {
-          target: farmersTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
-        '/api/FarmerAddresses': {
-          target: farmersTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
-        '/api/FarmerBankAccounts': {
-          target: farmersTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
-        '/api/Crop': {
-          target: dashboardTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
-        '/api/CropCategory': {
-          target: dashboardTarget,
-          changeOrigin: true,
-          secure: false,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        },
         '/api': {
           target: backendTarget,
           changeOrigin: true,
@@ -93,4 +23,3 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
-

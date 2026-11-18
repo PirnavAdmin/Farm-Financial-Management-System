@@ -3,9 +3,9 @@ import axios from 'axios';
 // In dev mode, use relative URL ('') so requests go through Vite proxy at localhost:5173.
 // This prevents browser CORS and 405 Method Not Allowed preflight errors.
 const isDev = import.meta.env.DEV;
-const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_FARMERS_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev');
+const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev');
 const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
-export const BUSINESS_API_BASE_URL = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || BASE_URL).replace(/\/+$/, '');
+export const BUSINESS_API_BASE_URL = BASE_URL;
 
 export const api = axios.create({
   baseURL: BASE_URL,

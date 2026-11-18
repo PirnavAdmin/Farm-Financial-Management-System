@@ -1,6 +1,6 @@
 import api from '../../services/api'
 
-const config = { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_LOAN_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || 'https://lesser-chomp-stomp.ngrok-free.dev').replace(/\/+$/, '') }
+const config = { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || api.defaults.baseURL).replace(/\/+$/, '') }
 const root = '/api/Loan'
 const dateTime = (value) => `${value.slice(0, 10)}T00:00:00`
 

@@ -1,0 +1,53 @@
+@Agriman.Machinery.Api_HostAddress = http://localhost:5228
+
+### Health check (SQL Server Niranjan\SQLEXPRESS / Farmersdb)
+GET {{Agriman.Machinery.Api_HostAddress}}/api/health
+Accept: application/json
+
+### Get dropdown lookups (machine types, fuel types, statuses, 6 expense types)
+GET {{Agriman.Machinery.Api_HostAddress}}/api/machinery/lookups
+Accept: application/json
+
+### Get machinery list
+GET {{Agriman.Machinery.Api_HostAddress}}/api/machinery
+Accept: application/json
+
+### Get machinery summary
+GET {{Agriman.Machinery.Api_HostAddress}}/api/machinery/summary
+Accept: application/json
+
+### Create machine
+POST {{Agriman.Machinery.Api_HostAddress}}/api/machinery
+Content-Type: application/json
+
+{
+  "machineName": "John Deere 5050D",
+  "machineType": "Tractor",
+  "registrationNo": "KA-01-AG-1234",
+  "purchaseDate": "2026-01-15",
+  "purchaseCost": 650000,
+  "currentValue": 580000,
+  "fuelType": "Diesel",
+  "status": "Active"
+}
+
+### Get machinery expenses list
+GET {{Agriman.Machinery.Api_HostAddress}}/api/machinery-expenses
+Accept: application/json
+
+### Get expense types (6 seeded categories)
+GET {{Agriman.Machinery.Api_HostAddress}}/api/machinery-expenses/types
+Accept: application/json
+
+### Create machinery expense
+POST {{Agriman.Machinery.Api_HostAddress}}/api/machinery-expenses
+Content-Type: application/json
+
+{
+  "machineName": "John Deere 5050D",
+  "expenseType": "Fuel",
+  "date": "2026-11-11",
+  "amount": 2500,
+  "operator": "Ramesh",
+  "remarks": "Diesel refill for ploughing"
+}

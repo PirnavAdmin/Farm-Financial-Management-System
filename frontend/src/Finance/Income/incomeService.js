@@ -1,7 +1,7 @@
 ﻿import api from '../../services/api.js'
 
 function config() {
-  return { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_INCOME_API_URL || import.meta.env.VITE_DASHBOARD_API_URL || api.defaults.baseURL).replace(/\/+$/, '') }
+  return { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || api.defaults.baseURL).replace(/\/+$/, '') }
 }
 function unwrap(value) {
   if (value?.success === false) throw new Error(value.message || 'The Income API rejected the request.')

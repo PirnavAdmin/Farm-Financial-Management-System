@@ -1,0 +1,36 @@
+# Visual Studio
+.vs/
+**/.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+
+# Large binaries
+ngrok.exe
+**/ngrok.exe
+
+# Node / Vite
+node_modules/
+**/node_modules/
+.vite-cache/
+**/dist/
+
+# Logs
+*.log
+backend_err*.log
+backend_out*.log
+
+# Temporary test scripts
+test_endpoints.ps1
+test-endpoints.ps1
+test-login.ps1
+fix_columns.ps1

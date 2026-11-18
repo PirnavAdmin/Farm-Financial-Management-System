@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFMS - Sales Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between hidden md:flex">
+    <div>
+      <!-- Brand Logo -->
+      <div class="h-16 flex items-center px-6 border-b border-gray-100 gap-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-700 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-seedling text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-gray-900 leading-tight">FFMS</h1>
+          <p class="text-xs text-gray-400">Farm Management</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="p-4 space-y-6 overflow-y-auto max-h-[calc(100vh-160px)] custom-scrollbar">
+        <div>
+          <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">WORKSPACE</p>
+          <nav class="space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50"><i class="fa-solid fa-user-group w-4 text-gray-400"></i>Farmers</a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50"><i class="fa-solid fa-tractor w-4 text-gray-400"></i>Farms</a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50"><i class="fa-solid fa-wheat-awn w-4 text-gray-400"></i>Crop Master</a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50"><i class="fa-solid fa-boxes-stacked w-4 text-gray-400"></i>Products</a>
+          </nav>
+        </div>
+
+        <div>
+          <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">MODULES</p>
+          <nav class="space-y-1">
+            <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-leaf w-4 text-gray-400"></i>Agriculture</span>
+              <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </a>
+            <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-coins w-4 text-gray-400"></i>Finance</span>
+              <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </a>
+            <a href="#" class="flex items-center justify-between px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-warehouse w-4 text-gray-400"></i>Inventory</span>
+              <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </a>
+            
+            <!-- Active Sales Group -->
+            <div class="bg-emerald-50/50 rounded-lg p-1 space-y-1">
+              <a href="#" class="flex items-center justify-between px-3 py-2 text-sm font-semibold text-emerald-800 rounded-md bg-emerald-100/70">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-cart-shopping w-4 text-emerald-700"></i>Sales</span>
+                <i class="fa-solid fa-chevron-down text-xs text-emerald-700"></i>
+              </a>
+              <div class="pl-9 pr-2 py-1 space-y-1 text-xs font-medium">
+                <a href="#" class="block py-1.5 text-emerald-700 font-semibold">Sales Records</a>
+                <a href="#" class="block py-1.5 text-gray-500 hover:text-gray-800">Customers</a>
+                <a href="#" class="block py-1.5 text-gray-500 hover:text-gray-800">Receivables</a>
+              </div>
+            </div>
+
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50"><i class="fa-solid fa-chart-pie w-4 text-gray-400"></i>Reports</a>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick API Links -->
+    <div class="p-4 border-t border-gray-100 bg-gray-50/60 space-y-2">
+      <a href="/swagger" target="_blank" class="flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-medium bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 shadow-sm transition">
+        <i class="fa-solid fa-code text-emerald-600"></i> Swagger API Docs
+      </a>
+      <div class="flex items-center justify-between text-[11px] text-gray-500 px-1">
+        <span>DB: <strong class="text-gray-700">SALES</strong></span>
+        <span class="flex items-center gap-1 text-emerald-600 font-medium"><i class="fa-solid fa-circle text-[8px]"></i> Connected</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <!-- Top Header -->
+    <header class="h-16 bg-white border-b border-gray-200 px-8 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-2 text-xs text-gray-500">
+        <span>Workspace</span>
+        <span>/</span>
+        <span class="text-gray-800 font-medium">Sales</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="/swagger" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1.5 rounded-full hover:bg-emerald-100">
+          <i class="fa-solid fa-book-open"></i> API Docs
+        </a>
+        <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            N
+          </div>
+          <div class="hidden sm:block text-left">
+            <p class="text-xs font-semibold text-gray-800 leading-none">niranjan</p>
+            <p class="text-[10px] text-gray-400 leading-tight">Admin</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Body -->
+    <div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+      <!-- Title & Action -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold text-emerald-700 tracking-wider uppercase mb-1">SALES / SALES</p>
+          <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Sales</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Record and manage crop sales and customer transactions.</p>
+        </div>
+        <button onclick="openModal()" class="inline-flex items-center justify-center gap-2 bg-[#236B43] hover:bg-[#1b5334] text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition active:scale-95">
+          <i class="fa-solid fa-plus text-xs"></i> Add Sale
+        </button>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpiCards">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <p class="text-xs text-gray-500 font-medium">Total Sales</p>
+          <h3 class="text-xl font-bold text-gray-900 mt-1" id="kpiTotalSales">...</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <p class="text-xs text-gray-500 font-medium">Gross Revenue</p>
+          <h3 class="text-xl font-bold text-gray-900 mt-1" id="kpiGrossAmount">...</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <p class="text-xs text-gray-500 font-medium">Net Amount</p>
+          <h3 class="text-xl font-bold text-emerald-700 mt-1" id="kpiNetAmount">...</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <p class="text-xs text-gray-500 font-medium">Pending Amount</p>
+          <h3 class="text-xl font-bold text-amber-600 mt-1" id="kpiPendingAmount">...</h3>
+        </div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <div class="flex-1 flex flex-col sm:flex-row items-center gap-3">
+          <div class="relative w-full sm:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input type="text" id="searchInput" oninput="debounceSearch()" placeholder="Search buyer, farm, crop, or sales no..." class="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <select id="statusFilter" onchange="loadSales()" class="w-full sm:w-44 px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            <option value="all">All statuses</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+            <option value="Part Paid">Part Paid</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between md:justify-end gap-3">
+          <span class="text-xs text-gray-500 font-medium" id="resultsCount">Loading records...</span>
+          <button onclick="resetFilters()" class="text-xs text-emerald-700 hover:text-emerald-800 font-medium px-2 py-1 rounded hover:bg-emerald-50">Reset Filters</button>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th class="px-5 py-3.5">Sales No</th>
+                <th class="px-4 py-3.5">Date</th>
+                <th class="px-4 py-3.5">Buyer</th>
+                <th class="px-4 py-3.5">Farm</th>
+                <th class="px-4 py-3.5">Crop</th>
+                <th class="px-4 py-3.5 text-right">Quantity</th>
+                <th class="px-4 py-3.5 text-right">Rate</th>
+                <th class="px-4 py-3.5 text-right">Gross</th>
+                <th class="px-4 py-3.5 text-right">Net Amount</th>
+                <th class="px-4 py-3.5 text-center">Status</th>
+                <th class="px-5 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody" class="divide-y divide-gray-100 text-gray-700">
+              <tr>
+                <td colspan="11" class="text-center py-10 text-gray-400">Loading sales records from SQL Server...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table Footer / Pagination -->
+        <div class="px-6 py-3.5 bg-gray-50/50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+          <span id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+          <div class="flex items-center gap-1" id="paginationControls">
+            <!-- Dynamic pages -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Sales Record Modal (Matches User Screenshot Exactly) -->
+  <div id="salesModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-[2px]">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-8 pt-7 pb-4 border-b border-gray-100 flex items-start justify-between flex-shrink-0">
+        <div>
+          <p class="text-[11px] font-bold tracking-wider text-emerald-700 uppercase">SALES / SALES</p>
+          <h3 class="text-xl font-bold text-gray-900 mt-0.5">Add Sales record</h3>
+          <p class="text-xs text-gray-400 mt-1">Enter the sales and customer details.</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (2-column layout with scrollbar matching screenshot) -->
+      <form id="salesForm" onsubmit="handleFormSubmit(event)" class="overflow-y-auto p-8 space-y-5 custom-scrollbar flex-1">
+        
+        <!-- Row 1: Sales No & Sales Date -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Sales No</label>
+            <input type="text" id="salesNo" placeholder="Enter sales no (e.g. SAL-2026-003)" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Sales Date</label>
+            <input type="date" id="salesDate" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white">
+          </div>
+        </div>
+
+        <!-- Row 2: Buyer & Farm -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Buyer <span class="text-red-500">*</span></label>
+            <input type="text" id="buyer" required placeholder="Enter buyer" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Farm <span class="text-red-500">*</span></label>
+            <input type="text" id="farm" required placeholder="Enter farm" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Row 3: Crop & Quantity -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Crop <span class="text-red-500">*</span></label>
+            <input type="text" id="crop" required placeholder="Enter crop" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Quantity <span class="text-red-500">*</span></label>
+            <input type="number" step="0.01" id="quantity" required placeholder="Enter quantity" oninput="calculateAmounts()" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Row 4: Unit & Rate -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Unit</label>
+            <select id="unit" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white">
+              <option value="kg" selected>kg</option>
+              <option value="quintal">quintal</option>
+              <option value="ton">ton</option>
+              <option value="bag">bag</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Rate <span class="text-red-500">*</span></label>
+            <input type="number" step="0.01" id="rate" required placeholder="Enter rate" oninput="calculateAmounts()" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Row 5: Gross Amount & Commission -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Gross Amount (Qty × Rate)</label>
+            <input type="number" step="0.01" id="grossAmount" placeholder="Enter gross amount" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-gray-50/70">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Commission</label>
+            <input type="number" step="0.01" id="commission" placeholder="Enter commission" value="0" oninput="calculateAmounts()" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Row 6: Transport & Net Amount -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Transport</label>
+            <input type="number" step="0.01" id="transport" placeholder="Enter transport" value="0" oninput="calculateAmounts()" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Net Amount</label>
+            <input type="number" step="0.01" id="netAmount" placeholder="Enter net amount" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-emerald-50/50 font-semibold text-emerald-800">
+          </div>
+        </div>
+
+        <!-- Row 7: Payment Status -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Payment Status</label>
+            <select id="paymentStatus" class="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white">
+              <option value="Pending" selected>Pending</option>
+              <option value="Part Paid">Part Paid</option>
+              <option value="Paid">Paid</option>
+            </select>
+          </div>
+        </div>
+      </form>
+
+      <!-- Modal Footer -->
+      <div class="px-8 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+        <p class="text-xs text-gray-400">Fields follow the sales requirements.</p>
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-xs font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" form="salesForm" id="saveBtn" class="px-5 py-2 bg-[#236B43] hover:bg-[#1b5334] text-white rounded-lg text-xs font-medium transition shadow-sm">
+            Save record
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 z-50 transform translate-y-20 opacity-0 transition duration-300">
+    <i id="toastIcon" class="fa-solid fa-check text-emerald-400"></i>
+    <span id="toastMsg">Operation successful</span>
+  </div>
+
+  <script>
+    let currentPage = 1;
+    let searchTimeout = null;
+
+    // Load initial data on mount
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("salesDate").value = new Date().toISOString().split("T")[0];
+      loadSales();
+      loadSummary();
+    });
+
+    async function loadSummary() {
+      try {
+        const res = await fetch("/api/sales/summary");
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById("kpiTotalSales").innerText = data.totalSalesCount || 0;
+        document.getElementById("kpiGrossAmount").innerText = "₹" + (data.totalGrossAmount || 0).toLocaleString();
+        document.getElementById("kpiNetAmount").innerText = "₹" + (data.totalNetAmount || 0).toLocaleString();
+        document.getElementById("kpiPendingAmount").innerText = "₹" + (data.pendingAmount || 0).toLocaleString();
+      } catch (e) {
+        console.error("Failed to load summary", e);
+      }
+    }
+
+    async function loadSales() {
+      const search = document.getElementById("searchInput").value.trim();
+      const status = document.getElementById("statusFilter").value;
+      const params = new URLSearchParams({
+        page: currentPage,
+        pageSize: 10,
+        search: search,
+        status: status
+      });
+
+      const tbody = document.getElementById("salesTableBody");
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center py-10 text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading records...</td></tr>`;
+
+      try {
+        const res = await fetch(`/api/sales?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch sales records");
+        const data = await res.json();
+
+        document.getElementById("resultsCount").innerText = `${data.totalCount} Search results`;
+        document.getElementById("paginationInfo").innerText = `Showing ${data.totalCount > 0 ? (data.page - 1) * data.pageSize + 1 : 0} to ${Math.min(data.page * data.pageSize, data.totalCount)} of ${data.totalCount} entries`;
+
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="11" class="text-center py-10 text-gray-400">No sales records found matching your filters.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.items.map(item => `
+          <tr class="hover:bg-gray-50/80 transition">
+            <td class="px-5 py-3.5 font-semibold text-emerald-800">${escapeHtml(item.salesNo)}</td>
+            <td class="px-4 py-3.5 text-gray-500">${new Date(item.salesDate).toLocaleDateString()}</td>
+            <td class="px-4 py-3.5 font-medium text-gray-900">${escapeHtml(item.buyer)}</td>
+            <td class="px-4 py-3.5 text-gray-600">${escapeHtml(item.farm)}</td>
+            <td class="px-4 py-3.5 font-medium text-gray-800">${escapeHtml(item.crop)}</td>
+            <td class="px-4 py-3.5 text-right font-medium">${item.quantity.toLocaleString()} <span class="text-gray-400 text-[10px]">${item.unit}</span></td>
+            <td class="px-4 py-3.5 text-right text-gray-600">₹${item.rate.toLocaleString()}</td>
+            <td class="px-4 py-3.5 text-right text-gray-500">₹${item.grossAmount.toLocaleString()}</td>
+            <td class="px-4 py-3.5 text-right font-bold text-gray-900">₹${item.netAmount.toLocaleString()}</td>
+            <td class="px-4 py-3.5 text-center">
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusBadge(item.paymentStatus)}">
+                ${item.paymentStatus}
+              </span>
+            </td>
+            <td class="px-5 py-3.5 text-right">
+              <button onclick="deleteSale(${item.id})" title="Delete record" class="text-gray-400 hover:text-red-600 p-1 rounded transition">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `).join("");
+
+        renderPagination(data.totalPages, data.page);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-10 text-red-500">Error loading data: ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderPagination(totalPages, page) {
+      const container = document.getElementById("paginationControls");
+      if (totalPages <= 1) {
+        container.innerHTML = "";
+        return;
+      }
+      let html = "";
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="goToPage(${i})" class="w-7 h-7 rounded text-xs font-medium ${i === page ? 'bg-emerald-700 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}">${i}</button>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function goToPage(p) {
+      currentPage = p;
+      loadSales();
+    }
+
+    function debounceSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentPage = 1;
+        loadSales();
+      }, 300);
+    }
+
+    function resetFilters() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("statusFilter").value = "all";
+      currentPage = 1;
+      loadSales();
+    }
+
+    function getStatusBadge(status) {
+      if (status === "Paid") return "bg-emerald-100 text-emerald-800 border border-emerald-200";
+      if (status === "Pending") return "bg-amber-100 text-amber-800 border border-amber-200";
+      return "bg-blue-100 text-blue-800 border border-blue-200";
+    }
+
+    function calculateAmounts() {
+      const qty = parseFloat(document.getElementById("quantity").value) || 0;
+      const rate = parseFloat(document.getElementById("rate").value) || 0;
+      const commission = parseFloat(document.getElementById("commission").value) || 0;
+      const transport = parseFloat(document.getElementById("transport").value) || 0;
+
+      const gross = Math.round(qty * rate * 100) / 100;
+      const net = Math.round((gross - commission - transport) * 100) / 100;
+
+      document.getElementById("grossAmount").value = gross > 0 ? gross : "";
+      document.getElementById("netAmount").value = net;
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById("saveBtn");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
+      const payload = {
+        salesNo: document.getElementById("salesNo").value.trim() || null,
+        salesDate: document.getElementById("salesDate").value ? new Date(document.getElementById("salesDate").value).toISOString() : new Date().toISOString(),
+        buyer: document.getElementById("buyer").value.trim(),
+        farm: document.getElementById("farm").value.trim(),
+        crop: document.getElementById("crop").value.trim(),
+        quantity: parseFloat(document.getElementById("quantity").value) || 0,
+        unit: document.getElementById("unit").value,
+        rate: parseFloat(document.getElementById("rate").value) || 0,
+        grossAmount: parseFloat(document.getElementById("grossAmount").value) || null,
+        commission: parseFloat(document.getElementById("commission").value) || 0,
+        transport: parseFloat(document.getElementById("transport").value) || 0,
+        netAmount: parseFloat(document.getElementById("netAmount").value) || null,
+        paymentStatus: document.getElementById("paymentStatus").value
+      };
+
+      try {
+        const res = await fetch("/api/sales", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to save record");
+        }
+
+        showToast("Sales record saved to SQL Server successfully!");
+        closeModal();
+        loadSales();
+        loadSummary();
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save record";
+      }
+    }
+
+    async function deleteSale(id) {
+      if (!confirm("Are you sure you want to delete this sales record?")) return;
+      try {
+        const res = await fetch(`/api/sales/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete record");
+        showToast("Record deleted from SQL Server.");
+        loadSales();
+        loadSummary();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function openModal() {
+      document.getElementById("salesForm").reset();
+      document.getElementById("salesDate").value = new Date().toISOString().split("T")[0];
+      document.getElementById("salesModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("salesModal").classList.add("hidden");
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById("toast");
+      const icon = document.getElementById("toastIcon");
+      document.getElementById("toastMsg").innerText = msg;
+
+      if (isError) {
+        toast.className = "fixed bottom-6 right-6 bg-red-800 text-white text-xs px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 z-50 transform translate-y-0 opacity-100 transition duration-300";
+        icon.className = "fa-solid fa-triangle-exclamation text-red-200";
+      } else {
+        toast.className = "fixed bottom-6 right-6 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 z-50 transform translate-y-0 opacity-100 transition duration-300";
+        icon.className = "fa-solid fa-check text-emerald-400";
+      }
+
+      setTimeout(() => {
+        toast.className = "fixed bottom-6 right-6 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 z-50 transform translate-y-20 opacity-0 transition duration-300";
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+  </script>
+</body>
+</html>

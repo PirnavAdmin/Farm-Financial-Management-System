@@ -2,7 +2,7 @@
 import './company.css'
 import api from '../../services/api.js'
 
-const companyApiBase = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://mushiness-rehab-fanatic.ngrok-free.dev')
+const companyApiBase = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev')
 const defaults = {
   companyName: '', businessType: 'Agriculture', email: '', phone: '', gstin: '', address: '',
   village: '', district: '', state: '', pinCode: '', financialYear: '2026-2027', currency: 'INR (₹)',
