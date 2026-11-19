@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,39 +14,10 @@ import {
 } from '../services/dashboardService';
 import './Dashboard.css';
 
-function CustomCropTooltip({ active, payload, label }) {
-  if (active && payload && payload.length) {
-    const income = payload.find((p) => p.dataKey === 'income')?.value ?? 0;
-    const expense = payload.find((p) => p.dataKey === 'expense')?.value ?? 0;
-    const profit = payload.find((p) => p.dataKey === 'netProfit')?.value ?? 0;
-
-    return (
-      <div className="crop-chart-tooltip">
-        <div className="crop-chart-tooltip-title">{label}</div>
-        <div className="crop-chart-tooltip-item">
-          <span className="tooltip-dot" style={{ background: '#2d6a4f' }} />
-          <span className="tooltip-label">Income:</span>
-          <span className="tooltip-val">₹ {Number(income).toLocaleString('en-IN')}</span>
-        </div>
-        <div className="crop-chart-tooltip-item">
-          <span className="tooltip-dot" style={{ background: '#d97706' }} />
-          <span className="tooltip-label">Expense:</span>
-          <span className="tooltip-val">₹ {Number(expense).toLocaleString('en-IN')}</span>
-        </div>
-        <div className="crop-chart-tooltip-item profit-row">
-          <span className="tooltip-dot" style={{ background: '#059669' }} />
-          <span className="tooltip-label">Net Profit:</span>
-          <span className="tooltip-val profit-val">₹ {Number(profit).toLocaleString('en-IN')}</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-}
-
-export default function Dashboard({ onNavigate }) {
-  const [showAllWidgets, setShowAllWidgets] = useState(true);
+export default function Dashboard({ onNavigate, userName }) {
+  const [showAllWidgets, setShowAllWidgets] = useState(false);
   const [txFilter, setTxFilter] = useState('All');
+  const [cropMetric, setCropMetric] = useState('area');
 
   // Loading & error states
   const [loading, setLoading] = useState(true);
@@ -109,15 +78,35 @@ export default function Dashboard({ onNavigate }) {
     if (txFilter === 'All') return true;
     return tx.type.toLowerCase() === txFilter.toLowerCase();
   });
+  const farmAreaWidget = widgets.find((widget) => widget.id === 'total-farm-area');
+  const activeCropsWidget = widgets.find((widget) => widget.id === 'active-crops');
+  const greetingName = String(userName || '').trim().split(/\s+/)[0];
+  const displayName = greetingName && !greetingName.includes('@') && greetingName !== 'User'
+    ? greetingName
+    : 'there';
+  const cropPerformanceData = cropMetric === 'area'
+    ? activeCrops.slice(0, 4).map((crop) => ({
+      id: crop.id,
+      label: crop.crop,
+      value: Number.parseFloat(crop.area) || 0,
+      displayValue: crop.area
+    }))
+    : cropProfitData.slice(0, 4).map((crop) => ({
+      id: crop.id,
+      label: crop.crop,
+      value: Number(crop.netProfit) || 0,
+      displayValue: `₹ ${Number(crop.netProfit).toLocaleString('en-IN')}`
+    }));
+  const maxCropPerformance = Math.max(...cropPerformanceData.map((crop) => crop.value), 1);
 
   return (
     <div className="dashboard-page">
       {/* 1. Header */}
       <div className="dashboard-title-row">
         <div>
-          <h1 className="dashboard-main-title">Dashboard</h1>
+          <h1 className="dashboard-main-title">Good morning, {displayName}</h1>
           <p className="dashboard-sub">
-            Real-time financial overview and farm operational intelligence
+            Here’s what’s happening across your farm this season.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -150,11 +139,37 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* 2. Top 3 Primary Cards (Wireframe Section 3) */}
+      <section className="season-banner">
+        <div className="season-banner-content">
+          <span className="season-banner-eyebrow">SEASON AT A GLANCE</span>
+          <h2>A healthy season starts with a clear picture.</h2>
+          <p>Track farm finances, crop progress and upcoming work — all in one place.</p>
+          <div className="season-highlights">
+            <span>● {activeCropsWidget?.numeric ?? activeCrops.length} active crops</span>
+            <span>● {farmAreaWidget?.value ?? '0 Acres'} in cultivation</span>
+          </div>
+        </div>
+        <div className="season-banner-mark" aria-hidden="true">♧</div>
+      </section>
+
+      <div className="dashboard-section-heading">
+        <div>
+          <h2>Financial summary</h2>
+          <p>A quick look at your numbers for this season</p>
+        </div>
+      </div>
+
+      {/* 2. Primary financial and farm area cards */}
       <section className="top-financial-cards">
         <div
           className="fin-card card-income"
           onClick={() => onNavigate && onNavigate('Income')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (onNavigate) onNavigate('Income');
+            }
+          }}
           role="button"
           tabIndex={0}
         >
@@ -169,6 +184,12 @@ export default function Dashboard({ onNavigate }) {
         <div
           className="fin-card card-expense"
           onClick={() => onNavigate && onNavigate('Expenses')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (onNavigate) onNavigate('Expenses');
+            }
+          }}
           role="button"
           tabIndex={0}
         >
@@ -183,6 +204,12 @@ export default function Dashboard({ onNavigate }) {
         <div
           className="fin-card card-profit"
           onClick={() => onNavigate && onNavigate('Reports')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (onNavigate) onNavigate('Reports');
+            }
+          }}
           role="button"
           tabIndex={0}
         >
@@ -193,21 +220,41 @@ export default function Dashboard({ onNavigate }) {
           <div className="fin-amount profit-text">{financialCards.netProfit}</div>
           <div className="fin-sub">{financialCards.marginText}</div>
         </div>
+
+        <div
+          className="fin-card card-area"
+          onClick={() => onNavigate && onNavigate('Farms')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (onNavigate) onNavigate('Farms');
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="fin-card-header">
+            <span className="fin-label">Cultivated Land</span>
+            <span className="fin-icon green">⌂</span>
+          </div>
+          <div className="fin-amount">{farmAreaWidget?.value ?? '0 Acres'}</div>
+          <div className="fin-sub">{farmAreaWidget?.subtext ?? 'Across your active farm parcels'}</div>
+        </div>
       </section>
 
-      {/* 3. Dashboard Widgets Grid (All 12 Widgets from Requirements List) */}
+      {/* Additional KPIs stay available without crowding the overview. */}
       <section className="widgets-section">
         <div className="section-header-row">
           <div>
-            <h3 className="section-heading">Dashboard Widgets</h3>
-            <span className="section-sub-tag">Comprehensive Operational &amp; Financial Metrics</span>
+            <h3 className="section-heading">More farm metrics</h3>
+            <span className="section-sub-tag">Sales, purchases, receivables and operating costs</span>
           </div>
           <button
             type="button"
             className="toggle-widgets-btn"
             onClick={() => setShowAllWidgets((prev) => !prev)}
           >
-            {showAllWidgets ? 'Collapse Widgets ▲' : 'View All 12 Widgets ▼'}
+            {showAllWidgets ? 'Hide metrics ▲' : 'View all 12 metrics ▼'}
           </button>
         </div>
 
@@ -231,71 +278,68 @@ export default function Dashboard({ onNavigate }) {
         )}
       </section>
 
-      {/* 4. Analytical Charts Grid (Wireframe Section 3) */}
+      {/* 3. Analytical charts */}
       <section className="charts-grid-two">
-        {/* Crop-wise Profit [Chart] */}
+        {/* Crop area or profitability */}
         <div className="chart-card">
           <div className="chart-card-header">
             <div>
-              <h3 className="chart-title">Crop-wise Profit</h3>
-              <span className="chart-badge">[Chart]</span>
+              <h3 className="chart-title">Crop performance</h3>
+              <span className="chart-badge">
+                {cropMetric === 'area' ? 'Cultivated area by crop' : 'Net profit by crop'}
+              </span>
             </div>
-            <div className="chart-legend-row">
-              <span className="legend-chip green"><i /> Income</span>
-              <span className="legend-chip amber"><i /> Expense</span>
-              <span className="legend-chip emerald"><i /> Profit</span>
+            <div className="crop-metric-toggle" role="group" aria-label="Crop performance metric">
+              <button
+                type="button"
+                className={cropMetric === 'area' ? 'active' : ''}
+                onClick={() => setCropMetric('area')}
+              >
+                Area
+              </button>
+              <button
+                type="button"
+                className={cropMetric === 'profit' ? 'active' : ''}
+                onClick={() => setCropMetric('profit')}
+              >
+                Profit
+              </button>
             </div>
           </div>
 
-          <div style={{ width: '100%', height: 320 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={cropProfitData}
-                margin={{ top: 20, right: 20, left: 10, bottom: 25 }}
-                barGap={4}
-                barCategoryGap="20%"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e8ece8" vertical={false} />
-                <XAxis
-                  dataKey="crop"
-                  interval={0}
-                  tick={{ fill: '#374151', fontSize: 11.5, fontWeight: 600 }}
-                  axisLine={{ stroke: '#ccd6cd' }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
-                  axisLine={{ stroke: '#ccd6cd' }}
-                  tickLine={false}
-                  domain={[0, (dataMax) => Math.ceil(dataMax * 1.15)]}
-                />
-                <Tooltip
-                  content={<CustomCropTooltip />}
-                  cursor={{ fill: 'rgba(45, 106, 79, 0.05)', rx: 6 }}
-                />
-                <Bar dataKey="income" name="Income" fill="#2d6a4f" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                <Bar dataKey="expense" name="Expense" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                <Bar dataKey="netProfit" name="Profit" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={22} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="crop-performance-list">
+            {cropPerformanceData.length === 0 ? (
+              <div className="dashboard-empty-state">
+                {loading ? 'Loading crop performance...' : 'No crop performance data available yet.'}
+              </div>
+            ) : (
+              cropPerformanceData.map((crop) => (
+                <div className="crop-performance-row" key={crop.id}>
+                  <span className="crop-performance-name">{crop.label}</span>
+                  <div className="crop-performance-track">
+                    <span style={{ width: `${Math.max((crop.value / maxCropPerformance) * 100, crop.value ? 4 : 0)}%` }} />
+                  </div>
+                  <span className="crop-performance-value">{crop.displayValue}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Income vs Expense [Monthly Chart] */}
+        {/* Monthly cashflow */}
         <div className="chart-card">
           <div className="chart-card-header">
             <div>
-              <h3 className="chart-title">Income vs Expense</h3>
-              <span className="chart-badge">[Monthly Chart]</span>
+              <h3 className="chart-title">Income &amp; expenses</h3>
+              <span className="chart-badge">Your farm finances, month by month</span>
             </div>
             <div className="chart-legend-row">
-              <span className="legend-chip green"><i /> Monthly Inflow</span>
-              <span className="legend-chip amber"><i /> Monthly Outflow</span>
+              <span className="legend-chip green"><i /> Income</span>
+              <span className="legend-chip amber"><i /> Expenses</span>
             </div>
           </div>
 
-          <div style={{ width: '100%', height: 320 }}>
+          <div className="cashflow-chart">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={monthlyCashflowData}

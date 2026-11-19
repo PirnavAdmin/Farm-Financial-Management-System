@@ -1,0 +1,534 @@
+/* ==========================================================================
+   AGRIMAN PREMIUM FOOTER - OPTIMIZED HEIGHT & SPACING
+   - Spacing and sizing optimization (25-30% height reduction)
+   - Preserves complete design identity, colors, illustrations and 3-column layout
+   - Top CTA Banner: Forest-green gradient, white + lime heading, vector landscape
+   - Main Footer: Compact 330-350px three-column white layout with dividers,
+     reduced logo (~155px), compact social buttons (30px), reduced links gap (8px),
+     compact agricultural operations panel (105px height) with small tractor
+   - Bottom Bar: Compact light mint bar with copyright and italic tagline
+   ========================================================================== */
+
+.footer-wrapper {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   1. TOP CTA BANNER: Ready to Manage Your Farm Better?
+   (Completely preserved as per strict restrictions)
+   -------------------------------------------------------------------------- */
+.cta-banner-section {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Deep forest-green gradient */
+  background: linear-gradient(135deg, #09471E 0%, #0F5E2A 40%, #15803D 80%, #166534 100%);
+  padding: 52px 0 68px 0;
+  min-height: 310px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Corner foliage branch */
+.cta-corner-leaves-tl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+
+/* Right-side agricultural landscape illustration (sunrise, farmhouse, windmill, furrows) */
+.cta-landscape-backdrop {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Bottom layered waves of the CTA banner */
+.cta-bottom-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cta-bottom-waves svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Centered CTA Content */
+.cta-banner-content-container {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Centered leaf accent above heading: — 🍃 — */
+.cta-center-foliage-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.cta-foliage-line {
+  display: inline-block;
+  width: 38px;
+  height: 2px;
+  background: rgba(134, 239, 172, 0.75);
+  border-radius: 2px;
+}
+
+.cta-foliage-leaves {
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* Main Heading: White with Lime-Yellow "Better?" */
+.cta-banner-heading {
+  color: #FFFFFF;
+  font-size: clamp(30px, 2.8vw, 42px);
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
+.cta-highlight-better {
+  color: #C4F22C;
+  font-weight: 850;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Supporting Subtext */
+.cta-banner-subtext {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0 0 26px 0;
+  text-align: center;
+  max-width: 580px;
+}
+
+/* Buttons Container */
+.cta-banner-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* White filled Get Started button */
+.cta-btn-white {
+  background-color: #FFFFFF;
+  color: #126334;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 12px 28px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cta-btn-white:hover {
+  background-color: #F0FDF4;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.cta-btn-white svg {
+  transition: transform 0.2s ease;
+}
+
+.cta-btn-white:hover svg {
+  transform: translateX(4px);
+}
+
+/* Transparent Login button with white border */
+.cta-btn-transparent {
+  background-color: transparent;
+  border: 1.8px solid #FFFFFF;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 11px 34px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cta-btn-transparent:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* --------------------------------------------------------------------------
+   2. MAIN FOOTER: Three Columns with Vertical Separators
+   - Optimized height: 330–350px desktop footprint (25-30% height reduction)
+   - Reduced padding: 36px top, 30px bottom
+   -------------------------------------------------------------------------- */
+.main-footer-section {
+  background-color: #FFFFFF;
+  padding: 36px 0 30px 0;
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.main-footer-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Common Column Box */
+.footer-col {
+  box-sizing: border-box;
+}
+
+/* Column 1: Branding */
+.footer-col-brand {
+  flex: 0 0 35%;
+  max-width: 370px;
+  padding-right: 20px;
+}
+
+/* Logo reduced by ~20%: 155px width */
+.footer-brand-logo {
+  width: 155px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* Compact description text */
+.footer-brand-description {
+  color: #64748B;
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  max-width: 310px;
+}
+
+/* Compact Social Icons (30px size, 8px gap) */
+.footer-social-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.footer-social-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #E8F8ED;
+  color: #137C20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 5px rgba(18, 99, 52, 0.06);
+}
+
+.footer-social-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.footer-social-btn:hover {
+  background-color: #137C20;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(18, 99, 52, 0.18);
+}
+
+/* Subtle Vertical Green-Tinted Column Dividers (Compact 142px height) */
+.footer-col-divider {
+  width: 1px;
+  height: 142px;
+  background-color: rgba(226, 232, 240, 0.85);
+  margin: 0 24px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Column 2: Quick Links (Compact 8px spacing) */
+.footer-col-links {
+  flex: 0 0 22%;
+  min-width: 170px;
+}
+
+.footer-col-title {
+  color: #0F172A;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 5px 0;
+}
+
+.footer-title-bar {
+  width: 30px;
+  height: 2.5px;
+  background-color: #126334;
+  border-radius: 2px;
+  margin-bottom: 14px;
+}
+
+.footer-quick-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-nav-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1E293B;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.footer-nav-link-btn:hover {
+  color: #126334;
+  transform: translateX(4px);
+}
+
+.footer-link-chevron {
+  color: #16A34A;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.footer-nav-link-btn:hover .footer-link-chevron {
+  transform: translateX(2px);
+}
+
+/* Column 3: Agricultural Operations (Compact 105px panel) */
+.footer-col-operations {
+  flex: 0 0 34%;
+  max-width: 390px;
+}
+
+.footer-operations-card {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 128, 68, 0.16);
+  box-shadow: 0 3px 12px rgba(18, 99, 52, 0.06);
+  background-color: #E8F8ED;
+  display: block;
+  line-height: 0;
+}
+
+.footer-operations-card svg {
+  display: block;
+  width: 100%;
+  height: 105px;
+}
+
+.footer-operations-caption {
+  color: #64748B;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 8px 0 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. BOTTOM COPYRIGHT BAR
+   - Compact vertical padding (11px)
+   -------------------------------------------------------------------------- */
+.footer-bottom-bar {
+  width: 100%;
+  background-color: #F4FBF6;
+  border-top: 1px solid rgba(22, 128, 68, 0.12);
+  padding: 11px 0;
+  box-sizing: border-box;
+}
+
+.footer-bottom-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-copyright-text {
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.footer-tagline-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.footer-tagline-leaf {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.footer-tagline-text {
+  color: #126334;
+  font-size: 13.5px;
+  font-weight: 750;
+  font-style: italic;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. RESPONSIVE DESIGN
+   -------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .cta-landscape-backdrop {
+    opacity: 0.6;
+  }
+
+  .main-footer-container {
+    padding: 0 28px;
+  }
+
+  .footer-col-divider {
+    margin: 0 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .cta-banner-section {
+    padding: 44px 0 58px 0;
+  }
+
+  .cta-landscape-backdrop {
+    display: none;
+  }
+
+  .main-footer-section {
+    padding: 32px 0 28px 0;
+  }
+
+  .main-footer-container {
+    flex-direction: column;
+    gap: 28px;
+    padding: 0 24px;
+  }
+
+  .footer-col-brand,
+  .footer-col-links,
+  .footer-col-operations {
+    flex: unset;
+    width: 100%;
+    max-width: 100%;
+    padding-right: 0;
+  }
+
+  .footer-col-divider {
+    display: none;
+  }
+
+  .footer-operations-card {
+    max-width: 440px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cta-banner-heading {
+    font-size: 26px;
+  }
+
+  .cta-banner-subtext {
+    font-size: 14.5px;
+  }
+
+  .cta-corner-leaves-tl svg {
+    width: 140px;
+    height: 100px;
+  }
+
+  .footer-bottom-container {
+    padding: 0 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .footer-copyright-text,
+  .footer-tagline-text {
+    font-size: 12px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility: Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .cta-btn-white,
+  .cta-btn-transparent,
+  .footer-social-btn,
+  .footer-nav-link-btn {
+    transition: none !important;
+    transform: none !important;
+  }
+}

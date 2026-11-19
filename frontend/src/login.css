@@ -1,19 +1,22 @@
 /* AGRIMAN Login Page - High Fidelity Visual Recreation */
 
 .agriman-login-container {
+  height: 100vh;
   min-height: 100vh;
+  max-height: 100vh;
   width: 100%;
   box-sizing: border-box;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(24px, 4.5vw, 64px) clamp(24px, 6vw, 100px);
-  background-image: url('./assets/agriman-farm-bg.jpg');
+  padding: 0 clamp(32px, 6vw, 96px);
+  background-color: #274720;
+  background-image: url('/agriman-farm-bg.jpg');
   background-size: cover;
-  background-position: center center;
+  background-position: center 60%;
   background-repeat: no-repeat;
-  overflow-x: hidden;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -22,25 +25,31 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: clamp(500px, 70vh, 680px);
-  max-width: 580px;
-  margin-left: clamp(40px, 6vw, 110px);
+  height: 100%;
+  max-width: 660px;
+  margin-left: 0;
   z-index: 2;
   box-sizing: border-box;
+  padding-top: clamp(100px, 12.5vh, 155px);
+  padding-bottom: 50px;
 }
 
 .agriman-intro-content {
-  margin-top: clamp(8px, 2vh, 20px);
+  margin: 0;
+  margin-left: clamp(110px, 9vw, 150px);
+  padding-top: clamp(28px, 4vh, 50px);
+  box-sizing: border-box;
 }
 
 .agriman-main-heading {
   margin: 0;
   display: flex;
   flex-direction: column;
-  font-size: clamp(36px, 4vw, 54px);
+  font-size: clamp(38px, 3.8vw, 52px);
   font-weight: 850;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.025em;
+  padding-top: 2px;
 }
 
 .heading-line-dark {
@@ -56,39 +65,40 @@
 }
 
 .heading-accent-bar {
-  width: 56px;
+  width: 54px;
   height: 5px;
-  background: #15803d;
+  background: #16a34a;
   border-radius: 4px;
-  margin: 16px 0 20px;
+  margin: 16px 0 18px;
 }
 
 .agriman-intro-description {
   margin: 0;
-  color: #1a3326;
-  font-size: clamp(15.5px, 1.25vw, 18px);
+  color: #153825;
+  font-size: clamp(16px, 1.25vw, 18px);
   font-weight: 600;
   line-height: 1.5;
-  max-width: 460px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+  max-width: 480px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.65);
 }
 
-/* Feature Highlights Bar */
+/* Feature Highlights - Soft Olive-Green Transparent Blurred Glass Panel */
 .agriman-features-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(12, 32, 18, 0.32);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 20px;
-  padding: 14px 18px;
+  gap: clamp(6px, 1.4vw, 14px);
   width: 100%;
-  max-width: 480px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  max-width: 510px;
+  margin: 0;
+  background: rgba(65, 95, 35, 0.60);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(241, 245, 233, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  padding: 8px 18px;
   box-sizing: border-box;
-  margin-top: 32px;
 }
 
 .feature-item {
@@ -97,41 +107,54 @@
   align-items: center;
   text-align: center;
   flex: 1;
-  gap: 6px;
-  padding: 2px 4px;
+  gap: 8px;
+  padding: 0 2px;
+  cursor: default;
 }
 
 .feature-icon-wrapper {
-  width: 30px;
-  height: 30px;
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #F1F5E9;
+  transition: transform 0.2s ease;
+}
+
+.feature-icon-wrapper:hover {
+  transform: translateY(-2px);
 }
 
 .feature-icon {
-  width: 24px;
-  height: 24px;
-  stroke: #ffffff;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  width: 36px;
+  height: 36px;
+  stroke: #F1F5E9;
+  stroke-width: 1.85;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .feature-label {
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
+  color: #F1F5E9;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.25;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
 }
 
 .feature-separator {
+  display: block;
   width: 1px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.22);
-  margin: 0 4px;
+  height: 38px;
+  background: rgba(241, 245, 233, 0.25);
+  margin: 0 2px;
   flex-shrink: 0;
+  align-self: center;
 }
 
 /* RIGHT SECTION: Frosted Glass Login Panel */
@@ -147,13 +170,13 @@
 
 .agriman-glass-card {
   width: 100%;
-  background: rgba(235, 248, 238, 0.65);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  border-radius: 36px;
-  padding: 34px 34px 30px;
-  box-shadow: 0 24px 60px rgba(10, 36, 18, 0.25), 0 0 35px rgba(134, 239, 172, 0.16) inset, 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+  background: linear-gradient(160deg, rgba(225, 248, 250, 0.40), rgba(170, 210, 120, 0.30));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 28px;
+  padding: 24px 30px 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.65);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -164,68 +187,71 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 2px;
 }
 
 .agriman-brand-logo {
-  max-width: 140px;
-  max-height: 112px;
-  width: auto;
+  width: 155px;
+  max-width: 165px;
+  max-height: 108px;
   height: auto;
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.06));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08));
 }
 
 .panel-headings {
   text-align: center;
-  margin-bottom: 20px;
+  margin-top: 4px;
+  margin-bottom: 16px;
 }
 
 .panel-title {
-  margin: 0 0 6px;
-  color: #12261a;
-  font-size: 27px;
-  font-weight: 800;
+  margin: 0 0 5px;
+  color: #0a2e19;
+  font-size: clamp(34px, 2.5vw, 38px);
+  font-weight: 850;
   letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
 .panel-subtitle {
   margin: 0;
-  color: #4c6655;
+  color: #2e4d3b;
   font-size: 13.5px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 /* Alerts */
 .auth-alert {
-  padding: 10px 14px;
+  padding: 9px 14px;
   border-radius: 12px;
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 600;
   line-height: 1.4;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   text-align: center;
 }
 
 .auth-error {
-  background: rgba(255, 235, 235, 0.9);
+  background: rgba(254, 226, 226, 0.92);
   color: #991b1b;
-  border: 1px solid #fecaca;
+  border: 1px solid #fca5a5;
 }
 
 .auth-success {
-  background: rgba(236, 253, 243, 0.9);
+  background: rgba(220, 252, 231, 0.92);
   color: #166534;
-  border: 1px solid #bbf7d0;
+  border: 1px solid #86efac;
 }
 
 /* Form Styles */
 .login-form-body {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 12px;
 }
 
 .input-group {
@@ -241,26 +267,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b6354;
+  color: #3b5a48;
   pointer-events: none;
   z-index: 1;
 }
 
 .input-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .pill-input {
   width: 100%;
-  height: 48px;
+  height: 50px;
   box-sizing: border-box;
-  padding: 0 46px 0 46px;
+  padding: 0 46px 0 50px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.82);
-  color: #12281b;
-  font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.85);
+  color: #0d281a;
+  font-size: 14.5px;
   font-weight: 500;
   outline: none;
   transition: all 0.2s ease;
@@ -268,14 +294,14 @@
 }
 
 .pill-input::placeholder {
-  color: #7b9485;
+  color: #557563;
   font-weight: 450;
 }
 
 .pill-input:focus {
   background: #ffffff;
   border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.20);
 }
 
 .input-trailing-action {
@@ -283,12 +309,12 @@
   right: 14px;
   background: transparent;
   border: none;
-  padding: 6px;
+  padding: 7px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b6354;
+  color: #3b5a48;
   border-radius: 50%;
   transition: color 0.15s ease, background 0.15s ease;
 }
@@ -299,8 +325,8 @@
 }
 
 .toggle-password-icon {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
 }
 
 /* Account Options (Remember Me & Forgot Password) */
@@ -308,15 +334,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 3px 4px 5px;
-  font-size: 13px;
+  margin: 0 4px 2px;
+  font-size: 13.5px;
 }
 
 .remember-me-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1d3627;
+  color: #1a3827;
   font-weight: 600;
   cursor: pointer;
   user-select: none;
@@ -325,7 +351,7 @@
 .custom-checkbox {
   width: 17px;
   height: 17px;
-  accent-color: #0b3b24;
+  accent-color: #0d4624;
   cursor: pointer;
   margin: 0;
 }
@@ -334,8 +360,8 @@
   background: none;
   border: none;
   padding: 0;
-  color: #0b3b24;
-  font-size: 13px;
+  color: #0d4624;
+  font-size: 13.5px;
   font-weight: 650;
   cursor: pointer;
   text-decoration: none;
@@ -350,10 +376,10 @@
 /* Primary Sign In Button */
 .btn-primary-sign-in {
   width: 100%;
-  height: 48px;
+  height: 50px;
   border: none;
   border-radius: 9999px;
-  background: #084323;
+  background: #0d4624;
   color: #ffffff;
   font-size: 15.5px;
   font-weight: 700;
@@ -362,14 +388,14 @@
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(8, 67, 35, 0.32);
-  transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+  box-shadow: 0 6px 18px rgba(13, 70, 36, 0.28);
+  transition: all 0.2s ease;
 }
 
 .btn-primary-sign-in:hover {
-  background: #05331a;
+  background: #08331a;
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(8, 67, 35, 0.4);
+  box-shadow: 0 8px 20px rgba(13, 70, 36, 0.36);
 }
 
 .btn-primary-sign-in:active {
@@ -383,8 +409,8 @@
 }
 
 .btn-arrow-icon {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Or Divider */
@@ -392,13 +418,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 3px 0;
+  margin: 2px 0;
 }
 
 .divider-line {
   flex: 1;
   height: 1px;
-  background: rgba(30, 60, 40, 0.22);
+  background: rgba(30, 60, 40, 0.18);
 }
 
 .divider-text {
@@ -411,11 +437,11 @@
 /* Secondary Registration Button */
 .btn-secondary-register {
   width: 100%;
-  height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 9999px;
-  background: rgba(215, 238, 222, 0.78);
-  color: #0b3b24;
+  background: rgba(255, 255, 255, 0.52);
+  color: #0d4624;
   font-size: 14.5px;
   font-weight: 700;
   display: flex;
@@ -423,13 +449,18 @@
   justify-content: center;
   gap: 9px;
   cursor: pointer;
-  transition: background 0.18s ease, transform 0.15s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
 }
 
 .btn-secondary-register:hover {
-  background: rgba(198, 232, 208, 0.92);
+  background: rgba(255, 255, 255, 0.75);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(10, 40, 20, 0.08);
+}
+
+.btn-secondary-register:active {
+  transform: translateY(0);
 }
 
 .btn-user-icon {
@@ -440,11 +471,11 @@
 .btn-back-link {
   background: none;
   border: none;
-  color: #0b3b24;
+  color: #0d4624;
   font-size: 13.5px;
   font-weight: 650;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 6px;
   text-align: center;
   text-decoration: underline;
 }
@@ -463,99 +494,204 @@
 /* RESPONSIVE DESIGN */
 @media (max-width: 1024px) {
   .agriman-login-container {
-    padding: 36px 32px;
+    padding: 0 clamp(24px, 4vw, 44px);
   }
+  .agriman-intro-content {
+    margin-left: 36px;
+    padding-top: 10px;
+  }
+
   .agriman-main-heading {
     font-size: 40px;
   }
+  .agriman-features-row {
+    max-width: 480px;
+    gap: 10px;
+    padding: 8px 14px;
+  }
+  .feature-icon-wrapper {
+    width: auto;
+    height: auto;
+  }
+  .feature-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .feature-separator {
+    height: 34px;
+  }
+  .feature-label {
+    font-size: 12px;
+  }
   .agriman-right-panel {
-    max-width: 400px;
+    max-width: 410px;
   }
   .agriman-glass-card {
-    padding: 28px 26px 24px;
-    border-radius: 30px;
+    padding: 22px 24px 20px;
+    border-radius: 26px;
+  }
+  .agriman-brand-logo {
+    width: 145px;
+    max-height: 100px;
+  }
+  .panel-title {
+    font-size: 32px;
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .agriman-login-container {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 40px;
-    padding: 40px 20px;
+    height: auto;
     min-height: 100vh;
+    max-height: none;
+    overflow-y: auto;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 36px;
+    padding: 44px 20px;
     background-attachment: fixed;
   }
+
   .agriman-left-intro {
-    min-height: auto;
     max-width: 100%;
     width: 100%;
     margin-left: 0;
     align-items: center;
     text-align: center;
+    transform: none;
+    height: auto;
+    padding: 0;
+    gap: 28px;
+    justify-content: flex-start;
   }
+
   .agriman-intro-content {
     margin-left: 0;
+    padding-top: 0;
+    width: 100%;
   }
+
   .agriman-main-heading {
     align-items: center;
-    font-size: 36px;
+    font-size: 38px;
   }
+
   .heading-accent-bar {
     margin: 14px auto 18px;
   }
+
   .agriman-intro-description {
     text-align: center;
     max-width: 100%;
   }
+
   .agriman-features-row {
-    margin: 24px auto 0;
+    margin: 0 auto;
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px 14px;
   }
+
+  .feature-icon-wrapper {
+    width: auto;
+    height: auto;
+  }
+
+  .feature-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .feature-separator {
+    height: 34px;
+  }
+
+  .feature-label {
+    font-size: 12px;
+  }
+
   .agriman-right-panel {
-    max-width: 420px;
+    max-width: 440px;
     justify-content: center;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .agriman-login-container {
-    padding: 24px 14px;
+    padding: 28px 16px;
     gap: 28px;
   }
+
+  .agriman-intro-content {
+    margin-left: 0;
+    padding-top: 0;
+    width: 100%;
+  }
+
   .agriman-main-heading {
-    font-size: 30px;
+    font-size: 32px;
   }
+
+  .agriman-intro-description {
+    font-size: 15px;
+  }
+
   .agriman-features-row {
-    padding: 12px 10px;
+    gap: 4px;
+    max-width: 100%;
+    padding: 6px 8px;
+    border-radius: 14px;
   }
+
+  .feature-icon-wrapper {
+    width: auto;
+    height: auto;
+  }
+
   .feature-icon {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
+
+  .feature-separator {
+    height: 28px;
+    margin: 0 1px;
+  }
+
   .feature-label {
-    font-size: 10px;
+    font-size: 10.5px;
   }
+
   .agriman-glass-card {
-    padding: 24px 20px 22px;
-    border-radius: 26px;
+    padding: 20px 18px 18px;
+    border-radius: 24px;
   }
+
   .agriman-brand-logo {
-    max-width: 110px;
-    max-height: 85px;
+    width: 135px;
+    max-height: 95px;
   }
+
   .panel-title {
-    font-size: 24px;
+    font-size: 28px;
   }
+
   .pill-input {
-    height: 44px;
-    font-size: 13.5px;
+    height: 46px;
+    font-size: 14px;
+    padding: 0 40px 0 44px;
   }
+
+  .input-leading-icon {
+    left: 15px;
+  }
+
   .btn-primary-sign-in,
   .btn-secondary-register {
-    height: 44px;
-    font-size: 14px;
+    height: 46px;
+    font-size: 14.5px;
   }
 }
