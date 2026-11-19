@@ -1,85 +1,767 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import './customers.css'
+import { useEffect, useMemo, useState } from 'react';
+import salesService, { formatCurrency, formatDate } from '../../services/salesService';
+import './customers.css';
 
-const screenName = 'Customers'
-const fields = ["Buyer Code","Buyer Name","Mobile","Address","Business Name","GSTIN","Opening Balance","Status"]
-const initialRows = [["BUY-001","Sri Lakshmi Traders","98765 43210","Vijayawada, Andhra Pradesh","Sri Lakshmi Agri Traders","37ABCDE1234F1Z5","₹25,000","Active"],["BUY-002","Dairy Cooperative","98765 12340","Guntur, Andhra Pradesh","Guntur Dairy Union","37FGHIJ5678K1Z2","₹0","Active"]]
-const description = 'Manage buyer and customer details, business information, and opening balances.'
-const storeKey = `agriman-sales-${screenName.toLowerCase().replace(/\s+/g, '-')}`
-const recordsSeed = initialRows.map((values) => Object.fromEntries(fields.map((field, index) => [field, values[index] || ''])))
+export default function Customers({ onNavigate }) {
+  const [buyers, setBuyers] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
 
-function readRecords() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storeKey))
-    return Array.isArray(saved) ? saved : recordsSeed
-  } catch {
-    return recordsSeed
-  }
+  // Filters
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
+
+  // Modals
+  const [buyerModal, setBuyerModal] = useState(null); // null | { isEdit: boolean, data: object }
+  const [viewDetails, setViewDetails] = useState(null); // null | buyer object
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // null | buyer object
+
+  // Form State
+  const initialForm = {
+    buyerCode: '',
+    buyerName: '',
+    mobile: '',
+    address: '',
+    businessName: '',
+    gstin: '',
+    openingBalance: 0,
+    status: 'Active'
+  };
+  const [formData, setFormData] = useState(initialForm);
+  const [formErrors, setFormErrors] = useState({});
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(''), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [buyersList, salesList] = await Promise.all([
+        salesService.getBuyers(),
+        salesService.getSales()
+      ]);
+      setBuyers(buyersList);
+      setSales(salesList);
+    } catch (err) {
+      console.error('[Customers] Error loading data:', err);
+      setToast('Failed to load customers data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, statusFilter]);
+
+  // Open Add Modal
+  const openAddModal = () => {
+    const existingCodes = buyers
+      .map((b) => b.buyerCode)
+      .filter((c) => c && c.startsWith('BUY-'))
+      .map((c) => parseInt(c.replace('BUY-', ''), 10))
+      .filter((n) => !isNaN(n));
+    const nextSeq = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : buyers.length + 1;
+    const generatedCode = `BUY-${String(nextSeq).padStart(3, '0')}`;
+
+    setFormData({
+      ...initialForm,
+      buyerCode: generatedCode,
+      openingBalance: 0,
+      status: 'Active'
+    });
+    setFormErrors({});
+    setBuyerModal({ isEdit: false });
+  };
+
+  // Open Edit Modal
+  const openEditModal = (buyer) => {
+    setFormData({
+      id: buyer.id,
+      buyerCode: buyer.buyerCode,
+      buyerName: buyer.buyerName,
+      mobile: buyer.mobile || '',
+      address: buyer.address || '',
+      businessName: buyer.businessName || '',
+      gstin: buyer.gstin || '',
+      openingBalance: buyer.openingBalance || 0,
+      status: buyer.status || 'Active'
+    });
+    setFormErrors({});
+    setBuyerModal({ isEdit: true, data: buyer });
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.buyerName?.trim()) errors.buyerName = 'Buyer Name is required.';
+    if (!formData.mobile?.trim()) {
+      errors.mobile = 'Mobile number is required.';
+    } else if (!/^[0-9+\s-]{8,15}$/.test(formData.mobile.trim())) {
+      errors.mobile = 'Enter a valid mobile phone number.';
+    }
+
+    if (formData.openingBalance < 0) {
+      errors.openingBalance = 'Opening balance cannot be negative.';
+    }
+
+    // Duplicate check on Add
+    if (!buyerModal.isEdit) {
+      if (buyers.some((b) => b.buyerCode.toLowerCase() === formData.buyerCode.trim().toLowerCase())) {
+        errors.buyerCode = `Buyer Code '${formData.buyerCode}' already exists.`;
+      }
+      if (buyers.some((b) => b.mobile.replace(/\D/g, '') === formData.mobile.replace(/\D/g, ''))) {
+        errors.mobile = `A customer with mobile '${formData.mobile}' already exists.`;
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setSaving(true);
+    try {
+      if (buyerModal.isEdit) {
+        await salesService.updateBuyer(formData.id, formData);
+        setToast(`Buyer '${formData.buyerName}' updated.`);
+      } else {
+        await salesService.createBuyer(formData);
+        setToast(`Buyer '${formData.buyerName}' registered.`);
+      }
+      setBuyerModal(null);
+      await loadData();
+    } catch (err) {
+      setToast(err.message || 'Failed to save buyer record.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await salesService.deleteBuyer(deleteConfirm.id);
+      setToast(`Buyer '${deleteConfirm.buyerName}' deleted.`);
+      setDeleteConfirm(null);
+      if (viewDetails?.id === deleteConfirm.id) setViewDetails(null);
+      await loadData();
+    } catch (err) {
+      setToast(err.message || 'Failed to delete buyer.');
+    }
+  };
+
+  // KPI Stats
+  const totalBuyers = buyers.length;
+  const activeBuyers = buyers.filter((b) => (b.status || 'Active') === 'Active').length;
+  const totalOpeningBalance = buyers.reduce((sum, b) => sum + (Number(b.openingBalance) || 0), 0);
+  const totalAssociatedSales = sales.length;
+
+  // Filtered Buyers
+  const filteredBuyers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return buyers.filter((b) => {
+      const matchSearch =
+        !q ||
+        (b.buyerCode && b.buyerCode.toLowerCase().includes(q)) ||
+        (b.buyerName && b.buyerName.toLowerCase().includes(q)) ||
+        (b.mobile && b.mobile.toLowerCase().includes(q)) ||
+        (b.businessName && b.businessName.toLowerCase().includes(q)) ||
+        (b.gstin && b.gstin.toLowerCase().includes(q)) ||
+        (b.address && b.address.toLowerCase().includes(q));
+
+      const matchStatus =
+        statusFilter === 'All' || (b.status || 'Active').toLowerCase() === statusFilter.toLowerCase();
+
+      return matchSearch && matchStatus;
+    });
+  }, [buyers, query, statusFilter]);
+
+  const totalRecords = filteredBuyers.length;
+  const pageCount = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = filteredBuyers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const resetFilters = () => {
+    setQuery('');
+    setStatusFilter('All');
+    setPage(1);
+  };
+
+  return (
+    <div className="users-page sales-page-container">
+      {/* Title & Header */}
+      <div className="users-title-row">
+        <div>
+          <div className="users-eyebrow">
+            SALES <span>/</span> CUSTOMERS
+          </div>
+          <h1>Customers & Buyers</h1>
+          <p>Maintain registered buyer details, business identities, GSTIN, and opening ledger balances.</p>
+        </div>
+        <button className="users-add" type="button" onClick={openAddModal}>
+          <span>＋</span> Add Buyer
+        </button>
+      </div>
+
+      {/* KPI Stats Cards */}
+      <div className="sales-stats-grid">
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-blue">👥</span>
+          <div className="sales-stat-info">
+            <small>REGISTERED BUYERS</small>
+            <strong>{totalBuyers} Customers</strong>
+            <span>Active client accounts</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-green">✓</span>
+          <div className="sales-stat-info">
+            <small>ACTIVE ACCOUNTS</small>
+            <strong>{activeBuyers} Active</strong>
+            <span>Eligible for new sales</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-amber">₹</span>
+          <div className="sales-stat-info">
+            <small>OPENING BALANCES</small>
+            <strong>{formatCurrency(totalOpeningBalance)}</strong>
+            <span>Initial buyer ledger credit</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-purple">▤</span>
+          <div className="sales-stat-info">
+            <small>TOTAL SALES LINKED</small>
+            <strong>{totalAssociatedSales} Invoices</strong>
+            <span>Across all buyers</span>
+          </div>
+        </article>
+      </div>
+
+      {/* Main Panel */}
+      <section className="users-panel">
+        {/* Toolbar */}
+        <div className="sales-toolbar">
+          <div className="sales-search">
+            <span>⌕</span>
+            <input
+              type="text"
+              placeholder="Search by Buyer Code, Name, Mobile, Business, GSTIN..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            title="Filter by status"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+
+          <button className="sales-reset-btn" type="button" onClick={resetFilters}>
+            ↻ Reset Filters
+          </button>
+        </div>
+
+        {/* Data Table */}
+        <div className="sales-table-wrap">
+          <table className="sales-table">
+            <thead>
+              <tr>
+                <th>BUYER CODE</th>
+                <th>BUYER NAME</th>
+                <th>MOBILE</th>
+                <th>ADDRESS</th>
+                <th>BUSINESS NAME</th>
+                <th>GSTIN</th>
+                <th>OPENING BALANCE</th>
+                <th style={{ textAlign: 'center' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '36px' }}>
+                    <div style={{ color: '#64748b', fontSize: '13px' }}>Loading buyers...</div>
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan="8">
+                    <div className="users-empty">
+                      <span>⌕</span>
+                      <strong>No buyer records found</strong>
+                      <p>Add a new buyer or try a different search term.</p>
+                      <button type="button" onClick={resetFilters}>
+                        Clear Filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((buyer) => (
+                  <tr key={buyer.id || buyer.buyerCode}>
+                    <td>
+                      <span className="sales-code-badge">{buyer.buyerCode}</span>
+                    </td>
+                    <td>
+                      <strong>{buyer.buyerName}</strong>
+                    </td>
+                    <td>{buyer.mobile || '—'}</td>
+                    <td title={buyer.address} style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {buyer.address || '—'}
+                    </td>
+                    <td>{buyer.businessName || '—'}</td>
+                    <td>
+                      {buyer.gstin ? (
+                        <code style={{ fontSize: '11px', background: '#f8fafc', padding: '2px 5px', borderRadius: '4px' }}>
+                          {buyer.gstin}
+                        </code>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="sales-bold-amount">{formatCurrency(buyer.openingBalance || 0)}</td>
+                    <td>
+                      <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          className="sales-btn-action"
+                          title="View Details"
+                          onClick={() => setViewDetails(buyer)}
+                        >
+                          👁️
+                        </button>
+                        <button
+                          type="button"
+                          className="sales-btn-action"
+                          title="Edit Buyer"
+                          onClick={() => openEditModal(buyer)}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          className="sales-btn-action sales-btn-danger"
+                          title="Delete Buyer"
+                          onClick={() => setDeleteConfirm(buyer)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="users-table-footer">
+          <span>
+            Showing <strong>{totalRecords ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, totalRecords)}</strong> of <strong>{totalRecords}</strong> buyers
+          </span>
+          <div className="pagination">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => (
+              <button
+                key={i + 1}
+                type="button"
+                className={currentPage === i + 1 ? 'current' : ''}
+                onClick={() => setPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={currentPage === pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ADD / EDIT BUYER MODAL */}
+      {buyerModal && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setBuyerModal(null)}
+        >
+          <form className="user-modal sales-modal-large" style={{ maxWidth: '580px' }} onSubmit={handleSave}>
+            <header className="modal-header">
+              <div>
+                <span>SALES / {buyerModal.isEdit ? 'EDIT BUYER' : 'NEW BUYER'}</span>
+                <h2>{buyerModal.isEdit ? `Edit Buyer: ${formData.buyerName}` : 'Add New Buyer'}</h2>
+                <p>Register complete customer and trade commercial profile details.</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setBuyerModal(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: 0 }}>
+              <div className="sales-form-section">
+                <div className="sales-form-grid-2">
+                  <label>
+                    Buyer Code *
+                    <input
+                      type="text"
+                      name="buyerCode"
+                      value={formData.buyerCode}
+                      onChange={handleFormChange}
+                      required
+                      placeholder="e.g. BUY-001"
+                      readOnly={buyerModal.isEdit}
+                      style={buyerModal.isEdit ? { background: '#f8fafc', color: '#64748b' } : {}}
+                    />
+                    {formErrors.buyerCode && <small className="field-error">{formErrors.buyerCode}</small>}
+                  </label>
+
+                  <label>
+                    Buyer Name *
+                    <input
+                      type="text"
+                      name="buyerName"
+                      placeholder="e.g. Sri Lakshmi Traders"
+                      value={formData.buyerName}
+                      onChange={handleFormChange}
+                      required
+                    />
+                    {formErrors.buyerName && <small className="field-error">{formErrors.buyerName}</small>}
+                  </label>
+                </div>
+
+                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                  <label>
+                    Mobile Number *
+                    <input
+                      type="tel"
+                      name="mobile"
+                      placeholder="e.g. 9876543210"
+                      value={formData.mobile}
+                      onChange={handleFormChange}
+                      required
+                    />
+                    {formErrors.mobile && <small className="field-error">{formErrors.mobile}</small>}
+                  </label>
+
+                  <label>
+                    Business Name
+                    <input
+                      type="text"
+                      name="businessName"
+                      placeholder="e.g. Sri Lakshmi Agri Traders"
+                      value={formData.businessName}
+                      onChange={handleFormChange}
+                    />
+                  </label>
+                </div>
+
+                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                  <label>
+                    GSTIN
+                    <input
+                      type="text"
+                      name="gstin"
+                      placeholder="e.g. 37ABCDE1234F1Z5"
+                      value={formData.gstin}
+                      onChange={handleFormChange}
+                    />
+                  </label>
+
+                  <label>
+                    Opening Balance (₹)
+                    <input
+                      type="number"
+                      name="openingBalance"
+                      step="any"
+                      min="0"
+                      placeholder="e.g. 25000"
+                      value={formData.openingBalance}
+                      onChange={handleFormChange}
+                    />
+                    {formErrors.openingBalance && <small className="field-error">{formErrors.openingBalance}</small>}
+                  </label>
+                </div>
+
+                <div style={{ marginTop: '10px' }}>
+                  <label>
+                    Address
+                    <textarea
+                      name="address"
+                      rows="2"
+                      placeholder="Enter full business address, market yard, or town..."
+                      value={formData.address}
+                      onChange={handleFormChange}
+                      style={{ width: '100%', padding: '8px', border: '1px solid #dcdfdc', borderRadius: '6px', fontSize: '12px' }}
+                    />
+                  </label>
+                </div>
+
+                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                  <label>
+                    Status
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleFormChange}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer">
+              <span>Required for sales billing and collection tracking</span>
+              <div>
+                <button type="button" onClick={() => setBuyerModal(null)}>
+                  Cancel
+                </button>
+                <button className="save-button" type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : buyerModal.isEdit ? 'Update Buyer' : 'Register Buyer'}
+                </button>
+              </div>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {/* VIEW BUYER DETAILS MODAL */}
+      {viewDetails && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setViewDetails(null)}
+        >
+          <div className="user-modal sales-modal-large" style={{ maxWidth: '620px' }}>
+            <header className="modal-header">
+              <div>
+                <span>SALES / BUYER PROFILE</span>
+                <h2>{viewDetails.buyerName} ({viewDetails.buyerCode})</h2>
+                <p>Commercial customer profile and linked sales transactions.</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setViewDetails(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: 0 }}>
+              <div className="sales-detail-card">
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item">
+                    <small>BUYER CODE</small>
+                    <span className="sales-code-badge">{viewDetails.buyerCode}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>CONTACT MOBILE</small>
+                    <span>{viewDetails.mobile || '—'}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>STATUS</small>
+                    <div>
+                      <span className={`sales-status-badge ${viewDetails.status === 'Active' ? 'sales-status-paid' : 'sales-status-pending'}`}>
+                        <i /> {viewDetails.status || 'Active'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item">
+                    <small>BUSINESS NAME</small>
+                    <strong>{viewDetails.businessName || '—'}</strong>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>GSTIN</small>
+                    <span>{viewDetails.gstin || 'Unregistered'}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>OPENING BALANCE</small>
+                    <strong style={{ color: '#b45309' }}>{formatCurrency(viewDetails.openingBalance || 0)}</strong>
+                  </div>
+                </div>
+
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item" style={{ gridColumn: 'span 3' }}>
+                    <small>ADDRESS</small>
+                    <span>{viewDetails.address || '—'}</span>
+                  </div>
+                </div>
+
+                {/* Buyer's Sales History */}
+                <div style={{ marginTop: '10px' }}>
+                  <div className="sales-section-title">Sales History for this Buyer</div>
+                  {(() => {
+                    const buyerSales = sales.filter((s) => s.buyer === viewDetails.buyerName);
+                    const totalPurchased = buyerSales.reduce((sum, s) => sum + (Number(s.netAmount) || 0), 0);
+
+                    if (buyerSales.length === 0) {
+                      return (
+                        <div style={{ padding: '16px', textAlign: 'center', background: '#fafafa', borderRadius: '6px', color: '#64748b', fontSize: '12px' }}>
+                          No sales transactions recorded for this buyer yet.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        <table className="sales-mini-table">
+                          <thead>
+                            <tr>
+                              <th>SALES NO</th>
+                              <th>DATE</th>
+                              <th>CROP</th>
+                              <th>NET AMOUNT</th>
+                              <th>STATUS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {buyerSales.map((s) => (
+                              <tr key={s.id || s.salesNo}>
+                                <td><span className="sales-code-badge">{s.salesNo}</span></td>
+                                <td>{formatDate(s.salesDate)}</td>
+                                <td>{s.crop}</td>
+                                <td><strong>{formatCurrency(s.netAmount)}</strong></td>
+                                <td>
+                                  <span className={`sales-status-badge ${s.paymentStatus === 'Paid' ? 'sales-status-paid' : s.paymentStatus?.includes('Part') ? 'sales-status-partial' : 'sales-status-pending'}`}>
+                                    <i /> {s.paymentStatus || 'Pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 700, textAlign: 'right' }}>
+                          Total Invoiced Value: <span style={{ color: '#15803d' }}>{formatCurrency(totalPurchased)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer">
+              <span>Customer Master Record</span>
+              <div>
+                <button type="button" onClick={() => setViewDetails(null)}>
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="save-button"
+                  onClick={() => {
+                    const target = viewDetails;
+                    setViewDetails(null);
+                    openEditModal(target);
+                  }}
+                >
+                  Edit Buyer Profile
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirm && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setDeleteConfirm(null)}
+        >
+          <div className="sales-delete-modal">
+            <span className="sales-delete-icon">⚠️</span>
+            <h3>Delete Buyer?</h3>
+            <p>
+              Are you sure you want to remove buyer <strong>{deleteConfirm.buyerName}</strong> ({deleteConfirm.buyerCode})?
+              <br />
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Note: Existing sales recorded under this buyer will keep their sales history intact.
+              </span>
+            </p>
+            <div className="sales-delete-actions">
+              <button
+                type="button"
+                className="sales-delete-cancel"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sales-delete-confirm"
+                onClick={handleDelete}
+              >
+                Yes, Delete Buyer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="user-toast" role="status">
+          <span>✓</span>
+          {toast}
+          <button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>
+            ×
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
-
-function InventoryField({ field, value = '' }) {
-  const options = field === 'Payment Status' ? ['Pending', 'Part Paid', 'Paid', 'Overdue'] : field === 'Status' ? ['Active', 'Inactive']
-    : field === 'Payment Mode' ? ['Cash', 'Bank', 'UPI', 'Other']
-      : field === 'Unit' ? ['kg', 'quintal', 'tonne', 'litre', 'bag', 'piece', 'litre']
-        : field === 'Adjustment Type' ? ['Increase', 'Decrease'] : null
-  if (options) return <select name={field} defaultValue={value || options[0]}>{options.map((option) => <option key={option}>{option}</option>)}</select>
-  const dateValue = /^\d{1,2} [A-Za-z]{3} \d{4}$/.test(value)
-    ? (() => { const [day, month, year] = value.split(' '); const monthNumber = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(month) + 1; return `${year}-${String(monthNumber).padStart(2, '0')}-${day.padStart(2, '0')}` })()
-    : value
-  return <input name={field} type={field.toLowerCase().includes('date') ? 'date' : 'text'} defaultValue={dateValue} placeholder={`Enter ${field.toLowerCase()}`} />
-}
-
-function InventoryModal({ values, editing, onClose, onSave }) {
-  return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="user-modal" onSubmit={(event) => { event.preventDefault(); onSave(Object.fromEntries(new FormData(event.currentTarget).entries())) }}>
-    <header className="modal-header"><div><span>SALES / {screenName.toUpperCase()}</span><h2>{editing ? `Edit ${screenName} record` : `Add ${screenName} record`}</h2><p>Enter the sales and customer details.</p></div><button type="button" className="modal-close" aria-label="Close dialog" onClick={onClose}>×</button></header>
-    <div className="modal-body"><div className="form-section"><div className="form-grid">{fields.map((field) => <label className={['Description', 'Remarks', 'Reason'].includes(field) ? 'field-wide' : ''} key={field}>{field}<InventoryField field={field} value={values[field] || ''} /></label>)}</div></div></div>
-    <footer className="modal-footer"><span>Fields follow the sales requirements.</span><div><button type="button" onClick={onClose}>Cancel</button><button className="save-button" type="submit">Save record</button></div></footer>
-  </form></div>
-}
-
-export default function Customers() {
-  const [records, setRecords] = useState(readRecords)
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
-  const [paymentStatus, setPaymentStatus] = useState('All statuses')
-  const [modal, setModal] = useState(null)
-  const [toast, setToast] = useState('')
-
-  useEffect(() => { localStorage.setItem(storeKey, JSON.stringify(records)) }, [records])
-  useEffect(() => { setPage(1) }, [query, paymentStatus])
-  useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(''), 2800); return () => clearTimeout(timer) }, [toast])
-
-  const filtered = useMemo(() => records.filter((record) => {
-    const matchesText = Object.values(record).join(' ').toLowerCase().includes(query.toLowerCase())
-    return matchesText && (paymentStatus === 'All statuses' || (record['Payment Status'] || record.Status) === paymentStatus)
-  }), [records, query, paymentStatus])
-  const pageSize = 5
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  function saveRecord(values) {
-    setRecords((current) => modal.index === null ? [values, ...current] : current.map((record, index) => index === modal.index ? values : record))
-    setModal(null)
-    setToast(`${screenName} record ${modal.index === null ? 'added' : 'updated'}.`)
-  }
-  function deleteRecord(index) {
-    setRecords((current) => current.filter((_, rowIndex) => rowIndex !== index))
-    setToast(`${screenName} record deleted.`)
-  }
-
-  return <div className="users-page sales-screen">
-    <div className="users-title-row"><div><div className="users-eyebrow">INVENTORY <span>/</span> {screenName.toUpperCase()}</div><h1>{screenName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(fields.map((field) => [field, ''])) })}><span>＋</span> Add {screenName === 'Sales' ? 'Sale' : screenName === 'Customers' ? 'Customer' : 'Receivable'}</button></div>
-    <div className="users-stats"><article><span className="stat-symbol">▤</span><div><small>TOTAL RECORDS</small><strong>{records.length}</strong><span className="stat-hint">In this workspace</span></div><b className="stat-arrow">↗</b></article><article><span className="stat-symbol active-symbol">✓</span><div><small>ROWS ON PAGE</small><strong>{pageRows.length}</strong><span className="stat-hint">Currently displayed</span></div></article><article><span className="stat-symbol inactive-symbol">⌕</span><div><small>MATCHING FILTERS</small><strong>{filtered.length}</strong><span className="stat-hint">Search results</span></div></article></div>
-    <section className="users-panel"><div className="users-toolbar"><div className="user-search"><span>⌕</span><input aria-label={`Search ${screenName}`} placeholder={`Search ${screenName.toLowerCase()}...`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} /></div>{(fields.includes('Payment Status') || fields.includes('Status')) && <select aria-label="Filter by status" value={paymentStatus} onChange={(event) => { setPaymentStatus(event.target.value); setPage(1) }}><option>All statuses</option>{[...new Set(records.map((record) => record['Payment Status'] || record.Status).filter(Boolean))].map((value) => <option key={value}>{value}</option>)}</select>}<button className="reset-button" type="button" onClick={() => { setQuery(''); setPaymentStatus('All statuses'); setPage(1) }}>↻ <span>Reset Filters</span></button></div>
-      <div className="users-table-wrap"><table className="users-table"><thead><tr>{fields.map((field) => <th key={field}>{field.toUpperCase()}</th>)}<th>ACTIONS</th></tr></thead><tbody>{pageRows.map((record) => { const index = records.indexOf(record); return <tr key={`${screenName}-${index}`}>{fields.map((field, fieldIndex) => <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>{(field === 'Payment Status' || field === 'Status') ? <span className={`status-badge ${['Paid', 'Active'].includes(record[field]) ? 'active' : 'inactive'}`}>{record[field]}</span> : record[field] || '—'}</td>)}<td><div className="user-actions"><button type="button" title="Edit" aria-label={`Edit ${screenName} record`} onClick={() => setModal({ index, values: { ...record } })}>✎</button><button type="button" title="Delete" aria-label={`Delete ${screenName} record`} onClick={() => deleteRecord(index)}>♲</button></div></td></tr> })}{pageRows.length === 0 && <tr><td colSpan={fields.length + 1}><div className="users-empty"><span>⌕</span><strong>No {screenName.toLowerCase()} records found</strong><p>Add a record or change your search.</p><button type="button" onClick={() => { setQuery(''); setPaymentStatus('All statuses') }}>Clear filters</button></div></td></tr>}</tbody></table></div>
-      <div className="users-table-footer"><span>Showing <strong>{filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> records</span><div className="pagination"><button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button>{Array.from({ length: pageCount }, (_, index) => <button type="button" className={currentPage === index + 1 ? 'current' : ''} key={index} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div></div>
-    </section>
-    <div className="users-disclaimer">Demo workspace <span>•</span> Sales records are saved in this browser.</div>
-    {modal && <InventoryModal values={modal.values} editing={modal.index !== null} onClose={() => setModal(null)} onSave={saveRecord} />}
-    {toast && <div className="user-toast" role="status"><span>✓</span>{toast}<button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>×</button></div>}
-  </div>
-}
-
-
-

@@ -370,7 +370,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
     seasonCode: '', farm: 'Farm 1 (South Block)', crop: 'Paddy',
     variety: 'BPT 5204 (Samba Mahsuri)', season: 'Kharif 2025-26',
     sowingDate: '', expectedHarvestDate: '', actualHarvestDate: '',
-    area: '5 Acres', expectedYield: '', expectedRevenue: '', status: 'In Progress'
+    area: '5 Acres', expectedYield: '', expectedRevenue: '',
+    actualYield: '', actualRevenue: '', status: 'In Progress'
   });
   const [activityForm, setActivityForm] = useState({
     activityCode: '',
@@ -744,7 +745,9 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           { label: 'Actual Harvest Date', value: target.actualHarvestDate || 'Pending Harvest' },
           { label: 'Area', value: typeof target.area === 'number' ? `${target.area} Acres` : target.area },
           { label: 'Expected Yield', value: target.expectedYield || '-' },
-          { label: 'Expected Revenue', value: target.expectedRevenue || '-' }
+          { label: 'Actual Yield', value: target.actualYield || '-' },
+          { label: 'Expected Revenue', value: target.expectedRevenue || '-' },
+          { label: 'Actual Revenue', value: target.actualRevenue || '-' }
         ]
       });
     } else if (type === 'variety') {
@@ -790,8 +793,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           { label: 'Activity Type', value: target.activityType },
           { label: 'Activity Date', value: target.activityDate },
           { label: 'Status', value: target.status },
-          { label: 'Labour Deployment', value: target.labourWorkers },
-          { label: 'Machinery Used', value: target.machinery },
+          { label: 'Labour', value: target.labourWorkers || '-' },
+          { label: 'Machinery', value: target.machinery || '-' },
           { label: 'Input Materials Applied', value: target.materialsUsed || 'None' },
           { label: 'Total Activity Cost', value: target.totalCost },
           { label: 'Supervisor In-Charge', value: target.supervisor },
@@ -877,7 +880,9 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         actualHarvestDate: '',
         area: '5 Acres',
         expectedYield: '50 Quintals',
+        actualYield: '',
         expectedRevenue: '₹ 1,50,000',
+        actualRevenue: '',
         status: 'In Progress'
       });
       setModalType('season');
@@ -964,6 +969,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         cropName: sCrop,
         variety: sVariety,
         varietyName: sVariety,
+        actualYield: itemToEdit.actualYield || '',
+        actualRevenue: itemToEdit.actualRevenue || '',
       });
       setModalType('season');
     } else if (activeTab === 'varieties') {
@@ -1538,13 +1545,13 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <table className="cr-table">
             <thead>
               <tr>
-                <th>Crop ID</th>
-                <th>Crop Name</th>
-                <th>Crop Type</th>
-                <th>Crop Category</th>
-                <th>Default Unit</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th><strong>Crop ID</strong></th>
+                <th><strong>Crop Name</strong></th>
+                <th><strong>Crop Type</strong></th>
+                <th><strong>Crop Category</strong></th>
+                <th><strong>Default Unit</strong></th>
+                <th><strong>Status</strong></th>
+                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
@@ -1631,26 +1638,28 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <table className="cr-table">
             <thead>
               <tr>
-                <th>Season ID</th>
-                <th>Farm Parcel</th>
-                <th>Crop &amp; Variety</th>
-                <th>Season</th>
-                <th>Sowing Date</th>
-                <th>Exp. Harvest</th>
-                <th>Actual Harvest</th>
-                <th>Area</th>
-                <th>Expected Yield</th>
-                <th>Expected Revenue</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th><strong>Season ID</strong></th>
+                <th><strong>Farm Parcel</strong></th>
+                <th><strong>Crop &amp; Variety</strong></th>
+                <th><strong>Season</strong></th>
+                <th><strong>Sowing Date</strong></th>
+                <th><strong>Exp. Harvest</strong></th>
+                <th><strong>Actual Harvest</strong></th>
+                <th><strong>Area</strong></th>
+                <th><strong>Expected Yield</strong></th>
+                <th><strong>Actual Yield</strong></th>
+                <th><strong>Expected Revenue</strong></th>
+                <th><strong>Actual Revenue</strong></th>
+                <th><strong>Status</strong></th>
+                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="12" style={{ textAlign: 'center', padding: '32px' }}>Loading seasons...</td></tr>
+                <tr><td colSpan="14" style={{ textAlign: 'center', padding: '32px' }}>Loading seasons...</td></tr>
               ) : filteredSeasons.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="cr-empty">
+                  <td colSpan="14" className="cr-empty">
                     <div className="cr-empty-state">
                       <span className="cr-empty-icon">📅</span>
                       <p>No crop season records found</p>
@@ -1672,6 +1681,13 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     : s.expectedRevenue
                     ? `₹ ${Number(String(s.expectedRevenue).replace(/[^\d]/g, '')).toLocaleString('en-IN')}`
                     : '-';
+                  const sActualRevenue = typeof s.actualRevenue === 'number'
+                    ? `₹ ${s.actualRevenue.toLocaleString('en-IN')}`
+                    : String(s.actualRevenue || '').startsWith('₹')
+                    ? s.actualRevenue
+                    : s.actualRevenue
+                    ? `₹ ${Number(String(s.actualRevenue).replace(/[^\d]/g, '')).toLocaleString('en-IN')}`
+                    : '-';
 
                   return (
                     <tr key={s.id || sCode}>
@@ -1692,7 +1708,9 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <td>{s.actualHarvestDate || <span style={{ color: '#94a3b8' }}>Pending</span>}</td>
                       <td><strong>{sArea}</strong></td>
                       <td>{s.expectedYield || '-'}</td>
+                      <td>{s.actualYield || <span style={{ color: '#94a3b8' }}>-</span>}</td>
                       <td style={{ fontWeight: 700, color: '#15803d' }}>{sRevenue}</td>
+                      <td style={{ fontWeight: 700, color: s.actualRevenue ? '#15803d' : '#94a3b8' }}>{sActualRevenue}</td>
                       <td>
                         <button
                           type="button"
@@ -1752,14 +1770,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <table className="cr-table">
             <thead>
               <tr>
-                <th>Variety ID</th>
-                <th>Crop Name</th>
-                <th>Variety / Hybrid Name</th>
-                <th>Duration (Days)</th>
-                <th>Season</th>
-                <th>Expected Yield</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th><strong>Variety ID</strong></th>
+                <th><strong>Crop Name</strong></th>
+                <th><strong>Variety / Hybrid Name</strong></th>
+                <th><strong>Duration (Days)</strong></th>
+                <th><strong>Season</strong></th>
+                <th><strong>Expected Yield</strong></th>
+                <th><strong>Status</strong></th>
+                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
@@ -1844,11 +1862,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <table className="cr-table">
             <thead>
               <tr>
-                <th>Category ID</th>
-                <th>Category Name</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th><strong>Category ID</strong></th>
+                <th><strong>Category Name</strong></th>
+                <th><strong>Description</strong></th>
+                <th><strong>Status</strong></th>
+                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
@@ -1930,25 +1948,26 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <table className="cr-table">
             <thead>
               <tr>
-                <th>Activity ID</th>
-                <th>Crop &amp; Season</th>
-                <th>Farm Parcel</th>
-                <th>Activity Type</th>
-                <th>Date</th>
-                <th>Labour &amp; Machinery</th>
-                <th>Materials Used</th>
-                <th>Total Cost</th>
-                <th>Supervisor</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th><strong>Activity ID</strong></th>
+                <th><strong>Crop &amp; Season</strong></th>
+                <th><strong>Farm Parcel</strong></th>
+                <th><strong>Activity Type</strong></th>
+                <th><strong>Date</strong></th>
+                <th><strong>Labour</strong></th>
+                <th><strong>Machinery</strong></th>
+                <th><strong>Materials Used</strong></th>
+                <th><strong>Total Cost</strong></th>
+                <th><strong>Supervisor</strong></th>
+                <th><strong>Status</strong></th>
+                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="11" style={{ textAlign: 'center', padding: '32px' }}>Loading activities...</td></tr>
+                <tr><td colSpan="12" style={{ textAlign: 'center', padding: '32px' }}>Loading activities...</td></tr>
               ) : filteredActivities.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="cr-empty">
+                  <td colSpan="12" className="cr-empty">
                     <div className="cr-empty-state">
                       <span className="cr-empty-icon">🚜</span>
                       <p>No crop activities found</p>
@@ -1977,10 +1996,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     </td>
                     <td>{act.activityDate || '-'}</td>
                     <td>
-                      <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>{act.labourWorkers || '-'}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{act.machinery || '-'}</div>
-                      </div>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>{act.labourWorkers || '-'}</span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '12px', color: '#475569' }}>{act.machinery || '-'}</span>
                     </td>
                     <td style={{ maxWidth: '180px', fontSize: '11.5px', color: '#334155' }}>
                       {act.materialsUsed || <span style={{ color: '#94a3b8' }}>None</span>}
@@ -2323,6 +2342,18 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     />
                   </div>
                   <div className="cr-field">
+                    <label>Actual Yield</label>
+                    <input
+                      type="text"
+                      value={seasonForm.actualYield || ''}
+                      onChange={(e) => setSeasonForm({ ...seasonForm, actualYield: e.target.value })}
+                      placeholder="e.g. 135 Quintals"
+                    />
+                  </div>
+                </div>
+
+                <div className="cr-row">
+                  <div className="cr-field">
                     <label>Expected Revenue (INR) <span className="cr-req">*</span></label>
                     <input
                       type="text"
@@ -2330,6 +2361,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       onChange={(e) => setSeasonForm({ ...seasonForm, expectedRevenue: e.target.value })}
                       placeholder="e.g. ₹ 3,80,000"
                       required
+                    />
+                  </div>
+                  <div className="cr-field">
+                    <label>Actual Revenue (INR)</label>
+                    <input
+                      type="text"
+                      value={seasonForm.actualRevenue || ''}
+                      onChange={(e) => setSeasonForm({ ...seasonForm, actualRevenue: e.target.value })}
+                      placeholder="e.g. ₹ 3,65,000"
                     />
                   </div>
                 </div>
@@ -2628,7 +2668,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
                 <div className="cr-row">
                   <div className="cr-field">
-                    <label>Labour Deployment</label>
+                    <label>Labour</label>
                     <input
                       type="text"
                       value={activityForm.labourWorkers}
@@ -2637,7 +2677,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     />
                   </div>
                   <div className="cr-field">
-                    <label>Machinery / Equipment Used</label>
+                    <label>Machinery</label>
                     <input
                       type="text"
                       value={activityForm.machinery}

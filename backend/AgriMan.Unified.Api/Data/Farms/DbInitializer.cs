@@ -8,6 +8,8 @@ namespace FarmManagementApi.Data
     {
         public static async Task InitializeAsync(FarmDbContext context, ILogger logger)
         {
+            await SeedSupplierDataAsync(context, logger);
+
             try
             {
                 if (await context.Farmers.AnyAsync())
@@ -261,6 +263,131 @@ namespace FarmManagementApi.Data
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Could not initialize/seed FarmDbContext automatically: {Message}", ex.Message);
+            }
+        }
+
+        public static async Task SeedSupplierDataAsync(FarmDbContext context, ILogger logger)
+        {
+            try
+            {
+                if (!await context.SupplierTransactions.AnyAsync())
+                {
+                    var s1 = await context.Suppliers.FirstOrDefaultAsync(s => s.SupplierCode == "SUP-001" || s.Id == 1);
+                    var s2 = await context.Suppliers.FirstOrDefaultAsync(s => s.SupplierCode == "SUP-002" || s.Id == 2);
+                    var s3 = await context.Suppliers.FirstOrDefaultAsync(s => s.SupplierCode == "SUP-003" || s.Id == 3);
+
+                    if (s1 != null)
+                    {
+                        context.SupplierTransactions.Add(new SupplierTransaction
+                        {
+                            TransactionCode = "STX-001",
+                            TransactionDate = new DateTime(2026, 10, 15),
+                            SupplierId = s1.Id,
+                            SupplierName = s1.SupplierName,
+                            TransactionType = "Purchase",
+                            ReferenceNo = "INV-NSC-4421",
+                            Category = "Seeds",
+                            ItemsSummary = "Paddy Seeds (BPT 5204 Samba Masuri) - 25 Bags @ ₹850",
+                            Amount = 21250m,
+                            PaidAmount = 21250m,
+                            BalanceAmount = 0m,
+                            PaymentStatus = "Paid",
+                            Notes = "Kharif season seed stock delivery verified",
+                            CreatedAt = DateTime.UtcNow
+                        });
+
+                        context.SupplierPayments.Add(new SupplierPayment
+                        {
+                            PaymentCode = "SPY-001",
+                            PaymentDate = new DateTime(2026, 10, 16),
+                            SupplierId = s1.Id,
+                            SupplierName = s1.SupplierName,
+                            AmountPaid = 21250m,
+                            PaymentMode = "Bank Transfer",
+                            ReferenceNo = "UTR-SBI-99238472",
+                            BankAccount = "SBI Farm Operational A/C - 8812",
+                            Notes = "Full settlement for invoice INV-NSC-4421",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+
+                    if (s2 != null)
+                    {
+                        context.SupplierTransactions.Add(new SupplierTransaction
+                        {
+                            TransactionCode = "STX-002",
+                            TransactionDate = new DateTime(2026, 10, 18),
+                            SupplierId = s2.Id,
+                            SupplierName = s2.SupplierName,
+                            TransactionType = "Purchase",
+                            ReferenceNo = "INV-IFFCO-891",
+                            Category = "Fertilizers",
+                            ItemsSummary = "Urea Granular Fertilizer (45kg) - 50 Bags @ ₹270",
+                            Amount = 13500m,
+                            PaidAmount = 13500m,
+                            BalanceAmount = 0m,
+                            PaymentStatus = "Paid",
+                            Notes = "Delivered directly to Farm 1 storage godown",
+                            CreatedAt = DateTime.UtcNow
+                        });
+
+                        context.SupplierPayments.Add(new SupplierPayment
+                        {
+                            PaymentCode = "SPY-002",
+                            PaymentDate = new DateTime(2026, 10, 20),
+                            SupplierId = s2.Id,
+                            SupplierName = s2.SupplierName,
+                            AmountPaid = 13500m,
+                            PaymentMode = "UPI",
+                            ReferenceNo = "UPI-984912-332",
+                            BankAccount = "SBI Farm Operational A/C - 8812",
+                            Notes = "Settlement for invoice INV-IFFCO-891 via UPI",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+
+                    if (s3 != null)
+                    {
+                        context.SupplierTransactions.Add(new SupplierTransaction
+                        {
+                            TransactionCode = "STX-003",
+                            TransactionDate = new DateTime(2026, 10, 22),
+                            SupplierId = s3.Id,
+                            SupplierName = s3.SupplierName,
+                            TransactionType = "Purchase",
+                            ReferenceNo = "INV-CORO-312",
+                            Category = "Fertilizers",
+                            ItemsSummary = "DAP Complex (50kg) - 30 Bags @ ₹1,350",
+                            Amount = 40500m,
+                            PaidAmount = 25000m,
+                            BalanceAmount = 15500m,
+                            PaymentStatus = "Partially Paid",
+                            Notes = "Partial payment released, balance due upon final field application",
+                            CreatedAt = DateTime.UtcNow
+                        });
+
+                        context.SupplierPayments.Add(new SupplierPayment
+                        {
+                            PaymentCode = "SPY-003",
+                            PaymentDate = new DateTime(2026, 10, 24),
+                            SupplierId = s3.Id,
+                            SupplierName = s3.SupplierName,
+                            AmountPaid = 25000m,
+                            PaymentMode = "Bank Transfer",
+                            ReferenceNo = "UTR-HDFC-88123049",
+                            BankAccount = "HDFC Agri Business A/C - 4102",
+                            Notes = "Part payment for DAP shipment INV-CORO-312",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Database seeded with sample Supplier Transactions and Payments.");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Supplier seed notice: {Message}", ex.Message);
             }
         }
     }

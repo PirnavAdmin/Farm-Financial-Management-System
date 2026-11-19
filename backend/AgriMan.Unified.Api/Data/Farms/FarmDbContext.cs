@@ -27,6 +27,8 @@ namespace FarmManagementApi.Data
 
         // 3. Purchase Management & Supplier DbSets
         public DbSet<Supplier> Suppliers => Set<Supplier>();
+        public DbSet<SupplierTransaction> SupplierTransactions => Set<SupplierTransaction>();
+        public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
         public DbSet<Purchase> Purchases => Set<Purchase>();
         public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
         public DbSet<PurchasePayment> PurchasePayments => Set<PurchasePayment>();
@@ -326,17 +328,85 @@ namespace FarmManagementApi.Data
             {
                 entity.ToTable("suppliers");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).HasMaxLength(150).IsRequired();
-                entity.Property(e => e.ContactPerson).HasMaxLength(100);
-                entity.Property(e => e.Phone).HasMaxLength(20);
-                entity.Property(e => e.Email).HasMaxLength(100);
-                entity.Property(e => e.Address).HasMaxLength(255);
-                entity.Property(e => e.GstNumber).HasMaxLength(50);
+                entity.Property(e => e.SupplierCode).HasColumnName("supplier_code").HasMaxLength(50);
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150);
+                entity.Property(e => e.SupplierType).HasColumnName("supplier_type").HasMaxLength(100);
+                entity.Property(e => e.Mobile).HasColumnName("mobile").HasMaxLength(15);
+                entity.Property(e => e.Name).HasColumnName("Name").HasMaxLength(150);
+                entity.Property(e => e.ContactPerson).HasColumnName("ContactPerson").HasMaxLength(100);
+                entity.Property(e => e.Phone).HasColumnName("Phone").HasMaxLength(20);
+                entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(120);
+                entity.Property(e => e.Address).HasColumnName("address");
+                entity.Property(e => e.GstNumber).HasColumnName("GstNumber").HasMaxLength(50);
+                entity.Property(e => e.City).HasColumnName("city").HasMaxLength(100);
+                entity.Property(e => e.District).HasColumnName("district").HasMaxLength(100);
+                entity.Property(e => e.State).HasColumnName("state").HasMaxLength(100);
+                entity.Property(e => e.PinCode).HasColumnName("pin_code").HasMaxLength(10);
+                entity.Property(e => e.Gstin).HasColumnName("gstin").HasMaxLength(20);
+                entity.Property(e => e.BankName).HasColumnName("bank_name").HasMaxLength(120);
+                entity.Property(e => e.AccountNumber).HasColumnName("account_number").HasMaxLength(50);
+                entity.Property(e => e.IfscCode).HasColumnName("ifsc_code").HasMaxLength(20);
+                entity.Property(e => e.BranchName).HasColumnName("branch_name").HasMaxLength(100);
+                entity.Property(e => e.OpeningBalance).HasColumnName("opening_balance").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("Active");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.HasOne(s => s.Farmer)
                       .WithMany(f => f.Suppliers)
                       .HasForeignKey(s => s.FarmerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(s => s.Transactions)
+                      .WithOne(t => t.Supplier)
+                      .HasForeignKey(t => t.SupplierId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(s => s.Payments)
+                      .WithOne(p => p.Supplier)
+                      .HasForeignKey(p => p.SupplierId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==========================================
+            // Supplier Transactions table
+            // ==========================================
+            modelBuilder.Entity<SupplierTransaction>(entity =>
+            {
+                entity.ToTable("supplier_transactions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TransactionCode).HasColumnName("transaction_code").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.TransactionDate).HasColumnName("transaction_date").IsRequired();
+                entity.Property(e => e.SupplierId).HasColumnName("supplier_id").IsRequired();
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150).IsRequired();
+                entity.Property(e => e.TransactionType).HasColumnName("transaction_type").HasMaxLength(50).HasDefaultValue("Purchase");
+                entity.Property(e => e.ReferenceNo).HasColumnName("reference_no").HasMaxLength(100);
+                entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(100);
+                entity.Property(e => e.ItemsSummary).HasColumnName("items_summary");
+                entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.PaidAmount).HasColumnName("paid_amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.BalanceAmount).HasColumnName("balance_amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.PaymentStatus).HasColumnName("payment_status").HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // ==========================================
+            // Supplier Payments table
+            // ==========================================
+            modelBuilder.Entity<SupplierPayment>(entity =>
+            {
+                entity.ToTable("supplier_payments");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PaymentCode).HasColumnName("payment_code").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.PaymentDate).HasColumnName("payment_date").IsRequired();
+                entity.Property(e => e.SupplierId).HasColumnName("supplier_id").IsRequired();
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150).IsRequired();
+                entity.Property(e => e.AmountPaid).HasColumnName("amount_paid").HasColumnType("decimal(12,2)").IsRequired();
+                entity.Property(e => e.PaymentMode).HasColumnName("payment_mode").HasMaxLength(50).HasDefaultValue("Bank Transfer");
+                entity.Property(e => e.ReferenceNo).HasColumnName("reference_no").HasMaxLength(100);
+                entity.Property(e => e.BankAccount).HasColumnName("bank_account").HasMaxLength(120);
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
             // ==========================================
