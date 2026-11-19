@@ -165,73 +165,80 @@ public class FarmersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<FarmerDto>> CreateFarmer([FromBody] CreateFarmerDto dto)
     {
-        if (!ModelState.IsValid)
+        try
         {
-            return BadRequest(ModelState);
-        }
-
-        // Auto-generate FarmerCode if not supplied
-        string farmerCode = dto.FarmerCode?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(farmerCode))
-        {
-            int year = DateTime.UtcNow.Year;
-            int count = await _context.Farmers.CountAsync() + 1;
-            farmerCode = $"FARM-{year}-{count:D3}";
-            while (await _context.Farmers.AnyAsync(f => f.FarmerCode == farmerCode))
+            if (!ModelState.IsValid)
             {
-                count++;
-                farmerCode = $"FARM-{year}-{count:D3}";
+                return BadRequest(ModelState);
             }
-        }
-        else if (await _context.Farmers.AnyAsync(f => f.FarmerCode == farmerCode))
-        {
-            return BadRequest(new { message = $"Farmer code '{farmerCode}' already exists." });
-        }
 
-        var farmer = new Farmer
-        {
-            FarmerCode = farmerCode,
-            FarmerName = dto.FarmerName.Trim(),
-            FatherOrHusbandName = dto.FatherOrHusbandName?.Trim(),
-            Mobile = dto.Mobile.Trim(),
-            AlternateMobile = dto.AlternateMobile?.Trim(),
-            Email = dto.Email?.Trim(),
-            AadhaarNo = dto.AadhaarNo?.Trim(),
-            TotalLand = dto.TotalLand,
-            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
-            Village = dto.Village?.Trim() ?? dto.Address?.Village?.Trim() ?? string.Empty,
-            Mandal = dto.Mandal?.Trim() ?? dto.Address?.Mandal?.Trim() ?? string.Empty,
-            District = dto.District?.Trim() ?? dto.Address?.District?.Trim() ?? string.Empty,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        if (dto.Address != null)
-        {
-            farmer.Address = new FarmerAddress
+            // Auto-generate FarmerCode if not supplied
+            string farmerCode = dto.FarmerCode?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(farmerCode))
             {
-                Address = dto.Address.Address?.Trim(),
-                Village = dto.Address.Village.Trim(),
-                Mandal = dto.Address.Mandal.Trim(),
-                District = dto.Address.District.Trim(),
-                State = dto.Address.State.Trim(),
-                PinCode = dto.Address.PinCode.Trim()
-            };
-        }
-
-        if (dto.BankAccount != null)
-        {
-            farmer.BankAccount = new FarmerBankAccount
+                int year = DateTime.UtcNow.Year;
+                int count = await _context.Farmers.CountAsync() + 1;
+                farmerCode = $"FARM-{year}-{count:D3}";
+                while (await _context.Farmers.AnyAsync(f => f.FarmerCode == farmerCode))
+                {
+                    count++;
+                    farmerCode = $"FARM-{year}-{count:D3}";
+                }
+            }
+            else if (await _context.Farmers.AnyAsync(f => f.FarmerCode == farmerCode))
             {
-                BankName = dto.BankAccount.BankName.Trim(),
-                AccountNumber = dto.BankAccount.AccountNumber.Trim(),
-                IFSC = dto.BankAccount.IFSC.Trim()
+                return BadRequest(new { message = $"Farmer code '{farmerCode}' already exists." });
+            }
+
+            var farmer = new Farmer
+            {
+                FarmerCode = farmerCode,
+                FarmerName = dto.FarmerName.Trim(),
+                FatherOrHusbandName = dto.FatherOrHusbandName?.Trim(),
+                Mobile = dto.Mobile.Trim(),
+                AlternateMobile = dto.AlternateMobile?.Trim(),
+                Email = dto.Email?.Trim(),
+                AadhaarNo = dto.AadhaarNo?.Trim(),
+                TotalLand = dto.TotalLand,
+                Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
+                Village = dto.Village?.Trim() ?? dto.Address?.Village?.Trim() ?? string.Empty,
+                Mandal = dto.Mandal?.Trim() ?? dto.Address?.Mandal?.Trim() ?? string.Empty,
+                District = dto.District?.Trim() ?? dto.Address?.District?.Trim() ?? string.Empty,
+                CreatedAt = DateTime.UtcNow
             };
+
+            if (dto.Address != null && (!string.IsNullOrWhiteSpace(dto.Address.Village) || !string.IsNullOrWhiteSpace(dto.Address.District)))
+            {
+                farmer.Address = new FarmerAddress
+                {
+                    Address = dto.Address.Address?.Trim(),
+                    Village = dto.Address.Village?.Trim() ?? string.Empty,
+                    Mandal = dto.Address.Mandal?.Trim() ?? string.Empty,
+                    District = dto.Address.District?.Trim() ?? string.Empty,
+                    State = dto.Address.State?.Trim() ?? string.Empty,
+                    PinCode = dto.Address.PinCode?.Trim() ?? string.Empty
+                };
+            }
+
+            if (dto.BankAccount != null && (!string.IsNullOrWhiteSpace(dto.BankAccount.BankName) || !string.IsNullOrWhiteSpace(dto.BankAccount.AccountNumber)))
+            {
+                farmer.BankAccount = new FarmerBankAccount
+                {
+                    BankName = dto.BankAccount.BankName?.Trim() ?? string.Empty,
+                    AccountNumber = dto.BankAccount.AccountNumber?.Trim() ?? string.Empty,
+                    IFSC = dto.BankAccount.IFSC?.Trim() ?? string.Empty
+                };
+            }
+
+            _context.Farmers.Add(farmer);
+            await _context.SaveChangesAsync();
+
+            return Ok(MapToFarmerDto(farmer));
         }
-
-        _context.Farmers.Add(farmer);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetFarmerById), new { id = farmer.Id }, MapToFarmerDto(farmer));
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Failed to create farmer: " + ex.Message, details = ex.InnerException?.Message });
+        }
     }
 
     // PUT: /api/Farmers/{id}
@@ -389,26 +396,28 @@ public class FarmersController : ControllerBase
             District = f.District ?? f.Address?.District,
             TotalLand = f.TotalLand,
             Status = f.Status,
-            TotalFarmsCount = f.Farms.Count,
-            TotalLandAreaAcres = f.Farms.SelectMany(farm => farm.LandDetails).Sum(ld => ld.LandArea),
+            TotalFarmsCount = f.Farms != null ? f.Farms.Count : 0,
+            TotalLandAreaAcres = f.Farms != null
+                ? f.Farms.SelectMany(farm => farm.LandDetails ?? Enumerable.Empty<FarmLandDetail>()).Sum(ld => ld.LandArea)
+                : 0,
             CreatedAt = f.CreatedAt,
             UpdatedAt = f.UpdatedAt,
             Address = f.Address == null ? null : new FarmerAddressSummaryDto
             {
                 Id = f.Address.Id,
                 Address = f.Address.Address,
-                Village = f.Address.Village,
-                Mandal = f.Address.Mandal,
-                District = f.Address.District,
-                State = f.Address.State,
-                PinCode = f.Address.PinCode
+                Village = f.Address.Village ?? string.Empty,
+                Mandal = f.Address.Mandal ?? string.Empty,
+                District = f.Address.District ?? string.Empty,
+                State = f.Address.State ?? string.Empty,
+                PinCode = f.Address.PinCode ?? string.Empty
             },
             BankAccount = f.BankAccount == null ? null : new FarmerBankAccountSummaryDto
             {
                 Id = f.BankAccount.Id,
-                BankName = f.BankAccount.BankName,
-                AccountNumber = f.BankAccount.AccountNumber,
-                IFSC = f.BankAccount.IFSC
+                BankName = f.BankAccount.BankName ?? string.Empty,
+                AccountNumber = f.BankAccount.AccountNumber ?? string.Empty,
+                IFSC = f.BankAccount.IFSC ?? string.Empty
             }
         };
     }
