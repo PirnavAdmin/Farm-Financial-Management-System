@@ -1,47 +1,50 @@
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import './login.css'
+import farmBg from './assets/agriman-farm-bg.jpg'
 import { authRequest } from './auth.js'
 
-// Feature highlight icons
+// Feature highlight icons - exact match to reference
 function SproutIcon() {
   return (
-    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22v-9" />
-      <path d="M12 13a5 5 0 0 0-5-5c-2.8 0-4 2-4 4 0 2.8 2.2 5 5 5 1.5 0 2.8-.6 4-2z" />
-      <path d="M12 10a5 5 0 0 1 5-5c2.8 0 4 2 4 4 0 2.8-2.2 5-5 5-1.5 0-2.8-.6-4-2z" />
-      <path d="M8 22h8" />
+    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 21c3-3 5-8 5-13" />
+      <path d="M12 8c2.5-4 7-4 8-1-1 4-5 4-8 1Z" />
+      <path d="M11 13c-3-2-6-1-7 2 2 2 6 0 7-2Z" />
+      <path d="M9 18c-2-1-4 0-4.5 1.5 1.5 1.5 4 0.5 4.5-1.5Z" />
     </svg>
   )
 }
 
 function BarChartIcon() {
   return (
-    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-      <line x1="3" y1="20" x2="21" y2="20" />
+    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="13.5" width="4.5" height="7.5" rx="0.6" />
+      <rect x="10" y="8" width="4.5" height="13" rx="0.6" />
+      <rect x="16" y="3.5" width="4.5" height="17.5" rx="0.6" />
     </svg>
   )
 }
 
 function WeatherIcon() {
   return (
-    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-      <line x1="8" y1="21" x2="8" y2="23" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="16" y1="21" x2="16" y2="23" />
+    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.5 13.5H7a4 4 0 0 1-1-7.87 5 5 0 0 1 9.5-1.5A3.5 3.5 0 0 1 17.5 13.5Z" />
+      <circle cx="8" cy="17" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="17" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="20.5" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="20.5" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   )
 }
 
 function LayersIcon() {
   return (
-    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
-      <path d="m22 12.5-9.17 4.16a2 2 0 0 1-1.66 0L2 12.5" />
-      <path d="m22 17.5-9.17 4.16a2 2 0 0 1-1.66 0L2 17.5" />
+    <svg className="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 3 20 7.5 12 12 4 7.5" />
+      <path d="m4 12 8 4.5 8-4.5" />
+      <path d="m4 16.5 8 4.5 8-4.5" />
     </svg>
   )
 }
@@ -104,7 +107,7 @@ function UserPlusIcon() {
   )
 }
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onBackToHome }) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -206,7 +209,7 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <main className="agriman-login-container">
+    <main className="agriman-login-container" style={{ backgroundImage: `url(${farmBg})` }}>
       {/* LEFT SECTION: Introduction & Feature Highlights */}
       <section className="agriman-left-intro">
         <div className="agriman-intro-content">
@@ -224,7 +227,7 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        {/* Four Feature Highlights in one horizontal row */}
+        {/* Four Feature Highlights in one horizontal row with vertical separators */}
         <div className="agriman-features-row" role="region" aria-label="Key Features">
           <div className="feature-item">
             <div className="feature-icon-wrapper">
@@ -265,13 +268,39 @@ export default function Login({ onLogin }) {
       {/* RIGHT SECTION: Translucent Frosted Glass Login Panel */}
       <section className="agriman-right-panel" aria-label="Login Panel">
         <div className="agriman-glass-card">
-          {/* Exact AGRIMAN Logo Asset */}
-          <div className="agriman-logo-header">
-            <img
-              src="/agriman-logo.png"
-              alt="AGRIMAN Farm Management Logo"
-              className="agriman-brand-logo"
-            />
+          {/* Header with Top-Left Back to Home and Centered AGRIMAN Logo */}
+          <div className="agriman-card-header">
+            {onBackToHome && (
+              <button
+                type="button"
+                className="agriman-back-home-btn"
+                onClick={onBackToHome}
+                aria-label="Back to Home"
+                title="Back to Home"
+              >
+                <ArrowLeft size={22} className="back-arrow-icon" aria-hidden="true" />
+              </button>
+            )}
+
+            <div className="agriman-logo-header">
+              <a
+                href="#home"
+                onClick={(e) => {
+                  if (onBackToHome) {
+                    e.preventDefault()
+                    onBackToHome()
+                  }
+                }}
+                className="agriman-logo-link"
+                aria-label="Return to AGRIMAN home"
+              >
+                <img
+                  src="/agriman-logo.png"
+                  alt="AGRIMAN Farm Management Logo"
+                  className="agriman-brand-logo"
+                />
+              </a>
+            </div>
           </div>
 
           <div className="panel-headings">

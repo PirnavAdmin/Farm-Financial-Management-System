@@ -506,6 +506,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  position: relative;
 }
 
 .sup-action-btn {
@@ -535,6 +536,87 @@
 .sup-action-btn.pay:hover {
   background: #eff6ff;
   color: #2563eb;
+}
+
+.sup-action-btn.sup-menu-trigger {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  color: #475569;
+  border-radius: 6px;
+}
+
+.sup-action-btn.sup-menu-trigger:hover,
+.sup-action-btn.sup-menu-trigger.active {
+  background: #edf4ee;
+  color: #2b6a41;
+}
+
+.sup-action-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 135px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+  padding: 4px 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sup-action-dropdown.drop-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.sup-action-menu-item {
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  transition: background 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+}
+
+.sup-action-menu-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.sup-action-menu-item.delete {
+  color: #dc2626;
+  border-top: 1px solid #f8fafc;
+}
+
+.sup-action-menu-item.delete:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.sup-menu-item-icon {
+  font-size: 13px;
+  width: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.sup-action-menu-item:hover .sup-menu-item-icon {
+  color: inherit;
 }
 
 /* ── Table Footer & Pagination ───────────────────────────────────────────── */

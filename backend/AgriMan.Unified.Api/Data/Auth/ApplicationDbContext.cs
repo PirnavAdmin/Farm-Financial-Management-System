@@ -17,6 +17,9 @@ namespace AgriMan.Api.Data
         public DbSet<UserPermission> UserPermissions { get; set; } = null!;
         public DbSet<LoginHistory> LoginHistories { get; set; } = null!;
         public DbSet<PasswordReset> PasswordResets { get; set; } = null!;
+        public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+        public DbSet<CompanySetting> CompanySettings { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -150,6 +153,59 @@ namespace AgriMan.Api.Data
                     .WithMany()
                     .HasForeignKey(pr => pr.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // RefreshToken Entity
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Token);
+                entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.IsRevoked).HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(rt => rt.User)
+                    .WithMany(u => u.RefreshTokens)
+                    .HasForeignKey(rt => rt.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // AuditLog Entity
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.ToTable("audit_logs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ActorName).HasMaxLength(100);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(60);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(60);
+                entity.Property(e => e.EntityId).HasMaxLength(50);
+                entity.Property(e => e.IpAddress).HasMaxLength(60);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(al => al.ActorUser)
+                    .WithMany()
+                    .HasForeignKey(al => al.ActorUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // CompanySetting Entity
+            modelBuilder.Entity<CompanySetting>(entity =>
+            {
+                entity.ToTable("company_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Email).HasMaxLength(150);
+                entity.Property(e => e.Phone).HasMaxLength(30);
+                entity.Property(e => e.Address).HasMaxLength(255);
+                entity.Property(e => e.City).HasMaxLength(100);
+                entity.Property(e => e.Country).HasMaxLength(100);
+                entity.Property(e => e.PostalCode).HasMaxLength(20);
+                entity.Property(e => e.TaxNumber).HasMaxLength(50);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(10).HasDefaultValue("INR");
+                entity.Property(e => e.Timezone).IsRequired().HasMaxLength(50).HasDefaultValue("Asia/Kolkata");
+                entity.Property(e => e.Website).HasMaxLength(255);
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
         }
     }

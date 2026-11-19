@@ -29,15 +29,27 @@ const STATES = [
 // ─── Validation ───────────────────────────────────────────────────────────────
 function validate(form) {
   const errs = {}
-  if (!form.code.trim())   errs.code   = 'Farmer code is required'
-  if (!form.name.trim())   errs.name   = 'Farmer name is required'
-  if (!form.mobile.trim()) errs.mobile = 'Mobile number is required'
+  if (!form.code?.trim())   errs.code   = 'Farmer code is required'
+  if (!form.name?.trim())   errs.name   = 'Farmer name is required'
+  if (!form.mobile?.trim()) errs.mobile = 'Mobile number is required'
   else if (!/^\d{10}$/.test(form.mobile.trim())) errs.mobile = 'Enter a valid 10-digit mobile'
   if (form.altMobile && !/^\d{10}$/.test(form.altMobile.trim())) errs.altMobile = 'Enter a valid 10-digit number'
-  if (form.email && !/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter a valid email'
-  if (form.aadhaar && !/^\d{4}\s\d{4}\s\d{4}$/.test(form.aadhaar.trim()) && !/^\d{12}$/.test(form.aadhaar.trim())) {
-    errs.aadhaar = 'Format: 1234 5678 9012'
+  if (form.email && !/\S+@\S+\.\S+/.test(form.email.trim())) errs.email = 'Enter a valid email'
+
+  if (form.aadhaar) {
+    const rawAadhaar = form.aadhaar.replace(/\D/g, '')
+    if (rawAadhaar.length > 0 && rawAadhaar.length !== 12) {
+      errs.aadhaar = 'Enter a valid 12-digit Aadhaar number'
+    }
   }
+
+  if (form.totalLand !== '' && form.totalLand != null) {
+    const landNum = Number(form.totalLand)
+    if (isNaN(landNum) || landNum < 0) {
+      errs.totalLand = 'Total land cannot be negative'
+    }
+  }
+
   if (form.pin && !/^\d{6}$/.test(form.pin.trim())) errs.pin = 'Enter a valid 6-digit PIN'
   if (form.bankPhone && !/^\d{10}$/.test(form.bankPhone.trim())) errs.bankPhone = 'Enter a valid 10-digit phone number'
   return errs
@@ -276,19 +288,40 @@ function FarmerForm({ initial, onSave, onClose }) {
     return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim()
   }
 
+  // Detect whether form has unsaved modifications
+  function hasUnsavedChanges() {
+    return Object.keys(EMPTY).some(key => {
+      const currentVal = (form[key] ?? '').toString().trim()
+      const initialVal = (initial[key] ?? '').toString().trim()
+      return currentVal !== initialVal
+    })
+  }
+
+  function handleCloseRequest() {
+    if (saving) return
+    if (hasUnsavedChanges()) {
+      const confirmDiscard = window.confirm('You have unsaved changes in this form. Discard changes and close?')
+      if (!confirmDiscard) return
+    }
+    onClose()
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
+    if (saving) return
     setApiError(null)
+
     const errors = validate(form)
     if (Object.keys(errors).length) {
       setErrs(errors)
-      if (errors.code || errors.name || errors.mobile || errors.altMobile || errors.email || errors.aadhaar) {
+      if (errors.code || errors.name || errors.mobile || errors.altMobile || errors.email || errors.aadhaar || errors.totalLand) {
         setActiveTab('personal')
       } else if (errors.pin || errors.bankPhone) {
         setActiveTab('addressBank')
       }
       return
     }
+
     setSaving(true)
     try {
       await onSave(form)
@@ -316,7 +349,13 @@ function FarmerForm({ initial, onSave, onClose }) {
   ]
 
   return (
-    <div className="fm-overlay" role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit Farmer' : 'Add Farmer'}>
+    <div
+      className="fm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={isEdit ? 'Edit Farmer' : 'Add Farmer'}
+      onClick={e => { if (e.target === e.currentTarget) handleCloseRequest() }}
+    >
       <div className="fm-modal">
         {/* Header */}
         <div className="fm-modal-head">
@@ -324,7 +363,7 @@ function FarmerForm({ initial, onSave, onClose }) {
             <h2>{isEdit ? 'Edit Farmer Record' : 'Register New Farmer'}</h2>
             <p>{isEdit ? `Editing · ${initial.code}` : 'Add farmer profile, address, and bank details'}</p>
           </div>
-          <button className="fm-close" onClick={onClose} aria-label="Close" type="button">✕</button>
+          <button className="fm-close" onClick={handleCloseRequest} aria-label="Close" type="button">✕</button>
         </div>
 
         {/* API Error */}
@@ -352,20 +391,32 @@ function FarmerForm({ initial, onSave, onClose }) {
               <div className="fm-row">
                 <div className="fm-field">
                   <label>Farmer Code <span className="fm-req">*</span></label>
-                  <input value={form.code} onChange={e => set('code', e.target.value)}
-                    placeholder="e.g. FRM-001" className={errs.code ? 'err' : ''} disabled={isEdit} />
+                  <input
+                    value={form.code}
+                    readOnly
+                    className={`fm-input-readonly ${errs.code ? 'err' : ''}`}
+                    placeholder="e.g. FRM-001"
+                    title="Farmer Code is generated automatically"
+                  />
                   {errs.code && <span className="fm-err">{errs.code}</span>}
                 </div>
                 <div className="fm-field">
                   <label>Farmer Name <span className="fm-req">*</span></label>
-                  <input value={form.name} onChange={e => set('name', e.target.value)}
-                    placeholder="Full name" className={errs.name ? 'err' : ''} />
+                  <input
+                    value={form.name}
+                    onChange={e => set('name', e.target.value)}
+                    placeholder="Full name"
+                    className={errs.name ? 'err' : ''}
+                  />
                   {errs.name && <span className="fm-err">{errs.name}</span>}
                 </div>
                 <div className="fm-field">
                   <label>Father / Husband Name</label>
-                  <input value={form.fatherName} onChange={e => set('fatherName', e.target.value)}
-                    placeholder="Father or husband name" />
+                  <input
+                    value={form.fatherName}
+                    onChange={e => set('fatherName', e.target.value)}
+                    placeholder="Father or husband name"
+                  />
                 </div>
               </div>
 
@@ -373,41 +424,71 @@ function FarmerForm({ initial, onSave, onClose }) {
               <div className="fm-row">
                 <div className="fm-field">
                   <label>Mobile <span className="fm-req">*</span></label>
-                  <input value={form.mobile} onChange={e => set('mobile', e.target.value)}
-                    placeholder="10-digit mobile" maxLength={10} className={errs.mobile ? 'err' : ''} />
+                  <input
+                    value={form.mobile}
+                    onChange={e => set('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile"
+                    maxLength={10}
+                    className={errs.mobile ? 'err' : ''}
+                  />
                   {errs.mobile && <span className="fm-err">{errs.mobile}</span>}
                 </div>
                 <div className="fm-field">
                   <label>Alternate Mobile</label>
-                  <input value={form.altMobile} onChange={e => set('altMobile', e.target.value)}
-                    placeholder="Alternate number" maxLength={10} className={errs.altMobile ? 'err' : ''} />
+                  <input
+                    value={form.altMobile}
+                    onChange={e => set('altMobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="Alternate number"
+                    maxLength={10}
+                    className={errs.altMobile ? 'err' : ''}
+                  />
                   {errs.altMobile && <span className="fm-err">{errs.altMobile}</span>}
                 </div>
                 <div className="fm-field">
                   <label>Email</label>
-                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                    placeholder="email@example.com" className={errs.email ? 'err' : ''} />
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    placeholder="email@example.com"
+                    className={errs.email ? 'err' : ''}
+                  />
                   {errs.email && <span className="fm-err">{errs.email}</span>}
                 </div>
               </div>
 
-              <div className="fm-row fm-row-2">
+              <div className="fm-section-label">Identity & Land Details</div>
+              <div className="fm-row">
                 <div className="fm-field">
                   <label>Aadhaar No</label>
-                  <input value={form.aadhaar} onChange={e => set('aadhaar', formatAadhaar(e.target.value))}
-                    placeholder="1234 5678 9012" maxLength={14} autoComplete="off"
-                    className={errs.aadhaar ? 'err' : ''} />
+                  <input
+                    value={form.aadhaar}
+                    onChange={e => set('aadhaar', formatAadhaar(e.target.value))}
+                    placeholder="1234 5678 9012"
+                    maxLength={14}
+                    autoComplete="off"
+                    className={errs.aadhaar ? 'err' : ''}
+                  />
                   {errs.aadhaar && <span className="fm-err">{errs.aadhaar}</span>}
                 </div>
                 <div className="fm-field">
                   <label>Total Land (Acres)</label>
-                  <input type="number" step="0.01" min="0" value={form.totalLand}
-                    onChange={e => set('totalLand', e.target.value)} placeholder="e.g. 8.5" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.totalLand}
+                    onChange={e => {
+                      const val = e.target.value
+                      if (val === '' || Number(val) >= 0) {
+                        set('totalLand', val)
+                      }
+                    }}
+                    placeholder="e.g. 8.5"
+                    className={errs.totalLand ? 'err' : ''}
+                  />
+                  {errs.totalLand && <span className="fm-err">{errs.totalLand}</span>}
                 </div>
-              </div>
-
-              <div className="fm-section-label">Status</div>
-              <div className="fm-row fm-row-2">
                 <div className="fm-field">
                   <label>Status</label>
                   <select value={form.status} onChange={e => set('status', e.target.value)}>
@@ -439,7 +520,7 @@ function FarmerForm({ initial, onSave, onClose }) {
                   <input value={form.district} onChange={e => set('district', e.target.value)} placeholder="District" />
                 </div>
               </div>
-              <div className="fm-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="fm-row">
                 <div className="fm-field">
                   <label>State</label>
                   <select value={form.state} onChange={e => set('state', e.target.value)}>
@@ -449,10 +530,16 @@ function FarmerForm({ initial, onSave, onClose }) {
                 </div>
                 <div className="fm-field">
                   <label>PIN Code</label>
-                  <input value={form.pin} onChange={e => set('pin', e.target.value)}
-                    placeholder="6-digit PIN" maxLength={6} className={errs.pin ? 'err' : ''} />
+                  <input
+                    value={form.pin}
+                    onChange={e => set('pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit PIN"
+                    maxLength={6}
+                    className={errs.pin ? 'err' : ''}
+                  />
                   {errs.pin && <span className="fm-err">{errs.pin}</span>}
                 </div>
+                <div className="fm-field" style={{ visibility: 'hidden' }} aria-hidden="true"></div>
               </div>
 
               {/* Bank Details Group */}
@@ -473,12 +560,17 @@ function FarmerForm({ initial, onSave, onClose }) {
                 </div>
                 <div className="fm-field">
                   <label>Phone Number</label>
-                  <input value={form.bankPhone} onChange={e => set('bankPhone', e.target.value)}
-                    placeholder="10-digit phone" maxLength={10} className={errs.bankPhone ? 'err' : ''} />
+                  <input
+                    value={form.bankPhone}
+                    onChange={e => set('bankPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit phone"
+                    maxLength={10}
+                    className={errs.bankPhone ? 'err' : ''}
+                  />
                   {errs.bankPhone && <span className="fm-err">{errs.bankPhone}</span>}
                 </div>
               </div>
-              <div className="fm-row" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="fm-row">
                 <div className="fm-field">
                   <label>Account Number</label>
                   <input value={form.accountNo} onChange={e => set('accountNo', e.target.value)}
@@ -486,9 +578,10 @@ function FarmerForm({ initial, onSave, onClose }) {
                 </div>
                 <div className="fm-field">
                   <label>IFSC Code</label>
-                  <input value={form.ifsc} onChange={e => set('ifsc', e.target.value.toUpperCase())}
+                  <input value={form.ifsc} onChange={e => set('ifsc', e.target.value.toUpperCase().slice(0, 11))}
                     placeholder="e.g. SBIN0001234" maxLength={11} />
                 </div>
+                <div className="fm-field" style={{ visibility: 'hidden' }} aria-hidden="true"></div>
               </div>
               <div className="fm-bank-notice">
                 🔒 Bank details are transmitted securely and never logged.
@@ -500,23 +593,23 @@ function FarmerForm({ initial, onSave, onClose }) {
           <div className="fm-modal-foot">
             <div className="fm-tab-nav-btns">
               {activeTab === 'addressBank' && (
-                <button type="button" className="fm-btn-secondary"
+                <button type="button" className="fm-btn-secondary fm-foot-btn"
                   onClick={() => setActiveTab('personal')}>
-                  ← Back
+                  ← Back to Personal
                 </button>
               )}
               {activeTab === 'personal' && (
-                <button type="button" className="fm-btn-secondary"
+                <button type="button" className="fm-btn-secondary fm-foot-btn"
                   onClick={() => setActiveTab('addressBank')}>
                   Next: Address & Bank →
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" className="fm-btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-              <button type="submit" className="fm-btn-primary" disabled={saving}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={handleCloseRequest} disabled={saving}>Cancel</button>
+              <button type="submit" className="fm-btn-primary fm-foot-btn" disabled={saving}>
                 {saving
-                  ? <><span className="fm-spinner"></span> Saving…</>
+                  ? <><span className="fm-spinner fm-spinner-white"></span> Saving…</>
                   : isEdit ? '✓ Update Farmer' : '+ Save Farmer'}
               </button>
             </div>
@@ -539,8 +632,8 @@ function DeleteConfirm({ farmer, onConfirm, onCancel, deleting }) {
           Linked address and bank records will also be removed.
         </p>
         <div className="fm-confirm-btns">
-          <button className="fm-btn-secondary" onClick={onCancel} disabled={deleting}>Cancel</button>
-          <button className="fm-btn-danger" onClick={onConfirm} disabled={deleting}>
+          <button className="fm-btn-secondary fm-foot-btn" onClick={onCancel} disabled={deleting}>Cancel</button>
+          <button className="fm-btn-danger fm-foot-btn" onClick={onConfirm} disabled={deleting}>
             {deleting ? <><span className="fm-spinner fm-spinner-white"></span> Deleting…</> : 'Delete'}
           </button>
         </div>
@@ -606,9 +699,9 @@ function ViewFarmer({ farmer, onClose, onEdit }) {
         </div>
         <div className="fm-modal-foot">
           <div></div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button type="button" className="fm-btn-secondary" onClick={onClose}>Close</button>
-            <button type="button" className="fm-btn-primary" onClick={() => { onClose(); onEdit(farmer) }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={onClose}>Close</button>
+            <button type="button" className="fm-btn-primary fm-foot-btn" onClick={() => { onClose(); onEdit(farmer) }}>
               ✎ Edit
             </button>
           </div>
@@ -616,6 +709,13 @@ function ViewFarmer({ farmer, onClose, onEdit }) {
       </div>
     </div>
   )
+}
+
+// ─── Natural sorting by Farmer Code (FRM-001, FRM-002, ...) ──────────────────
+function compareFarmerCodes(a, b) {
+  const codeA = a?.code || a?.farmerCode || ''
+  const codeB = b?.code || b?.farmerCode || ''
+  return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' })
 }
 
 // ─── Main Farmers Page ────────────────────────────────────────────────────────
@@ -643,7 +743,8 @@ export default function Farmers() {
     setApiError(null)
     try {
       const data = await farmerService.getFarmers()
-      setFarmers(data.map(mapFarmer))
+      const mapped = data.map(mapFarmer).sort(compareFarmerCodes)
+      setFarmers(mapped)
     } catch (err) {
       setApiError(getFarmerApiError(err, 'list'))
     } finally {
@@ -654,14 +755,16 @@ export default function Farmers() {
 
   useEffect(() => { fetchFarmers() }, [fetchFarmers])
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
-  const filtered = farmers.filter(f => {
-    const q = search.toLowerCase().trim()
-    const matchSearch = !q || [f.code, f.name, f.fatherName, f.mobile, f.village, f.mandal, f.district, f.bankName]
-      .some(v => (v || '').toLowerCase().includes(q))
-    const matchStatus = statusFilter === 'All' || f.status === statusFilter
-    return matchSearch && matchStatus
-  })
+  // ── Filtered and Sorted list ───────────────────────────────────────────────
+  const filtered = farmers
+    .filter(f => {
+      const q = search.toLowerCase().trim()
+      const matchSearch = !q || [f.code, f.name, f.fatherName, f.mobile, f.village, f.mandal, f.district, f.bankName]
+        .some(v => (v || '').toLowerCase().includes(q))
+      const matchStatus = statusFilter === 'All' || f.status === statusFilter
+      return matchSearch && matchStatus
+    })
+    .sort(compareFarmerCodes)
 
   const counts = {
     All:      farmers.length,
@@ -808,7 +911,7 @@ export default function Farmers() {
 
       {/* Page Header */}
       <div className="fm-page-head">
-        <div>
+        <div className="fm-page-title-block">
           <div className="fm-eyebrow">MASTERS</div>
           <h1 className="fm-title">Farmers</h1>
           <p className="fm-subtitle">Manage all registered farmers and their details</p>
@@ -837,7 +940,12 @@ export default function Farmers() {
       {/* Toolbar */}
       <div className="fm-toolbar">
         <div className="fm-search-wrap">
-          <span className="fm-search-icon">⌕</span>
+          <span className="fm-search-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
           <input
             className="fm-search"
             placeholder="Search by name, code, mobile, village, bank…"
@@ -867,7 +975,11 @@ export default function Farmers() {
             title="Refresh farmer list" aria-label="Refresh farmers"
             disabled={loading}
             className={`fm-refresh-btn${loading ? ' fm-spinning' : ''}`}
-          >↻</button>
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -876,15 +988,15 @@ export default function Farmers() {
         <table className="fm-table">
           <thead>
             <tr>
-              <th>Farmer Code</th>
-              <th>Farmer Name</th>
-              <th>Mobile</th>
-              <th>Village</th>
-              <th>Mandal</th>
-              <th>District</th>
-              <th>Total Land</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="fm-th-code">Farmer Code</th>
+              <th className="fm-th-name">Farmer Name</th>
+              <th className="fm-th-mobile">Mobile</th>
+              <th className="fm-th-village">Village</th>
+              <th className="fm-th-mandal">Mandal</th>
+              <th className="fm-th-district">District</th>
+              <th className="fm-th-land fm-col-num">Total Land</th>
+              <th className="fm-th-status">Status</th>
+              <th className="fm-th-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -925,36 +1037,58 @@ export default function Farmers() {
             ) : (
               filtered.map(f => (
                 <tr key={f.id} className={loading ? 'fm-row-refreshing' : ''}>
-                  <td><span className="fm-code">{f.code}</span></td>
-                  <td>
+                  <td className="fm-td-code"><span className="fm-code">{f.code}</span></td>
+                  <td className="fm-td-name">
                     <div className="fm-name-cell">
                       <div className="fm-avatar">{f.name.charAt(0)}</div>
-                      <div>
-                        <strong>{f.name}</strong>
-                        {f.fatherName && <span>{f.fatherName}</span>}
+                      <div className="fm-name-info">
+                        <strong className="fm-farmer-name">{f.name}</strong>
+                        {f.fatherName ? (
+                          <span className="fm-farmer-subtext" title={`Father / Husband Name: ${f.fatherName}`}>
+                            {f.fatherName}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </td>
-                  <td>{f.mobile}</td>
-                  <td>{f.village  || '—'}</td>
-                  <td>{f.mandal   || '—'}</td>
-                  <td>{f.district || '—'}</td>
-                  <td>{f.totalLand ? `${f.totalLand} ac` : '—'}</td>
-                  <td>
+                  <td className="fm-td-mobile">{f.mobile}</td>
+                  <td className="fm-td-village">{f.village  || '—'}</td>
+                  <td className="fm-td-mandal">{f.mandal   || '—'}</td>
+                  <td className="fm-td-district">{f.district || '—'}</td>
+                  <td className="fm-td-land fm-col-num">{f.totalLand ? `${Number(f.totalLand).toFixed(1)} ac` : '—'}</td>
+                  <td className="fm-td-status">
                     <button
                       className={`fm-status-pill fm-status-${f.status.toLowerCase()}`}
                       onClick={() => toggleStatus(f)}
-                      title={`Click to set ${f.status === 'Active' ? 'Inactive' : 'Active'}`}
+                      title={`Status: ${f.status} (Click to toggle)`}
                       type="button"
                     >
                       <span className="fm-status-dot"></span>{f.status}
                     </button>
                   </td>
-                  <td>
+                  <td className="fm-td-actions">
                     <div className="fm-actions">
-                      <button className="fm-action-btn fm-view"   onClick={() => openView(f)}        title="View"   type="button">👁</button>
-                      <button className="fm-action-btn fm-edit"   onClick={() => openEdit(f)}        title="Edit"   type="button">✎</button>
-                      <button className="fm-action-btn fm-delete" onClick={() => setDeleteTarget(f)} title="Delete" type="button">⛌</button>
+                      <button className="fm-action-btn fm-view" onClick={() => openView(f)} title="View Farmer Details" aria-label="View Farmer Details" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                      <button className="fm-action-btn fm-edit" onClick={() => openEdit(f)} title="Edit Farmer" aria-label="Edit Farmer" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                          <path d="m15 5 4 4" />
+                        </svg>
+                      </button>
+                      <button className="fm-action-btn fm-delete" onClick={() => setDeleteTarget(f)} title="Delete Farmer" aria-label="Delete Farmer" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <line x1="10" x2="10" y1="11" y2="17" />
+                          <line x1="14" x2="14" y1="11" y2="17" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>

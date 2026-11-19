@@ -3,16 +3,26 @@ using System.ComponentModel.DataAnnotations;
 namespace AgriMan.Api.DTOs
 {
     /// <summary>
-    /// User Registration Request
+    /// User Registration Request (supports both Name/MobileNumber and FullName/PhoneNumber aliases)
     /// </summary>
-    public class RegisterRequestDto
+    public class RegisterRequestDto : IValidatableObject
     {
+        private string? _name;
+        private string? _mobileNumber;
+
         /// <summary>
-        /// Full Name of the User (e.g. Arjun Mehta)
+        /// Full Name of the User (e.g. Arjun Mehta). Also accepts "fullName".
         /// </summary>
-        [Required(ErrorMessage = "Full Name is required.")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters.")]
-        public string Name { get; set; } = string.Empty;
+        public string Name
+        {
+            get => !string.IsNullOrWhiteSpace(_name) ? _name : (FullName ?? string.Empty);
+            set => _name = value;
+        }
+
+        /// <summary>
+        /// Alias for Name (used by frontend auth.js)
+        /// </summary>
+        public string? FullName { get; set; }
 
         /// <summary>
         /// Valid Email address
@@ -23,10 +33,20 @@ namespace AgriMan.Api.DTOs
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional Mobile Number (e.g. +91 98765 43210 or 9876543210)
+        /// Optional Mobile Number (e.g. +91 98765 43210). Also accepts "phoneNumber".
         /// </summary>
         [MaxLength(25)]
-        public string? MobileNumber { get; set; }
+        public string? MobileNumber
+        {
+            get => !string.IsNullOrWhiteSpace(_mobileNumber) ? _mobileNumber : PhoneNumber;
+            set => _mobileNumber = value;
+        }
+
+        /// <summary>
+        /// Alias for MobileNumber (used by frontend auth.js)
+        /// </summary>
+        [MaxLength(25)]
+        public string? PhoneNumber { get; set; }
 
         /// <summary>
         /// Password (minimum 6 characters)
@@ -36,16 +56,28 @@ namespace AgriMan.Api.DTOs
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
-        /// Confirmation Password (must match Password)
+        /// Optional Confirmation Password (if supplied, must match Password)
         /// </summary>
-        [Required(ErrorMessage = "Confirm Password is required.")]
-        [Compare("Password", ErrorMessage = "Password and Confirm Password do not match.")]
-        public string ConfirmPassword { get; set; } = string.Empty;
+        public string? ConfirmPassword { get; set; }
 
         /// <summary>
         /// Role name (defaults to 'User' or 'Manager', 'Accountant', 'Administrator')
         /// </summary>
         public string? Role { get; set; } = "User";
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var resolvedName = Name?.Trim() ?? string.Empty;
+            if (resolvedName.Length < 2 || resolvedName.Length > 100)
+            {
+                yield return new ValidationResult("Full Name must be between 2 and 100 characters.", new[] { nameof(Name) });
+            }
+
+            if (!string.IsNullOrEmpty(ConfirmPassword) && ConfirmPassword != Password)
+            {
+                yield return new ValidationResult("Password and Confirm Password do not match.", new[] { nameof(ConfirmPassword) });
+            }
+        }
     }
 
     /// <summary>
@@ -55,9 +87,6 @@ namespace AgriMan.Api.DTOs
     {
         private string? _identifier;
 
-        /// <summary>
-        /// User's Email or Mobile Number (e.g. test@gmail.com, arjun.mehta@agriman.in, +91 98765 43210, 9876543210)
-        /// </summary>
         public string Identifier
         {
             get => !string.IsNullOrWhiteSpace(_identifier)
@@ -72,35 +101,14 @@ namespace AgriMan.Api.DTOs
             set => _identifier = value;
         }
 
-        /// <summary>
-        /// Optional alias for Email (accepts "email")
-        /// </summary>
         public string? Email { get; set; }
-
-        /// <summary>
-        /// Optional alias for Mobile (accepts "mobile")
-        /// </summary>
         public string? Mobile { get; set; }
-
-        /// <summary>
-        /// Optional alias for MobileNumber (accepts "mobileNumber")
-        /// </summary>
         public string? MobileNumber { get; set; }
-
-        /// <summary>
-        /// Optional alias for Username (accepts "username" or "userName")
-        /// </summary>
         public string? Username { get; set; }
 
-        /// <summary>
-        /// User password
-        /// </summary>
         [Required(ErrorMessage = "Password is required.")]
         public string Password { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Keep user logged in with prolonged session (30 days vs 120 minutes)
-        /// </summary>
         public bool RememberMe { get; set; } = false;
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -119,9 +127,6 @@ namespace AgriMan.Api.DTOs
     {
         private string? _identifier;
 
-        /// <summary>
-        /// User's valid registered Email or Mobile Number to receive the verification OTP
-        /// </summary>
         public string Identifier
         {
             get => !string.IsNullOrWhiteSpace(_identifier)
@@ -154,9 +159,6 @@ namespace AgriMan.Api.DTOs
     {
         private string? _identifier;
 
-        /// <summary>
-        /// Mobile or Email address that requested the OTP
-        /// </summary>
         public string Identifier
         {
             get => !string.IsNullOrWhiteSpace(_identifier)
@@ -173,9 +175,6 @@ namespace AgriMan.Api.DTOs
         public string? Mobile { get; set; }
         public string? Username { get; set; }
 
-        /// <summary>
-        /// 6-digit OTP code received in email/message
-        /// </summary>
         [Required(ErrorMessage = "OTP code is required.")]
         [StringLength(10, MinimumLength = 4, ErrorMessage = "OTP must be between 4 and 10 characters.")]
         public string Otp { get; set; } = string.Empty;
@@ -196,9 +195,6 @@ namespace AgriMan.Api.DTOs
     {
         private string? _identifier;
 
-        /// <summary>
-        /// Mobile or Email address
-        /// </summary>
         public string Identifier
         {
             get => !string.IsNullOrWhiteSpace(_identifier)
@@ -214,27 +210,13 @@ namespace AgriMan.Api.DTOs
         public string? Email { get; set; }
         public string? Mobile { get; set; }
         public string? Username { get; set; }
-
-        /// <summary>
-        /// OTP code verified on Screen 2 (or pass ResetToken)
-        /// </summary>
         public string? Otp { get; set; }
-
-        /// <summary>
-        /// Optional Reset Token returned by OTP verification endpoint
-        /// </summary>
         public string? ResetToken { get; set; }
 
-        /// <summary>
-        /// New password for the account
-        /// </summary>
         [Required(ErrorMessage = "New Password is required.")]
         [MinLength(6, ErrorMessage = "New Password must be at least 6 characters.")]
         public string NewPassword { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Confirmation of the new password (must match New Password)
-        /// </summary>
         [Required(ErrorMessage = "Confirm Password is required.")]
         [Compare("NewPassword", ErrorMessage = "New Password and Confirm Password do not match.")]
         public string ConfirmPassword { get; set; } = string.Empty;
@@ -249,6 +231,42 @@ namespace AgriMan.Api.DTOs
     }
 
     /// <summary>
+    /// Refresh token exchange request
+    /// </summary>
+    public class RefreshTokenRequestDto
+    {
+        public string? RefreshToken { get; set; }
+        public string? Token { get; set; }
+
+        public string ResolvedToken => !string.IsNullOrWhiteSpace(RefreshToken) ? RefreshToken.Trim() : (Token?.Trim() ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Logout request (optional refresh token to revoke; if omitted, revokes all active tokens for user)
+    /// </summary>
+    public class LogoutRequestDto
+    {
+        public string? RefreshToken { get; set; }
+    }
+
+    /// <summary>
+    /// Authenticated user password change request
+    /// </summary>
+    public class ChangePasswordRequestDto
+    {
+        [Required(ErrorMessage = "Current password is required.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "New password is required.")]
+        [MinLength(6, ErrorMessage = "New password must be at least 6 characters.")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirm password is required.")]
+        [Compare("NewPassword", ErrorMessage = "New password and confirm password do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Generic API response for Authentication endpoints
     /// </summary>
     public class AuthResponseDto
@@ -256,8 +274,10 @@ namespace AgriMan.Api.DTOs
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public string? Token { get; set; }
+        public string? AccessToken { get; set; }
+        public string? RefreshToken { get; set; }
         public DateTime? ExpiresAt { get; set; }
-        public string? Otp { get; set; } // Provided for quick testing/swagger demo
+        public string? Otp { get; set; }
         public bool? EmailSent { get; set; }
         public string? ResetToken { get; set; }
         public UserInfoDto? User { get; set; }
@@ -268,9 +288,15 @@ namespace AgriMan.Api.DTOs
         public int Id { get; set; }
         public string UserCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string FullName => Name;
         public string Email { get; set; } = string.Empty;
         public string? MobileNumber { get; set; }
+        public string? PhoneNumber => MobileNumber;
         public string? ProfilePhoto { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime? LastLoginAt { get; set; }
+        public string Role => Roles.FirstOrDefault() ?? "User";
+        public string PrimaryRole => Roles.FirstOrDefault() ?? "User";
         public List<string> Roles { get; set; } = new();
         public List<string> Permissions { get; set; } = new();
     }

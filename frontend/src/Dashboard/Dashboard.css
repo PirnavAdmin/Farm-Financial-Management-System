@@ -828,3 +828,362 @@
     grid-template-columns: 1fr;
   }
 }
+
+.dashboard-page {
+  gap: 16px;
+}
+
+.dashboard-title-row {
+  border-bottom: 0;
+  padding: 0 2px;
+}
+
+.dashboard-main-title {
+  color: #24372b;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.45px;
+}
+
+.dashboard-sub,
+.section-sub-tag,
+.chart-badge,
+.panel-sub {
+  color: #849087;
+}
+
+.dashboard-header-badge {
+  background: #edf7ed;
+  border-color: #d3e8d3;
+  color: #397348;
+}
+
+.dashboard-header-badge .badge-dot {
+  background: #5a9a62;
+}
+
+.season-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 132px;
+  padding: 22px 28px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #d5e8d5;
+  border-radius: 14px;
+  background: linear-gradient(115deg, #e8f4e9 0%, #dceedd 100%);
+}
+
+.season-banner-content {
+  position: relative;
+  z-index: 1;
+}
+
+.season-banner-eyebrow {
+  color: #567f5d;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.4px;
+}
+
+.season-banner h2 {
+  margin: 11px 0 6px;
+  color: #244b34;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+}
+
+.season-banner p {
+  margin: 0;
+  color: #526f58;
+  font-size: 12px;
+}
+
+.season-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 15px;
+  color: #426d4b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.season-banner-mark {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  color: #75a87d;
+  font-size: 84px;
+  line-height: 1;
+  opacity: 0.28;
+  transform: translateY(-50%);
+}
+
+.dashboard-section-heading {
+  margin: 1px 2px -5px;
+}
+
+.dashboard-section-heading h2 {
+  margin: 0;
+  color: #24372b;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dashboard-section-heading p {
+  margin: 4px 0 0;
+  color: #849087;
+  font-size: 11px;
+}
+
+.top-financial-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fin-card {
+  padding: 16px 18px;
+  border-radius: 11px;
+  box-shadow: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.fin-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(37, 76, 48, 0.08);
+}
+
+.fin-card:focus-visible {
+  outline: 3px solid #9dc8a1;
+  outline-offset: 2px;
+}
+
+.card-income {
+  border-top: 0;
+  border-left: 3px solid #4d9560;
+}
+
+.card-expense {
+  border-top: 0;
+  border-left: 3px solid #e6a14a;
+}
+
+.card-profit {
+  border-top: 0;
+  border-left: 3px solid #5b9c68;
+  background: linear-gradient(120deg, #fff 45%, #edf7ed 100%);
+}
+
+.card-area {
+  border-left: 3px solid #8eaf91;
+}
+
+.fin-label {
+  color: #77847b;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+}
+
+.fin-amount {
+  color: #20362a;
+  font-size: 23px;
+}
+
+.fin-amount.profit-text {
+  color: #287344;
+}
+
+.fin-sub {
+  color: #89958c;
+  font-size: 10px;
+}
+
+.widgets-section {
+  padding: 12px 16px;
+  border-color: #e5eae5;
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.section-header-row {
+  margin-bottom: 0;
+}
+
+.section-heading {
+  font-size: 13px;
+}
+
+.section-sub-tag {
+  font-size: 10px;
+}
+
+.toggle-widgets-btn {
+  background: #f7faf6;
+  border-color: #dce8da;
+  color: #527258;
+}
+
+.charts-grid-two {
+  gap: 14px;
+}
+
+.chart-card,
+.panel-box {
+  padding: 17px 18px;
+  border-color: #e5eae5;
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.chart-title,
+.panel-title {
+  color: #24372b;
+  font-size: 14px;
+}
+
+.chart-card-header {
+  margin-bottom: 10px;
+}
+
+.chart-canvas-box {
+  height: 230px;
+}
+
+.cashflow-chart {
+  width: 100%;
+  height: 230px;
+}
+
+.crop-metric-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #e3ebe2;
+  border-radius: 7px;
+  background: #f6f9f5;
+}
+
+.crop-metric-toggle button {
+  border: 0;
+  border-radius: 5px;
+  padding: 5px 9px;
+  background: transparent;
+  color: #68766b;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.crop-metric-toggle button.active {
+  background: #fff;
+  color: #347347;
+  box-shadow: 0 1px 3px rgba(35, 67, 43, 0.12);
+}
+
+.crop-performance-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  min-height: 200px;
+  padding: 5px 2px;
+}
+
+.crop-performance-row {
+  display: grid;
+  grid-template-columns: minmax(58px, 74px) minmax(40px, 1fr) minmax(54px, auto);
+  align-items: center;
+  gap: 10px;
+}
+
+.crop-performance-name {
+  overflow: hidden;
+  color: #526056;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crop-performance-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #edf2ee;
+}
+
+.crop-performance-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #78b27d, #4d9560);
+  transition: width 0.25s ease;
+}
+
+.crop-performance-value {
+  color: #405047;
+  font-size: 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dashboard-empty-state {
+  padding: 24px 12px;
+  color: #89958c;
+  font-size: 11px;
+  text-align: center;
+}
+
+.panel-link-btn {
+  color: #3d8050;
+}
+
+.panel-table-container {
+  border-color: #edf1ed;
+}
+
+.clean-table th {
+  background: #f7f9f7;
+}
+
+@media (max-width: 900px) {
+  .top-financial-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .top-financial-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .season-banner {
+    min-height: 150px;
+    padding: 20px;
+  }
+
+  .season-banner h2 {
+    max-width: 85%;
+    font-size: 18px;
+  }
+
+  .season-banner p {
+    max-width: 85%;
+    line-height: 1.5;
+  }
+
+  .season-banner-mark {
+    right: 12px;
+    font-size: 56px;
+  }
+
+  .chart-card,
+  .panel-box {
+    padding: 14px;
+  }
+}
