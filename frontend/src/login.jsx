@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import './login.css'
 import farmBg from './assets/agriman-farm-bg.jpg'
 import { authRequest } from './auth.js'
@@ -267,44 +268,39 @@ export default function Login({ onLogin, onBackToHome }) {
       {/* RIGHT SECTION: Translucent Frosted Glass Login Panel */}
       <section className="agriman-right-panel" aria-label="Login Panel">
         <div className="agriman-glass-card">
-          {/* Exact AGRIMAN Logo Asset with Home navigation */}
-          <div className="agriman-logo-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <a
-              href="#home"
-              onClick={(e) => {
-                if (onBackToHome) {
-                  e.preventDefault()
-                  onBackToHome()
-                }
-              }}
-              style={{ display: 'inline-block' }}
-              aria-label="Return to AGRIMAN home"
-            >
-              <img
-                src="/agriman-logo.png"
-                alt="AGRIMAN Farm Management Logo"
-                className="agriman-brand-logo"
-              />
-            </a>
+          {/* Header with Top-Left Back to Home and Centered AGRIMAN Logo */}
+          <div className="agriman-card-header">
             {onBackToHome && (
               <button
                 type="button"
+                className="agriman-back-home-btn"
                 onClick={onBackToHome}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  border: '1px solid rgba(22, 128, 68, 0.25)',
-                  color: '#15803D',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  transition: 'all 0.2s ease'
-                }}
+                aria-label="Back to Home"
+                title="Back to Home"
               >
-                ← Back to Home
+                <ArrowLeft size={22} className="back-arrow-icon" aria-hidden="true" />
               </button>
             )}
+
+            <div className="agriman-logo-header">
+              <a
+                href="#home"
+                onClick={(e) => {
+                  if (onBackToHome) {
+                    e.preventDefault()
+                    onBackToHome()
+                  }
+                }}
+                className="agriman-logo-link"
+                aria-label="Return to AGRIMAN home"
+              >
+                <img
+                  src="/agriman-logo.png"
+                  alt="AGRIMAN Farm Management Logo"
+                  className="agriman-brand-logo"
+                />
+              </a>
+            </div>
           </div>
 
           <div className="panel-headings">

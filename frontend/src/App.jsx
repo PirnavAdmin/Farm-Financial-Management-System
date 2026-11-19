@@ -465,7 +465,10 @@ function App() {
 
         <ModuleErrorBoundary active={active}>
         {active === 'Farmers' ? (
-          <Farmers />
+          <section className="page-content">
+            <Farmers />
+            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
+          </section>
         ) : active === 'Users' ? (
           <Users />
         ) : active === 'Crop Master' || active === 'Crops' ? (
