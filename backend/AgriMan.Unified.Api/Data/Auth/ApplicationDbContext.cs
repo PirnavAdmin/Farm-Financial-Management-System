@@ -161,6 +161,7 @@ namespace AgriMan.Api.Data
                 entity.ToTable("refresh_tokens");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Token);
+                entity.HasQueryFilter(rt => !rt.User.IsDeleted);
                 entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.IsRevoked).HasDefaultValue(false);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
