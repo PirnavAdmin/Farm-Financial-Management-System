@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using AgriMan.Api.Models;
 using Microsoft.IdentityModel.Tokens;
@@ -9,6 +10,7 @@ namespace AgriMan.Api.Services
     public interface ITokenService
     {
         (string Token, DateTime ExpiresAt) GenerateAccessToken(User user, List<string> roles, bool rememberMe);
+        string GenerateRefreshToken();
     }
 
     public class TokenService : ITokenService
@@ -32,7 +34,9 @@ namespace AgriMan.Api.Services
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim("UserCode", user.UserCode)
             };
@@ -61,6 +65,12 @@ namespace AgriMan.Api.Services
             );
 
             return (new JwtSecurityTokenHandler().WriteToken(token), expiration);
+        }
+
+        public string GenerateRefreshToken()
+        {
+            var randomBytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(randomBytes);
         }
     }
 }

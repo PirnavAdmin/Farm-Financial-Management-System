@@ -82,6 +82,7 @@ builder.Services.AddDbContext<MachineryDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -251,7 +252,7 @@ builder.Services.AddSwaggerGen(c =>
 
         if (docName == "auth")
         {
-            return ns.Contains("AgriMan.Api") || name.StartsWith("Auth") || name.StartsWith("User") || name.StartsWith("Role") || name.StartsWith("Permission");
+            return ns.Contains("AgriMan.Api") || name.StartsWith("Auth") || name.StartsWith("User") || name.StartsWith("Role") || name.StartsWith("Permission") || name.StartsWith("Company") || name.StartsWith("AuditLog") || name.StartsWith("LoginHistory");
         }
         if (docName == "farmers")
         {
@@ -307,11 +308,13 @@ builder.Services.AddSwaggerGen(c =>
         }
 
         // 1. Auth & Users
-        if (ns.Contains("AgriMan.Api") || controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase))
+        if (ns.Contains("AgriMan.Api") || controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase))
         {
-            if (controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - Authentication (Login / Register / OTP)" };
+            if (controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - Authentication (Login / Register / OTP / Refresh)" };
             if (controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - User Administration & Stats" };
             if (controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - Roles & Permissions" };
+            if (controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - Company Settings" };
+            if (controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase)) return new[] { "1. Auth - Audit Logs & Login History" };
             return new[] { "1. Auth & User API" };
         }
 

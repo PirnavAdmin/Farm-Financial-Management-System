@@ -15,6 +15,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- 1. Users, Auth & Roles Module
 -- ----------------------------------------------------------
 
+DROP TABLE IF EXISTS `password_resets`;
 DROP TABLE IF EXISTS `refresh_tokens`;
 DROP TABLE IF EXISTS `user_permissions`;
 DROP TABLE IF EXISTS `role_permissions`;
@@ -88,12 +89,30 @@ CREATE TABLE `login_history` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `UserId` INT DEFAULT NULL,
     `Email` VARCHAR(150) DEFAULT NULL,
+    `Identifier` VARCHAR(150) DEFAULT NULL,
     `LoginAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `Status` VARCHAR(30) NOT NULL DEFAULT 'Success',
     `IpAddress` VARCHAR(60) DEFAULT NULL,
     `UserAgent` VARCHAR(300) DEFAULT NULL,
+    `RememberMe` TINYINT(1) NOT NULL DEFAULT 0,
     `FailureReason` VARCHAR(250) DEFAULT NULL,
     CONSTRAINT `fk_login_history_user` FOREIGN KEY (`UserId`) REFERENCES `users` (`Id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `password_resets` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `Identifier` VARCHAR(150) NOT NULL,
+    `UserId` INT DEFAULT NULL,
+    `Otp` VARCHAR(10) NOT NULL,
+    `ResetToken` VARCHAR(150) DEFAULT NULL,
+    `IsVerified` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsUsed` TINYINT(1) NOT NULL DEFAULT 0,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `ExpiresAt` DATETIME NOT NULL,
+    `UsedAt` DATETIME DEFAULT NULL,
+    `IpAddress` VARCHAR(60) DEFAULT NULL,
+    INDEX `idx_pw_identifier` (`Identifier`),
+    CONSTRAINT `fk_pw_resets_user` FOREIGN KEY (`UserId`) REFERENCES `users` (`Id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `audit_logs` (

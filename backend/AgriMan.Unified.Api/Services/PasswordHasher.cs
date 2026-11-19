@@ -17,9 +17,9 @@ namespace AgriMan.Api.Services
         {
             try
             {
-                if (string.IsNullOrEmpty(passwordHash)) return false;
-                // Support plain comparison for demo/fallback or BCrypt verification
-                if (passwordHash == password) return true;
+                if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(passwordHash))
+                    return false;
+
                 return BCrypt.Net.BCrypt.Verify(password, passwordHash);
             }
             catch
