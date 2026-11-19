@@ -913,6 +913,7 @@ export default function Farmers({ profileEmail, profileName }) {
     Active: 0,
     Inactive: 0,
   }
+  const rentalReadOnly = rentalModal?.mode === 'view'
 
   // ── Open View drawer — re-fetch fresh data for the single farmer ─────────────
   async function openView(farmer) {
@@ -1356,13 +1357,13 @@ export default function Farmers({ profileEmail, profileName }) {
       )}
       {rentalModal && rentalForm && (
         <div className="fm-overlay" role="presentation" onClick={event => {
-          if (event.target === event.currentTarget) setRentalModal(null)
+          if (event.target === event.currentTarget && !savingRental) setRentalModal(null)
         }}>
           <section className="fm-modal fm-rental-modal" role="dialog" aria-modal="true" aria-labelledby="fm-rental-modal-title">
             <header className="fm-modal-head">
               <div>
                 <h2 id="fm-rental-modal-title">
-                  Add Rental Land
+                  {rentalReadOnly ? 'Rental Land Details' : rentalModal.mode === 'edit' ? 'Edit Rental Land' : 'Add Rental Land'}
                 </h2>
                 <p>
                   {currentFarmer ? `Land leased out by ${currentFarmer.name}.` : 'Record the person and plot receiving the leased land.'}
@@ -1370,22 +1371,24 @@ export default function Farmers({ profileEmail, profileName }) {
               </div>
               <button
                 className="fm-close"
-                onClick={() => setRentalModal(null)}
+                onClick={() => !savingRental && setRentalModal(null)}
                 aria-label="Close"
                 type="button"
+                disabled={savingRental}
               >✕</button>
             </header>
-            <form className="fm-form" onSubmit={event => event.preventDefault()} noValidate>
+            {rentalError && <div className="fm-form-error-banner" role="alert">{rentalError}</div>}
+            <form className="fm-form" onSubmit={handleRentalLandSubmit}>
               <div className="fm-form-body">
                 <div className="fm-section-label">Tenant / Receiver</div>
                 <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-tenant-name">Tenant / Receiver Name <span className="fm-req">*</span></label>
-                    <input id="rental-tenant-name" name="tenantName" value={rentalForm.tenantName} onChange={event => setRentalForm({ ...rentalForm, tenantName: event.target.value })} required maxLength={150} />
+                    <input id="rental-tenant-name" name="tenantName" value={rentalForm.tenantName} onChange={event => setRentalForm({ ...rentalForm, tenantName: event.target.value })} required maxLength={150} readOnly={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-tenant-mobile">Mobile Number <span className="fm-req">*</span></label>
-                    <input id="rental-tenant-mobile" name="tenantMobile" type="tel" value={rentalForm.tenantMobile} onChange={event => setRentalForm({ ...rentalForm, tenantMobile: event.target.value })} required maxLength={20} pattern="^\+?[0-9\s()-]{7,20}$" />
+                    <input id="rental-tenant-mobile" name="tenantMobile" type="tel" value={rentalForm.tenantMobile} onChange={event => setRentalForm({ ...rentalForm, tenantMobile: event.target.value })} required maxLength={20} pattern="^\+?[0-9\s()-]{7,20}$" readOnly={rentalReadOnly} />
                   </div>
                 </div>
 
@@ -1393,15 +1396,15 @@ export default function Farmers({ profileEmail, profileName }) {
                 <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-survey-number">Survey Number <span className="fm-req">*</span></label>
-                    <input id="rental-survey-number" name="surveyNumber" value={rentalForm.surveyNumber} onChange={event => setRentalForm({ ...rentalForm, surveyNumber: event.target.value })} required maxLength={100} />
+                    <input id="rental-survey-number" name="surveyNumber" value={rentalForm.surveyNumber} onChange={event => setRentalForm({ ...rentalForm, surveyNumber: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-land-area">Land Area <span className="fm-req">*</span></label>
-                    <input id="rental-land-area" name="landArea" type="number" value={rentalForm.landArea} onChange={event => setRentalForm({ ...rentalForm, landArea: event.target.value })} required min="0.01" max="100000" step="any" />
+                    <input id="rental-land-area" name="landArea" type="number" value={rentalForm.landArea} onChange={event => setRentalForm({ ...rentalForm, landArea: event.target.value })} required min="0.01" max="100000" step="any" disabled={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-area-unit">Area Unit <span className="fm-req">*</span></label>
-                    <select id="rental-area-unit" name="areaUnit" value={rentalForm.areaUnit} onChange={event => setRentalForm({ ...rentalForm, areaUnit: event.target.value })} required>
+                    <select id="rental-area-unit" name="areaUnit" value={rentalForm.areaUnit} onChange={event => setRentalForm({ ...rentalForm, areaUnit: event.target.value })} required disabled={rentalReadOnly}>
                       {['Acres', 'Hectares', 'Cents', 'Square Feet', 'Gunthas'].map(unit => <option key={unit} value={unit}>{unit}</option>)}
                     </select>
                   </div>
@@ -1409,55 +1412,59 @@ export default function Farmers({ profileEmail, profileName }) {
                 <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-village">Village <span className="fm-req">*</span></label>
-                    <input id="rental-village" name="village" value={rentalForm.village} onChange={event => setRentalForm({ ...rentalForm, village: event.target.value })} required maxLength={100} />
+                    <input id="rental-village" name="village" value={rentalForm.village} onChange={event => setRentalForm({ ...rentalForm, village: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-mandal">Mandal <span className="fm-req">*</span></label>
-                    <input id="rental-mandal" name="mandal" value={rentalForm.mandal} onChange={event => setRentalForm({ ...rentalForm, mandal: event.target.value })} required maxLength={100} />
+                    <input id="rental-mandal" name="mandal" value={rentalForm.mandal} onChange={event => setRentalForm({ ...rentalForm, mandal: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-district">District <span className="fm-req">*</span></label>
-                    <input id="rental-district" name="district" value={rentalForm.district} onChange={event => setRentalForm({ ...rentalForm, district: event.target.value })} required maxLength={100} />
+                    <input id="rental-district" name="district" value={rentalForm.district} onChange={event => setRentalForm({ ...rentalForm, district: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
                   </div>
                 </div>
                 <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-rent-amount">Rent Amount <span className="fm-req">*</span></label>
-                    <input id="rental-rent-amount" name="rentAmount" type="number" value={rentalForm.rentAmount} onChange={event => setRentalForm({ ...rentalForm, rentAmount: event.target.value })} required min="0.01" max="1000000000" step="0.01" />
+                    <input id="rental-rent-amount" name="rentAmount" type="number" value={rentalForm.rentAmount} onChange={event => setRentalForm({ ...rentalForm, rentAmount: event.target.value })} required min="0.01" max="1000000000" step="0.01" disabled={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-rent-frequency">Rent Frequency <span className="fm-req">*</span></label>
-                    <select id="rental-rent-frequency" name="rentFrequency" value={rentalForm.rentFrequency} onChange={event => setRentalForm({ ...rentalForm, rentFrequency: event.target.value })} required>
+                    <select id="rental-rent-frequency" name="rentFrequency" value={rentalForm.rentFrequency} onChange={event => setRentalForm({ ...rentalForm, rentFrequency: event.target.value })} required disabled={rentalReadOnly}>
                       {['Monthly', 'Yearly', 'Seasonal', 'One-time'].map(frequency => <option key={frequency} value={frequency}>{frequency}</option>)}
                     </select>
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-lease-start">Lease Start Date <span className="fm-req">*</span></label>
-                    <input id="rental-lease-start" name="leaseStartDate" type="date" value={rentalForm.leaseStartDate} onChange={event => setRentalForm({ ...rentalForm, leaseStartDate: event.target.value })} required />
+                    <input id="rental-lease-start" name="leaseStartDate" type="date" value={rentalForm.leaseStartDate} onChange={event => setRentalForm({ ...rentalForm, leaseStartDate: event.target.value })} required disabled={rentalReadOnly} />
                   </div>
                 </div>
                 <div className="fm-row fm-row-2">
                   <div className="fm-field">
                     <label htmlFor="rental-lease-end">Lease End Date <span className="fm-req">*</span></label>
-                    <input id="rental-lease-end" name="leaseEndDate" type="date" value={rentalForm.leaseEndDate} onChange={event => setRentalForm({ ...rentalForm, leaseEndDate: event.target.value })} required min={rentalForm.leaseStartDate || undefined} />
+                    <input id="rental-lease-end" name="leaseEndDate" type="date" value={rentalForm.leaseEndDate} onChange={event => setRentalForm({ ...rentalForm, leaseEndDate: event.target.value })} required min={rentalForm.leaseStartDate || undefined} disabled={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-remarks">Remarks</label>
-                    <textarea id="rental-remarks" name="remarks" value={rentalForm.remarks} onChange={event => setRentalForm({ ...rentalForm, remarks: event.target.value })} maxLength={500} rows={2} />
+                    <textarea id="rental-remarks" name="remarks" value={rentalForm.remarks} onChange={event => setRentalForm({ ...rentalForm, remarks: event.target.value })} maxLength={500} readOnly={rentalReadOnly} rows={2} />
                   </div>
                 </div>
               </div>
               <footer className="fm-modal-foot">
-                <span className="fm-rental-note">UI preview only — entries will not be saved.</span>
+                <span className="fm-rental-note">
+                  {currentFarmer ? 'Rental details will be saved with your linked farmer profile.' : 'A linked farmer profile is required to save rental details.'}
+                </span>
                 <div className="fm-tab-nav-btns">
-                  <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={() => setRentalModal(null)}>Close</button>
-                  <button
-                    type="button"
-                    className="fm-btn-primary fm-foot-btn"
-                    onClick={() => showToast('UI preview only — rental entries are not saved.', 'error')}
-                  >
-                    Save Rental Land
-                  </button>
+                  {rentalReadOnly ? (
+                    <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={() => setRentalModal(null)}>Close</button>
+                  ) : (
+                    <>
+                      <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={() => setRentalModal(null)} disabled={savingRental}>Cancel</button>
+                      <button type="submit" className="fm-btn-primary fm-foot-btn" disabled={savingRental || !currentFarmer?.id}>
+                        {savingRental ? 'Saving…' : rentalModal.mode === 'edit' ? 'Save Changes' : 'Save Rental Land'}
+                      </button>
+                    </>
+                  )}
                 </div>
               </footer>
             </form>
