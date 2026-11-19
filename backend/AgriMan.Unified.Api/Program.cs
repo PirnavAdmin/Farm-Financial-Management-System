@@ -207,9 +207,9 @@ builder.Services.AddSwaggerGen(c =>
 
     c.SwaggerDoc("purchases", new OpenApiInfo
     {
-        Title = "5. Purchases & Suppliers API - Farmersdb",
+        Title = "15. Supplier Management & Purchases API - Farmersdb",
         Version = "v1",
-        Description = "Agricultural suppliers directory, purchase orders, line items, and payments in `Farmersdb`."
+        Description = "Module 15: Agricultural suppliers directory, supplier transactions, supplier payments, and ledger statement in `Farmersdb`."
     });
 
     c.SwaggerDoc("inventory", new OpenApiInfo
@@ -235,9 +235,9 @@ builder.Services.AddSwaggerGen(c =>
 
     c.SwaggerDoc("machinery", new OpenApiInfo
     {
-        Title = "9. Machinery & Equipment API - Farmersdb",
+        Title = "13. Machinery & Equipment API - Farmersdb",
         Version = "v1",
-        Description = "Farm machinery fleet registry, lookups, summary analytics, and operating expenses in `Farmersdb`."
+        Description = "Module 13: Farm machinery fleet registry, lookups, operating expenses, and fleet ROI analytics in `Farmersdb`."
     });
 
     // Filter endpoints into dropdown views
@@ -333,8 +333,7 @@ builder.Services.AddSwaggerGen(c =>
         // 4. Income Management
         if (controllerName.Equals("Income", StringComparison.OrdinalIgnoreCase)) return new[] { "4. Income - Income Categories, Transactions & Payments" };
 
-        // 5. Purchases & Suppliers
-        if (controllerName.Equals("Suppliers", StringComparison.OrdinalIgnoreCase)) return new[] { "5. Purchases - Suppliers Directory" };
+        // 5. Purchases
         if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "5. Purchases - Purchase Orders & Payments" };
 
         // 6. Inventory & Agricultural Inputs
@@ -355,12 +354,18 @@ builder.Services.AddSwaggerGen(c =>
             return new[] { "8. Sales - Crop Sales & Revenue" };
         }
 
-        // 9. Machinery & Equipment API
+        // 13. Machinery & Equipment (Matching Word Document Module 13)
         if (ns.Contains("Agriman.Machinery") || controllerName.Equals("Machinery", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("MachineryExpenses", StringComparison.OrdinalIgnoreCase))
         {
-            if (controllerName.Equals("Machinery", StringComparison.OrdinalIgnoreCase)) return new[] { "9. Machinery - Equipment & Fleet" };
-            if (controllerName.Equals("MachineryExpenses", StringComparison.OrdinalIgnoreCase)) return new[] { "9. Machinery - Operating Expenses" };
-            return new[] { "9. Machinery & Equipment API" };
+            return new[] { "13. Machinery & Equipment" };
+        }
+
+        // 15. Supplier Management (Matching Word Document Module 15)
+        if (controllerName.Equals("Suppliers", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("SupplierTransactions", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("SupplierPayments", StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { "15. Supplier Management" };
         }
 
         return new[] { controllerName };
@@ -545,11 +550,11 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/farmers/swagger.json", "2. Farmers, Addresses & Bank API Only");
     c.SwaggerEndpoint("/swagger/farms/swagger.json", "3. Farms & Land Holdings API Only");
     c.SwaggerEndpoint("/swagger/income/swagger.json", "4. Income Management API Only");
-    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "5. Purchases & Suppliers API Only");
     c.SwaggerEndpoint("/swagger/inventory/swagger.json", "6. Inventory & Products API Only");
     c.SwaggerEndpoint("/swagger/expenses/swagger.json", "7. Expenses API Only");
     c.SwaggerEndpoint("/swagger/sales/swagger.json", "8. Sales API Only");
-    c.SwaggerEndpoint("/swagger/machinery/swagger.json", "9. Machinery & Equipment API Only");
+    c.SwaggerEndpoint("/swagger/machinery/swagger.json", "13. Machinery & Equipment API (Module 13)");
+    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "15. Supplier Management API (Module 15)");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";

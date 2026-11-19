@@ -411,6 +411,51 @@ public class MachineryController : ControllerBase
         return CreatedAtAction(nameof(MachineryExpensesController.GetById), "MachineryExpenses", new { id = entity.Id }, dto);
     }
 
+    /// <summary>
+    /// Out-of-the-box Analytics: Return Machinery Fleet ROI, Maintenance cost ratio, and operating health
+    /// </summary>
+    [HttpGet("roi")]
+    public async Task<IActionResult> GetFleetRoi(CancellationToken cancellationToken)
+    {
+        var machines = await _db.Machineries
+            .AsNoTracking()
+            .Select(m => new
+            {
+                m.Id,
+                MachineCode = $"MCH-{m.Id:D3}",
+                m.MachineName,
+                m.MachineType,
+                m.PurchaseCost,
+                m.CurrentValue,
+                m.Status,
+                TotalMaintenanceCost = m.Expenses.Sum(e => (decimal?)e.Amount) ?? 0m,
+                ExpenseCount = m.Expenses.Count
+            })
+            .ToListAsync(cancellationToken);
+
+        var report = machines.Select(m => new
+        {
+            m.Id,
+            m.MachineCode,
+            m.MachineName,
+            m.MachineType,
+            m.PurchaseCost,
+            m.CurrentValue,
+            m.Status,
+            m.TotalMaintenanceCost,
+            m.ExpenseCount,
+            MaintenanceToCostRatio = m.PurchaseCost > 0 ? Math.Round((m.TotalMaintenanceCost / m.PurchaseCost) * 100, 2) : 0,
+            EstimatedNetValue = Math.Max(0, m.CurrentValue - m.TotalMaintenanceCost)
+        });
+
+        return Ok(new
+        {
+            success = true,
+            message = "Machinery Fleet ROI & Maintenance analysis retrieved successfully.",
+            data = report
+        });
+    }
+
     private static MachineryDto ToDto(Models.Machinery entity, int expenseCount = 0, decimal totalExpenses = 0m) => new()
     {
         Id = entity.Id,
