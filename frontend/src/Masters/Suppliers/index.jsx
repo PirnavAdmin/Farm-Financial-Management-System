@@ -111,6 +111,16 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
   const [viewingSupplier, setViewingSupplier] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type, item }
 
+  // Three-dot action menu state
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+    const handleClickOutside = () => setOpenActionMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [openActionMenuId]);
+
   // Quick Transaction & Payment Modals
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [txFormData, setTxFormData] = useState(EMPTY_TRANSACTION_FORM);
@@ -739,10 +749,11 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                     </td>
                   </tr>
                 ) : (
-                  currentSuppliersPage.map((s) => {
+                  currentSuppliersPage.map((s, index) => {
                     const fin = supplierService.computeSupplierFinancials(s, transactionsList, paymentsList);
                     const displayName = s.supplierName || s.supplier || 'Supplier';
                     const avatarLetter = (displayName.charAt(0) || 'S').toUpperCase();
+                    const isNearBottom = index >= currentSuppliersPage.length - 2 && currentSuppliersPage.length > 2;
 
                     return (
                       <tr key={s.id}>
@@ -807,37 +818,65 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                         <td>
                           <div className="sup-actions">
                             <button
-                              className="sup-action-btn"
+                              className={`sup-action-btn sup-menu-trigger ${openActionMenuId === s.id ? 'active' : ''}`}
                               type="button"
-                              title="View Supplier Profile"
-                              onClick={() => setViewingSupplier(s)}
+                              title="Actions"
+                              aria-label="Actions menu"
+                              aria-expanded={openActionMenuId === s.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenActionMenuId(openActionMenuId === s.id ? null : s.id);
+                              }}
                             >
-                              👁
+                              ⋮
                             </button>
-                            <button
-                              className="sup-action-btn"
-                              type="button"
-                              title="Edit Supplier"
-                              onClick={() => handleOpenEdit(s)}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              className="sup-action-btn pay"
-                              type="button"
-                              title="Record Payment"
-                              onClick={() => handleQuickPay(s)}
-                            >
-                              ₹
-                            </button>
-                            <button
-                              className="sup-action-btn delete"
-                              type="button"
-                              title="Delete Supplier"
-                              onClick={() => setDeleteConfirm({ type: 'supplier', item: s })}
-                            >
-                              ⛌
-                            </button>
+                            {openActionMenuId === s.id && (
+                              <div
+                                className={`sup-action-dropdown ${isNearBottom ? 'drop-up' : ''}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setViewingSupplier(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">👁</span> View
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleOpenEdit(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">✎</span> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleQuickPay(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">₹</span> Payment
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item delete"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setDeleteConfirm({ type: 'supplier', item: s });
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">⛌</span> Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
