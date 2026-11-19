@@ -40,6 +40,7 @@ var mySqlServerVersion = new MySqlServerVersion(new Version(8, 0, 46));
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(mySqlConnectionString, mySqlServerVersion, sqlOptions =>
     {
+        sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_Auth");
         sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(120);
     }));
