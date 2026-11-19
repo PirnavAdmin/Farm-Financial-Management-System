@@ -10,6 +10,7 @@ import Farms from './Masters/Farms/farms.jsx'
 import ExpenseCategories from './Masters/Expense Categories/expense categories.jsx'
 import IncomeCategories from './Masters/Income Categories/income categories.jsx'
 import Suppliers from './Masters/Suppliers/index.jsx'
+import Machinery from './Masters/Machinery/index.jsx'
 import { authRequest } from './auth.js'
 
 import Crops from './Masters/Crops/index.jsx'
@@ -46,7 +47,7 @@ import Labour from './Agriculture/Labour Attendance/Labour.jsx'
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
-  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products', 'Suppliers'] },
+  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products', 'Suppliers', 'Machinery'] },
   { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
   { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
   { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
@@ -572,6 +573,8 @@ function App() {
             <Farms />
           ) : active === 'Suppliers' ? (
             <Suppliers onNavigate={selectItem} />
+          ) : active === 'Machinery' || active === 'Machinery & Equipment' || active === 'Machinery Usage' ? (
+            <Machinery onNavigate={selectItem} />
           ) : active === 'Dashboard' ? (
               <Dashboard onNavigate={selectItem} userName={userName} />
             ) : (
