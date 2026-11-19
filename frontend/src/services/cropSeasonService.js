@@ -16,7 +16,9 @@ const SEED_SEASONS = [
     actualHarvestDate: '2025-11-18',
     area: '10 Acres',
     expectedYield: '120 Quintals',
+    actualYield: '118 Quintals',
     expectedRevenue: '₹ 8,50,000',
+    actualRevenue: '₹ 8,35,000',
     status: 'Harvested'
   },
   {
@@ -70,7 +72,9 @@ const SEED_SEASONS = [
     actualHarvestDate: '2025-10-14',
     area: '3 Acres',
     expectedYield: '65 Quintals',
+    actualYield: '68 Quintals',
     expectedRevenue: '₹ 90,000',
+    actualRevenue: '₹ 92,500',
     status: 'Harvested'
   },
   {
@@ -163,6 +167,7 @@ export const cropSeasonService = {
       const farm = s.farm || s.farmName || s.parcel || 'Farm 1 (South Block)';
       const crop = s.crop || s.cropName || 'Cotton';
       const variety = s.variety || s.varietyName || 'Standard';
+      const seedMatch = SEED_SEASONS.find(seed => seed.id === s.id || seed.seasonCode === s.seasonCode);
       return {
         ...s,
         id: s.id || seasonCode,
@@ -173,6 +178,8 @@ export const cropSeasonService = {
         cropName: s.cropName || crop,
         variety,
         varietyName: s.varietyName || variety,
+        actualYield: s.actualYield !== undefined ? s.actualYield : (seedMatch?.actualYield || ''),
+        actualRevenue: s.actualRevenue !== undefined ? s.actualRevenue : (seedMatch?.actualRevenue || ''),
       };
     });
     const getSeasonNumeric = (s) => {

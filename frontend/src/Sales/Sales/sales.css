@@ -1,4 +1,580 @@
-﻿@import '../../Settings/Users/Users.css';
+@import '../../Settings/Users/Users.css';
 
-.sales-screen .users-table { min-width: 1100px; }
-.sales-screen .users-table td { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+/* ── Sales Theme Variables & Core Spacing ── */
+.sales-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── View Switcher Tabs ── */
+.sales-view-switch {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.sales-view-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #dcdfdc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #526356;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.sales-view-switch button:hover {
+  border-color: #15803d;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.sales-view-switch button.selected {
+  border-color: #166534;
+  color: #ffffff;
+  background: #166534;
+  box-shadow: 0 2px 6px rgba(22, 101, 52, 0.25);
+}
+
+.sales-view-switch button .tab-count {
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #edf3ee;
+  color: #366341;
+}
+
+.sales-view-switch button.selected .tab-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ── KPI Summary Cards ── */
+.sales-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 1024px) {
+  .sales-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sales-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #e2e8e1;
+  border-radius: 8px;
+  background: #ffffff;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sales-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sales-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sales-icon-green { background: #eaf5ec; color: #15803d; }
+.sales-icon-blue  { background: #eff6ff; color: #2563eb; }
+.sales-icon-amber { background: #fefce8; color: #b45309; }
+.sales-icon-purple{ background: #f5f3ff; color: #7c3aed; }
+.sales-icon-rose  { background: #fff1f2; color: #e11d48; }
+
+.sales-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sales-stat-info small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sales-stat-info strong {
+  color: #0f172a;
+  font-size: 19px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-stat-info span {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+/* ── Filter Toolbar Enhancements ── */
+.sales-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fafbfa;
+  border-bottom: 1px solid #eef2ed;
+}
+
+.sales-toolbar .sales-search {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sales-toolbar .sales-search span {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.sales-toolbar .sales-search input {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  border: 1px solid #dcdfdc;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.sales-toolbar select,
+.sales-toolbar input[type="date"] {
+  padding: 7px 10px;
+  border: 1px solid #dcdfdc;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.sales-date-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.sales-reset-btn {
+  padding: 7px 12px;
+  border: 1px solid #dcdfdc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sales-reset-btn:hover {
+  border-color: #166534;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+/* ── Table & Column Styling ── */
+.sales-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.sales-table themin-width {
+  min-width: 1180px;
+}
+
+.sales-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.4px;
+  padding: 11px 12px;
+  border-bottom: 1.5px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.sales-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sales-table tbody tr:hover {
+  background-color: #f8faf9;
+}
+
+.sales-code-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sales-crop-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.sales-bold-amount {
+  font-weight: 750;
+  color: #0f172a;
+}
+
+/* ── Status Badges ── */
+.sales-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.sales-status-paid {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.sales-status-paid i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.sales-status-partial {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.sales-status-partial i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.sales-status-pending {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.sales-status-pending i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+/* ── Actions Buttons in Table ── */
+.sales-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sales-btn-action {
+  border: 1px solid #dcdfdc;
+  border-radius: 5px;
+  background: #ffffff;
+  cursor: pointer;
+  padding: 4px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sales-btn-action:hover {
+  border-color: #166534;
+  color: #166534;
+  background: #f4fbf5;
+}
+
+.sales-btn-pay {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.sales-btn-pay:hover {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+
+.sales-btn-danger:hover {
+  border-color: #ef4444;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/* ── Form Layout & Calculations Box ── */
+.sales-modal-large {
+  max-width: 720px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-form-section {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sales-form-section:last-child {
+  border-bottom: none;
+}
+
+.sales-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.sales-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.sales-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .sales-form-grid-3,
+  .sales-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sales-calc-display-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 52px;
+}
+
+.sales-calc-display-box small {
+  color: #166534;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sales-calc-display-box strong {
+  color: #15803d;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* ── View Sale Details Modal ── */
+.sales-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+}
+
+.sales-detail-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sales-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sales-detail-item small {
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.sales-detail-item span {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sales-detail-item strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+/* ── Payments Mini Table inside View Modal ── */
+.sales-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  margin-top: 8px;
+}
+
+.sales-mini-table th {
+  background: #f8fafc;
+  padding: 6px 10px;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.sales-mini-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+/* ── Delete Confirmation Dialog ── */
+.sales-delete-modal {
+  max-width: 440px;
+  padding: 22px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.sales-delete-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.sales-delete-modal h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.sales-delete-modal p {
+  color: #64748b;
+  font-size: 12.5px;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.sales-delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.sales-delete-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sales-delete-confirm {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+}
+
+.sales-delete-confirm:hover {
+  background: #b91c1c;
+}
+
+.sales-delete-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.sales-delete-cancel:hover {
+  background: #e2e8f0;
+}

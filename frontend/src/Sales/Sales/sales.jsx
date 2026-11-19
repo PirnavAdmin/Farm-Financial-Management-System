@@ -1,85 +1,1056 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import './sales.css'
+import { useEffect, useMemo, useState } from 'react';
+import salesService, { formatCurrency, formatDate } from '../../services/salesService';
+import './sales.css';
 
-const screenName = 'Sales'
-const fields = ["Sales No","Sales Date","Buyer","Farm","Crop","Quantity","Unit","Rate","Gross Amount","Commission","Transport","Net Amount","Payment Status"]
-const initialRows = [["SAL-2026-0088","22 Oct 2026","Sri Lakshmi Traders","North Field","Paddy","12,500","kg","₹28","₹3,50,000","₹3,500","₹2,000","₹3,44,500","Part Paid"],["SAL-2026-0087","20 Oct 2026","Dairy Cooperative","Lake Farm","Milk","820","litre","₹42","₹34,440","₹0","₹500","₹33,940","Paid"]]
-const description = 'Record crop and farm produce sales, pricing, deductions, and payment status.'
-const storeKey = `agriman-sales-${screenName.toLowerCase().replace(/\s+/g, '-')}`
-const recordsSeed = initialRows.map((values) => Object.fromEntries(fields.map((field, index) => [field, values[index] || ''])))
+export default function Sales({ onNavigate }) {
+  const [sales, setSales] = useState([]);
+  const [buyers, setBuyers] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [crops, setCrops] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
 
-function readRecords() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storeKey))
-    return Array.isArray(saved) ? saved : recordsSeed
-  } catch {
-    return recordsSeed
-  }
+  // Filters state
+  const [query, setQuery] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [buyerFilter, setBuyerFilter] = useState('All');
+  const [farmFilter, setFarmFilter] = useState('All');
+  const [cropFilter, setCropFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
+
+  // Modals state
+  const [saleModal, setSaleModal] = useState(null); // null | { isEdit: boolean, data: object }
+  const [viewDetails, setViewDetails] = useState(null); // null | sale object
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // null | sale object
+
+  // Form state
+  const initialForm = {
+    salesNo: '',
+    salesDate: new Date().toISOString().slice(0, 10),
+    buyer: '',
+    farm: '',
+    crop: '',
+    quantity: '',
+    unit: 'Quintals',
+    rate: '',
+    grossAmount: 0,
+    commission: 0,
+    transport: 0,
+    netAmount: 0,
+    paymentStatus: 'Pending'
+  };
+  const [formData, setFormData] = useState(initialForm);
+  const [formErrors, setFormErrors] = useState({});
+
+  // Toast auto-hide
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(''), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Load all data
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [salesList, buyersList, farmsList, cropsList, paymentsList] = await Promise.all([
+        salesService.getSales(),
+        salesService.getBuyers(),
+        salesService.getFarms(),
+        salesService.getCrops(),
+        salesService.getPayments()
+      ]);
+      setSales(salesList);
+      setBuyers(buyersList);
+      setFarms(farmsList);
+      setCrops(cropsList);
+      setPayments(paymentsList);
+    } catch (err) {
+      console.error('[Sales] Error loading data:', err);
+      setToast('Failed to load sales data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [query, fromDate, toDate, buyerFilter, farmFilter, cropFilter, statusFilter]);
+
+  // Handle Form Change with dynamic auto-calculation
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+
+      const qty = parseFloat(name === 'quantity' ? value : next.quantity) || 0;
+      const rate = parseFloat(name === 'rate' ? value : next.rate) || 0;
+      const comm = parseFloat(name === 'commission' ? value : next.commission) || 0;
+      const transp = parseFloat(name === 'transport' ? value : next.transport) || 0;
+
+      const gross = Math.round(qty * rate * 100) / 100;
+      const net = Math.max(0, Math.round((gross - comm - transp) * 100) / 100);
+
+      next.grossAmount = gross;
+      next.netAmount = net;
+
+      return next;
+    });
+
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Open Add Modal
+  const openAddModal = () => {
+    const defaultBuyer = buyers[0]?.buyerName || '';
+    const defaultFarm = farms[0] || '';
+    const defaultCrop = crops[0] || '';
+    const year = new Date().getFullYear();
+
+    const existingSeq = sales
+      .map((s) => s.salesNo)
+      .filter((no) => no && no.startsWith(`SAL-${year}-`))
+      .map((no) => parseInt(no.replace(`SAL-${year}-`, ''), 10))
+      .filter((n) => !isNaN(n));
+    const nextSeq = existingSeq.length > 0 ? Math.max(...existingSeq) + 1 : sales.length + 1;
+    const generatedNo = `SAL-${year}-${String(nextSeq).padStart(3, '0')}`;
+
+    setFormData({
+      ...initialForm,
+      salesNo: generatedNo,
+      salesDate: new Date().toISOString().slice(0, 10),
+      buyer: defaultBuyer,
+      farm: defaultFarm,
+      crop: defaultCrop,
+      unit: 'Quintals'
+    });
+    setFormErrors({});
+    setSaleModal({ isEdit: false });
+  };
+
+  // Open Edit Modal
+  const openEditModal = (sale) => {
+    setFormData({
+      id: sale.id,
+      salesNo: sale.salesNo,
+      salesDate: (sale.salesDate || '').slice(0, 10),
+      buyer: sale.buyer,
+      farm: sale.farm,
+      crop: sale.crop,
+      quantity: sale.quantity,
+      unit: sale.unit || 'Quintals',
+      rate: sale.rate,
+      grossAmount: sale.grossAmount,
+      commission: sale.commission || 0,
+      transport: sale.transport || 0,
+      netAmount: sale.netAmount,
+      paymentStatus: sale.paymentStatus || 'Pending'
+    });
+    setFormErrors({});
+    setSaleModal({ isEdit: true, data: sale });
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.buyer?.trim()) errors.buyer = 'Buyer is required.';
+    if (!formData.farm?.trim()) errors.farm = 'Farm is required.';
+    if (!formData.crop?.trim()) errors.crop = 'Crop is required.';
+    if (!formData.salesDate) errors.salesDate = 'Sales Date is required.';
+
+    const qty = parseFloat(formData.quantity);
+    if (isNaN(qty) || qty <= 0) errors.quantity = 'Quantity must be greater than 0.';
+
+    const rate = parseFloat(formData.rate);
+    if (isNaN(rate) || rate <= 0) errors.rate = 'Rate must be greater than 0.';
+
+    const comm = parseFloat(formData.commission);
+    if (isNaN(comm) || comm < 0) errors.commission = 'Commission cannot be negative.';
+
+    const transp = parseFloat(formData.transport);
+    if (isNaN(transp) || transp < 0) errors.transport = 'Transport cannot be negative.';
+
+    if (formData.netAmount < 0) errors.netAmount = 'Net Amount cannot be negative.';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle Save
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setSaving(true);
+    try {
+      if (saleModal.isEdit) {
+        await salesService.updateSale(formData.id, formData);
+        setToast(`Sale #${formData.salesNo} updated successfully.`);
+      } else {
+        await salesService.createSale(formData);
+        setToast(`Sale #${formData.salesNo} created successfully.`);
+      }
+      setSaleModal(null);
+      await loadData();
+    } catch (err) {
+      setToast(err.message || 'Failed to save sales record.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle Delete
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await salesService.deleteSale(deleteConfirm.id, deleteConfirm.salesNo);
+      setToast(`Sale #${deleteConfirm.salesNo} deleted.`);
+      setDeleteConfirm(null);
+      if (viewDetails?.id === deleteConfirm.id) setViewDetails(null);
+      await loadData();
+    } catch (err) {
+      setToast(err.message || 'Failed to delete sale.');
+    }
+  };
+
+  // KPI Calculations
+  const totalSalesCount = sales.length;
+  const totalGross = sales.reduce((sum, s) => sum + (Number(s.grossAmount) || 0), 0);
+  const totalDeductions = sales.reduce((sum, s) => sum + (Number(s.commission) || 0) + (Number(s.transport) || 0), 0);
+  const totalNet = sales.reduce((sum, s) => sum + (Number(s.netAmount) || 0), 0);
+
+  // Filtered Sales
+  const filteredSales = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return sales.filter((s) => {
+      // Search
+      const matchSearch =
+        !q ||
+        (s.salesNo && s.salesNo.toLowerCase().includes(q)) ||
+        (s.buyer && s.buyer.toLowerCase().includes(q)) ||
+        (s.farm && s.farm.toLowerCase().includes(q)) ||
+        (s.crop && s.crop.toLowerCase().includes(q));
+
+      // Date Range
+      const saleDate = (s.salesDate || '').slice(0, 10);
+      const matchFrom = !fromDate || saleDate >= fromDate;
+      const matchTo = !toDate || saleDate <= toDate;
+
+      // Dropdown filters
+      const matchBuyer = buyerFilter === 'All' || s.buyer === buyerFilter;
+      const matchFarm = farmFilter === 'All' || s.farm === farmFilter;
+      const matchCrop = cropFilter === 'All' || s.crop === cropFilter;
+
+      // Status
+      const matchStatus =
+        statusFilter === 'All' ||
+        (s.paymentStatus || 'Pending').toLowerCase() === statusFilter.toLowerCase();
+
+      return matchSearch && matchFrom && matchTo && matchBuyer && matchFarm && matchCrop && matchStatus;
+    });
+  }, [sales, query, fromDate, toDate, buyerFilter, farmFilter, cropFilter, statusFilter]);
+
+  // Pagination calculations
+  const totalRecords = filteredSales.length;
+  const pageCount = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = filteredSales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Reset all filters
+  const resetFilters = () => {
+    setQuery('');
+    setFromDate('');
+    setToDate('');
+    setBuyerFilter('All');
+    setFarmFilter('All');
+    setCropFilter('All');
+    setStatusFilter('All');
+    setPage(1);
+  };
+
+  return (
+    <div className="users-page sales-page-container">
+      {/* Title & Header */}
+      <div className="users-title-row">
+        <div>
+          <div className="users-eyebrow">
+            SALES <span>/</span> SALES TRANSACTIONS
+          </div>
+          <h1>Sales Transactions</h1>
+          <p>Record crop and farm produce sales, automated pricing, deductions, and payment status.</p>
+        </div>
+        <button className="users-add" type="button" onClick={openAddModal}>
+          <span>＋</span> Add New Sale
+        </button>
+      </div>
+
+      {/* KPI Stats Cards */}
+      <div className="sales-stats-grid">
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-green">▤</span>
+          <div className="sales-stat-info">
+            <small>TOTAL SALES</small>
+            <strong>{totalSalesCount} Transactions</strong>
+            <span>Recorded sales cycles</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-blue">₹</span>
+          <div className="sales-stat-info">
+            <small>GROSS AMOUNT</small>
+            <strong>{formatCurrency(totalGross)}</strong>
+            <span>Total harvest billing</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-amber">⇄</span>
+          <div className="sales-stat-info">
+            <small>COMMISSION & TRANSPORT</small>
+            <strong>{formatCurrency(totalDeductions)}</strong>
+            <span>Operational deductions</span>
+          </div>
+        </article>
+
+        <article className="sales-stat-card">
+          <span className="sales-stat-icon sales-icon-purple">✓</span>
+          <div className="sales-stat-info">
+            <small>NET REALIZED AMOUNT</small>
+            <strong>{formatCurrency(totalNet)}</strong>
+            <span>Actual farm receivables</span>
+          </div>
+        </article>
+      </div>
+
+      {/* Main Panel */}
+      <section className="users-panel">
+        {/* Filters Toolbar */}
+        <div className="sales-toolbar">
+          <div className="sales-search">
+            <span>⌕</span>
+            <input
+              type="text"
+              placeholder="Search by Sales No, Buyer, Farm, Crop..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="sales-date-filter-group">
+            <span>From:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              title="Filter from sales date"
+            />
+            <span>To:</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              title="Filter to sales date"
+            />
+          </div>
+
+          <select
+            value={buyerFilter}
+            onChange={(e) => setBuyerFilter(e.target.value)}
+            title="Filter by Buyer"
+          >
+            <option value="All">All Buyers</option>
+            {buyers.map((b) => (
+              <option key={b.id || b.buyerCode} value={b.buyerName}>
+                {b.buyerName}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={farmFilter}
+            onChange={(e) => setFarmFilter(e.target.value)}
+            title="Filter by Farm"
+          >
+            <option value="All">All Farms</option>
+            {farms.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={cropFilter}
+            onChange={(e) => setCropFilter(e.target.value)}
+            title="Filter by Crop"
+          >
+            <option value="All">All Crops</option>
+            {crops.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            title="Filter by Payment Status"
+          >
+            <option value="All">All Payment Statuses</option>
+            <option value="Paid">Paid</option>
+            <option value="Partially Paid">Partially Paid</option>
+            <option value="Pending">Pending</option>
+          </select>
+
+          <button className="sales-reset-btn" type="button" onClick={resetFilters}>
+            ↻ Reset Filters
+          </button>
+        </div>
+
+        {/* Data Table */}
+        <div className="sales-table-wrap">
+          <table className="sales-table">
+            <thead>
+              <tr>
+                <th>SALES NO</th>
+                <th>SALES DATE</th>
+                <th>BUYER</th>
+                <th>FARM</th>
+                <th>CROP</th>
+                <th>QTY</th>
+                <th>UNIT</th>
+                <th>RATE</th>
+                <th>GROSS AMOUNT</th>
+                <th>COMMISSION</th>
+                <th>TRANSPORT</th>
+                <th>NET AMOUNT</th>
+                <th>STATUS</th>
+                <th style={{ textAlign: 'center' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="14" style={{ textAlign: 'center', padding: '36px' }}>
+                    <div style={{ color: '#64748b', fontSize: '13px' }}>Loading sales transactions...</div>
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan="14">
+                    <div className="users-empty">
+                      <span>⌕</span>
+                      <strong>No sales transactions found</strong>
+                      <p>Try clearing filters or add a new sales entry.</p>
+                      <button type="button" onClick={resetFilters}>
+                        Clear Filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((sale) => {
+                  const status = sale.paymentStatus || 'Pending';
+                  const isPaid = status.toLowerCase() === 'paid';
+                  const isPartial = status.toLowerCase().includes('part');
+
+                  return (
+                    <tr key={sale.id || sale.salesNo}>
+                      <td>
+                        <span className="sales-code-badge">{sale.salesNo}</span>
+                      </td>
+                      <td>{formatDate(sale.salesDate)}</td>
+                      <td>
+                        <strong>{sale.buyer}</strong>
+                      </td>
+                      <td>{sale.farm || '—'}</td>
+                      <td>
+                        <span className="sales-crop-pill">{sale.crop}</span>
+                      </td>
+                      <td>{(Number(sale.quantity) || 0).toLocaleString('en-IN')}</td>
+                      <td>{sale.unit}</td>
+                      <td>{formatCurrency(sale.rate)}</td>
+                      <td>{formatCurrency(sale.grossAmount)}</td>
+                      <td>{Number(sale.commission) ? formatCurrency(sale.commission) : '₹0'}</td>
+                      <td>{Number(sale.transport) ? formatCurrency(sale.transport) : '₹0'}</td>
+                      <td className="sales-bold-amount">{formatCurrency(sale.netAmount)}</td>
+                      <td>
+                        <span
+                          className={`sales-status-badge ${
+                            isPaid
+                              ? 'sales-status-paid'
+                              : isPartial
+                              ? 'sales-status-partial'
+                              : 'sales-status-pending'
+                          }`}
+                        >
+                          <i /> {status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            className="sales-btn-action"
+                            title="View Details"
+                            onClick={() => setViewDetails(sale)}
+                          >
+                            👁️
+                          </button>
+                          <button
+                            type="button"
+                            className="sales-btn-action"
+                            title="Edit Sale"
+                            onClick={() => openEditModal(sale)}
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            className="sales-btn-action sales-btn-danger"
+                            title="Delete Sale"
+                            onClick={() => setDeleteConfirm(sale)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Table Footer & Pagination */}
+        <div className="users-table-footer">
+          <span>
+            Showing <strong>{totalRecords ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, totalRecords)}</strong> of <strong>{totalRecords}</strong> sales records
+          </span>
+          <div className="pagination">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => (
+              <button
+                key={i + 1}
+                type="button"
+                className={currentPage === i + 1 ? 'current' : ''}
+                onClick={() => setPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={currentPage === pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ADD / EDIT SALES ENTRY MODAL */}
+      {saleModal && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setSaleModal(null)}
+        >
+          <form className="user-modal sales-modal-large" onSubmit={handleSave}>
+            <header className="modal-header">
+              <div>
+                <span>SALES / {saleModal.isEdit ? 'EDIT SALE' : 'NEW SALE ENTRY'}</span>
+                <h2>{saleModal.isEdit ? `Edit Sale #${formData.salesNo}` : 'Add New Sale Entry'}</h2>
+                <p>Fill in the sales information, product rates, deductions, and payment status.</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSaleModal(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: 0 }}>
+              {/* SECTION 1: Sales Information */}
+              <div className="sales-form-section">
+                <div className="sales-section-title">1. Sales Information</div>
+                <div className="sales-form-grid-3">
+                  <label>
+                    Sales No
+                    <input
+                      type="text"
+                      name="salesNo"
+                      value={formData.salesNo}
+                      readOnly
+                      style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                      title="Auto-generated unique Sales Number"
+                    />
+                  </label>
+
+                  <label>
+                    Sales Date *
+                    <input
+                      type="date"
+                      name="salesDate"
+                      value={formData.salesDate}
+                      onChange={handleFormChange}
+                      required
+                    />
+                    {formErrors.salesDate && <small className="field-error">{formErrors.salesDate}</small>}
+                  </label>
+
+                  <label>
+                    Buyer / Customer *
+                    <select
+                      name="buyer"
+                      value={formData.buyer}
+                      onChange={handleFormChange}
+                      required
+                    >
+                      <option value="">Select Buyer</option>
+                      {buyers.map((b) => (
+                        <option key={b.id || b.buyerCode} value={b.buyerName}>
+                          {b.buyerName} ({b.buyerCode})
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.buyer && <small className="field-error">{formErrors.buyer}</small>}
+                  </label>
+                </div>
+
+                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                  <label>
+                    Farm *
+                    <select
+                      name="farm"
+                      value={formData.farm}
+                      onChange={handleFormChange}
+                      required
+                    >
+                      <option value="">Select Farm</option>
+                      {farms.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.farm && <small className="field-error">{formErrors.farm}</small>}
+                  </label>
+
+                  <label>
+                    Crop *
+                    <select
+                      name="crop"
+                      value={formData.crop}
+                      onChange={handleFormChange}
+                      required
+                    >
+                      <option value="">Select Crop</option>
+                      {crops.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.crop && <small className="field-error">{formErrors.crop}</small>}
+                  </label>
+                </div>
+              </div>
+
+              {/* SECTION 2: Product / Sales Details */}
+              <div className="sales-form-section">
+                <div className="sales-section-title">2. Product / Sales Details</div>
+                <div className="sales-form-grid-3">
+                  <label>
+                    Quantity *
+                    <input
+                      type="number"
+                      name="quantity"
+                      step="any"
+                      min="0.01"
+                      placeholder="e.g. 150"
+                      value={formData.quantity}
+                      onChange={handleFormChange}
+                      required
+                    />
+                    {formErrors.quantity && <small className="field-error">{formErrors.quantity}</small>}
+                  </label>
+
+                  <label>
+                    Unit *
+                    <select
+                      name="unit"
+                      value={formData.unit}
+                      onChange={handleFormChange}
+                      required
+                    >
+                      <option value="Quintals">Quintals</option>
+                      <option value="kg">kg</option>
+                      <option value="Ton">Ton</option>
+                      <option value="Bags">Bags</option>
+                      <option value="Litre">Litre</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Rate (₹ per unit) *
+                    <input
+                      type="number"
+                      name="rate"
+                      step="any"
+                      min="0.01"
+                      placeholder="e.g. 2200"
+                      value={formData.rate}
+                      onChange={handleFormChange}
+                      required
+                    />
+                    {formErrors.rate && <small className="field-error">{formErrors.rate}</small>}
+                  </label>
+                </div>
+              </div>
+
+              {/* SECTION 3: Amount Details & Calculations */}
+              <div className="sales-form-section">
+                <div className="sales-section-title">3. Amount Details (Auto-Calculated)</div>
+                <div className="sales-form-grid-2">
+                  <div className="sales-calc-display-box">
+                    <small>GROSS AMOUNT (Qty × Rate)</small>
+                    <strong>{formatCurrency(formData.grossAmount)}</strong>
+                  </div>
+
+                  <div className="sales-calc-display-box" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
+                    <small>NET REALIZED AMOUNT (Gross − Deductions)</small>
+                    <strong style={{ color: '#0f172a' }}>{formatCurrency(formData.netAmount)}</strong>
+                  </div>
+                </div>
+
+                <div className="sales-form-grid-2" style={{ marginTop: '12px' }}>
+                  <label>
+                    Commission (₹)
+                    <input
+                      type="number"
+                      name="commission"
+                      step="any"
+                      min="0"
+                      placeholder="e.g. 1500"
+                      value={formData.commission}
+                      onChange={handleFormChange}
+                    />
+                    {formErrors.commission && <small className="field-error">{formErrors.commission}</small>}
+                  </label>
+
+                  <label>
+                    Transport (₹)
+                    <input
+                      type="number"
+                      name="transport"
+                      step="any"
+                      min="0"
+                      placeholder="e.g. 2000"
+                      value={formData.transport}
+                      onChange={handleFormChange}
+                    />
+                    {formErrors.transport && <small className="field-error">{formErrors.transport}</small>}
+                  </label>
+                </div>
+              </div>
+
+              {/* SECTION 4: Payment Information */}
+              <div className="sales-form-section">
+                <div className="sales-section-title">4. Payment Information</div>
+                <div className="sales-form-grid-2">
+                  <label>
+                    Payment Status
+                    <select
+                      name="paymentStatus"
+                      value={formData.paymentStatus}
+                      onChange={handleFormChange}
+                    >
+                      <option value="Pending">Pending (Unpaid)</option>
+                      <option value="Partially Paid">Partially Paid</option>
+                      <option value="Paid">Paid (Full Settlement)</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer">
+              <span>Automatic computation: Gross = Qty × Rate; Net = Gross − Comm − Transp</span>
+              <div>
+                <button type="button" onClick={() => setSaleModal(null)}>
+                  Cancel
+                </button>
+                <button className="save-button" type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : saleModal.isEdit ? 'Update Sale Record' : 'Save Sale Record'}
+                </button>
+              </div>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {/* VIEW SALE DETAILS MODAL */}
+      {viewDetails && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setViewDetails(null)}
+        >
+          <div className="user-modal sales-modal-large" style={{ maxWidth: '680px' }}>
+            <header className="modal-header">
+              <div>
+                <span>SALES / SALE DETAILS</span>
+                <h2>Sale #{viewDetails.salesNo}</h2>
+                <p>Complete harvest billing, breakdown, and collection history.</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setViewDetails(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: 0 }}>
+              <div className="sales-detail-card">
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item">
+                    <small>SALES NUMBER</small>
+                    <span className="sales-code-badge">{viewDetails.salesNo}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>SALES DATE</small>
+                    <span>{formatDate(viewDetails.salesDate)}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>PAYMENT STATUS</small>
+                    <div>
+                      <span
+                        className={`sales-status-badge ${
+                          (viewDetails.paymentStatus || '').toLowerCase() === 'paid'
+                            ? 'sales-status-paid'
+                            : (viewDetails.paymentStatus || '').toLowerCase().includes('part')
+                            ? 'sales-status-partial'
+                            : 'sales-status-pending'
+                        }`}
+                      >
+                        <i /> {viewDetails.paymentStatus || 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item">
+                    <small>BUYER / CUSTOMER</small>
+                    <strong>{viewDetails.buyer}</strong>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>FARM</small>
+                    <span>{viewDetails.farm || '—'}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>CROP PRODUCE</small>
+                    <span className="sales-crop-pill">{viewDetails.crop}</span>
+                  </div>
+                </div>
+
+                <div className="sales-detail-row">
+                  <div className="sales-detail-item">
+                    <small>QUANTITY & UNIT</small>
+                    <span>
+                      {(Number(viewDetails.quantity) || 0).toLocaleString('en-IN')} {viewDetails.unit}
+                    </span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>UNIT RATE</small>
+                    <span>{formatCurrency(viewDetails.rate)} / {viewDetails.unit}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>GROSS AMOUNT</small>
+                    <strong style={{ color: '#2563eb' }}>{formatCurrency(viewDetails.grossAmount)}</strong>
+                  </div>
+                </div>
+
+                <div className="sales-detail-row" style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
+                  <div className="sales-detail-item">
+                    <small>COMMISSION</small>
+                    <span style={{ color: '#b45309' }}>− {formatCurrency(viewDetails.commission || 0)}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>TRANSPORT</small>
+                    <span style={{ color: '#b45309' }}>− {formatCurrency(viewDetails.transport || 0)}</span>
+                  </div>
+                  <div className="sales-detail-item">
+                    <small>NET REALIZED AMOUNT</small>
+                    <strong style={{ color: '#15803d', fontSize: '18px' }}>
+                      {formatCurrency(viewDetails.netAmount)}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Related Payments Section */}
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="sales-section-title" style={{ margin: 0 }}>
+                      Related Payment Collections
+                    </div>
+                    {onNavigate && (
+                      <button
+                        type="button"
+                        className="sales-btn-action"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => {
+                          setViewDetails(null);
+                          onNavigate('Payments & Receivables');
+                        }}
+                      >
+                        Go to Payments & Receivables →
+                      </button>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const related = payments.filter((p) => p.salesNo === viewDetails.salesNo);
+                    const totalCollected = related.reduce((sum, p) => sum + (Number(p.paymentAmount) || 0), 0);
+                    const balanceDue = Math.max(0, viewDetails.netAmount - totalCollected);
+
+                    if (related.length === 0) {
+                      return (
+                        <div style={{ padding: '16px', textAlign: 'center', background: '#fafafa', borderRadius: '6px', color: '#64748b', fontSize: '12px', marginTop: '8px' }}>
+                          No payment receipts recorded yet for this sale. Outstanding balance: <strong>{formatCurrency(viewDetails.netAmount)}</strong>.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ marginTop: '8px' }}>
+                        <table className="sales-mini-table">
+                          <thead>
+                            <tr>
+                              <th>VOUCHER</th>
+                              <th>DATE</th>
+                              <th>MODE</th>
+                              <th>REF NO</th>
+                              <th>AMOUNT</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {related.map((p) => (
+                              <tr key={p.id || p.paymentNo}>
+                                <td><span className="sales-code-badge">{p.paymentNo}</span></td>
+                                <td>{formatDate(p.paymentDate)}</td>
+                                <td>{p.paymentMode}</td>
+                                <td>{p.referenceNo || '—'}</td>
+                                <td><strong>{formatCurrency(p.paymentAmount)}</strong></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 4px 0', fontSize: '12px' }}>
+                          <span>Total Collected: <strong style={{ color: '#15803d' }}>{formatCurrency(totalCollected)}</strong></span>
+                          <span>Balance Due: <strong style={{ color: balanceDue > 0 ? '#b91c1c' : '#15803d' }}>{formatCurrency(balanceDue)}</strong></span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer">
+              <span>View-only details mode</span>
+              <div>
+                <button type="button" onClick={() => setViewDetails(null)}>
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="save-button"
+                  onClick={() => {
+                    const target = viewDetails;
+                    setViewDetails(null);
+                    openEditModal(target);
+                  }}
+                >
+                  Edit This Sale
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      {deleteConfirm && (
+        <div
+          className="dialog-backdrop"
+          onMouseDown={(e) => e.target === e.currentTarget && setDeleteConfirm(null)}
+        >
+          <div className="sales-delete-modal">
+            <span className="sales-delete-icon">⚠️</span>
+            <h3>Confirm Deletion</h3>
+            <p>
+              Are you sure you want to delete sales record <strong>#{deleteConfirm.salesNo}</strong> for <strong>{deleteConfirm.buyer}</strong> ({formatCurrency(deleteConfirm.netAmount)})?
+              <br />
+              <span style={{ fontSize: '11px', color: '#dc2626' }}>This will remove associated line items and payment references.</span>
+            </p>
+            <div className="sales-delete-actions">
+              <button
+                type="button"
+                className="sales-delete-cancel"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sales-delete-confirm"
+                onClick={handleDelete}
+              >
+                Yes, Delete Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="user-toast" role="status">
+          <span>✓</span>
+          {toast}
+          <button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>
+            ×
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
-
-function InventoryField({ field, value = '' }) {
-  const options = field === 'Payment Status' ? ['Pending', 'Part Paid', 'Paid', 'Overdue'] : field === 'Status' ? ['Active', 'Inactive']
-    : field === 'Payment Mode' ? ['Cash', 'Bank', 'UPI', 'Other']
-      : field === 'Unit' ? ['kg', 'quintal', 'tonne', 'litre', 'bag', 'piece', 'litre']
-        : field === 'Adjustment Type' ? ['Increase', 'Decrease'] : null
-  if (options) return <select name={field} defaultValue={value || options[0]}>{options.map((option) => <option key={option}>{option}</option>)}</select>
-  const dateValue = /^\d{1,2} [A-Za-z]{3} \d{4}$/.test(value)
-    ? (() => { const [day, month, year] = value.split(' '); const monthNumber = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(month) + 1; return `${year}-${String(monthNumber).padStart(2, '0')}-${day.padStart(2, '0')}` })()
-    : value
-  return <input name={field} type={field.toLowerCase().includes('date') ? 'date' : 'text'} defaultValue={dateValue} placeholder={`Enter ${field.toLowerCase()}`} />
-}
-
-function InventoryModal({ values, editing, onClose, onSave }) {
-  return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="user-modal" onSubmit={(event) => { event.preventDefault(); onSave(Object.fromEntries(new FormData(event.currentTarget).entries())) }}>
-    <header className="modal-header"><div><span>SALES / {screenName.toUpperCase()}</span><h2>{editing ? `Edit ${screenName} record` : `Add ${screenName} record`}</h2><p>Enter the sales and customer details.</p></div><button type="button" className="modal-close" aria-label="Close dialog" onClick={onClose}>×</button></header>
-    <div className="modal-body"><div className="form-section"><div className="form-grid">{fields.map((field) => <label className={['Description', 'Remarks', 'Reason'].includes(field) ? 'field-wide' : ''} key={field}>{field}<InventoryField field={field} value={values[field] || ''} /></label>)}</div></div></div>
-    <footer className="modal-footer"><span>Fields follow the sales requirements.</span><div><button type="button" onClick={onClose}>Cancel</button><button className="save-button" type="submit">Save record</button></div></footer>
-  </form></div>
-}
-
-export default function Sales() {
-  const [records, setRecords] = useState(readRecords)
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
-  const [paymentStatus, setPaymentStatus] = useState('All statuses')
-  const [modal, setModal] = useState(null)
-  const [toast, setToast] = useState('')
-
-  useEffect(() => { localStorage.setItem(storeKey, JSON.stringify(records)) }, [records])
-  useEffect(() => { setPage(1) }, [query, paymentStatus])
-  useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(''), 2800); return () => clearTimeout(timer) }, [toast])
-
-  const filtered = useMemo(() => records.filter((record) => {
-    const matchesText = Object.values(record).join(' ').toLowerCase().includes(query.toLowerCase())
-    return matchesText && (paymentStatus === 'All statuses' || (record['Payment Status'] || record.Status) === paymentStatus)
-  }), [records, query, paymentStatus])
-  const pageSize = 5
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  function saveRecord(values) {
-    setRecords((current) => modal.index === null ? [values, ...current] : current.map((record, index) => index === modal.index ? values : record))
-    setModal(null)
-    setToast(`${screenName} record ${modal.index === null ? 'added' : 'updated'}.`)
-  }
-  function deleteRecord(index) {
-    setRecords((current) => current.filter((_, rowIndex) => rowIndex !== index))
-    setToast(`${screenName} record deleted.`)
-  }
-
-  return <div className="users-page sales-screen">
-    <div className="users-title-row"><div><div className="users-eyebrow">INVENTORY <span>/</span> {screenName.toUpperCase()}</div><h1>{screenName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(fields.map((field) => [field, ''])) })}><span>＋</span> Add {screenName === 'Sales' ? 'Sale' : screenName === 'Customers' ? 'Customer' : 'Receivable'}</button></div>
-    <div className="users-stats"><article><span className="stat-symbol">▤</span><div><small>TOTAL RECORDS</small><strong>{records.length}</strong><span className="stat-hint">In this workspace</span></div><b className="stat-arrow">↗</b></article><article><span className="stat-symbol active-symbol">✓</span><div><small>ROWS ON PAGE</small><strong>{pageRows.length}</strong><span className="stat-hint">Currently displayed</span></div></article><article><span className="stat-symbol inactive-symbol">⌕</span><div><small>MATCHING FILTERS</small><strong>{filtered.length}</strong><span className="stat-hint">Search results</span></div></article></div>
-    <section className="users-panel"><div className="users-toolbar"><div className="user-search"><span>⌕</span><input aria-label={`Search ${screenName}`} placeholder={`Search ${screenName.toLowerCase()}...`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} /></div>{(fields.includes('Payment Status') || fields.includes('Status')) && <select aria-label="Filter by status" value={paymentStatus} onChange={(event) => { setPaymentStatus(event.target.value); setPage(1) }}><option>All statuses</option>{[...new Set(records.map((record) => record['Payment Status'] || record.Status).filter(Boolean))].map((value) => <option key={value}>{value}</option>)}</select>}<button className="reset-button" type="button" onClick={() => { setQuery(''); setPaymentStatus('All statuses'); setPage(1) }}>↻ <span>Reset Filters</span></button></div>
-      <div className="users-table-wrap"><table className="users-table"><thead><tr>{fields.map((field) => <th key={field}>{field.toUpperCase()}</th>)}<th>ACTIONS</th></tr></thead><tbody>{pageRows.map((record) => { const index = records.indexOf(record); return <tr key={`${screenName}-${index}`}>{fields.map((field, fieldIndex) => <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>{(field === 'Payment Status' || field === 'Status') ? <span className={`status-badge ${['Paid', 'Active'].includes(record[field]) ? 'active' : 'inactive'}`}>{record[field]}</span> : record[field] || '—'}</td>)}<td><div className="user-actions"><button type="button" title="Edit" aria-label={`Edit ${screenName} record`} onClick={() => setModal({ index, values: { ...record } })}>✎</button><button type="button" title="Delete" aria-label={`Delete ${screenName} record`} onClick={() => deleteRecord(index)}>♲</button></div></td></tr> })}{pageRows.length === 0 && <tr><td colSpan={fields.length + 1}><div className="users-empty"><span>⌕</span><strong>No {screenName.toLowerCase()} records found</strong><p>Add a record or change your search.</p><button type="button" onClick={() => { setQuery(''); setPaymentStatus('All statuses') }}>Clear filters</button></div></td></tr>}</tbody></table></div>
-      <div className="users-table-footer"><span>Showing <strong>{filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> records</span><div className="pagination"><button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button>{Array.from({ length: pageCount }, (_, index) => <button type="button" className={currentPage === index + 1 ? 'current' : ''} key={index} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div></div>
-    </section>
-    <div className="users-disclaimer">Demo workspace <span>•</span> Sales records are saved in this browser.</div>
-    {modal && <InventoryModal values={modal.values} editing={modal.index !== null} onClose={() => setModal(null)} onSave={saveRecord} />}
-    {toast && <div className="user-toast" role="status"><span>✓</span>{toast}<button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>×</button></div>}
-  </div>
-}
-
-
-

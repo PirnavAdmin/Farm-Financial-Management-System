@@ -51,7 +51,7 @@ const menuGroups = [
   { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
   { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
   { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
-  { label: 'Sales', icon: '▱', children: ['Sales', 'Customers', 'Receivables'] },
+  { label: 'Sales', icon: '▱', children: ['Sales Transactions', 'Customers', 'Payments & Receivables'] },
   { label: 'Reports', icon: '▥', children: ['Income Report', 'Expense Report', 'Crop Profit', 'Farm Profit', 'Cash Flow', 'P&L', 'Dashboard Reports'] },
   { label: 'Notifications', icon: '♧' },
   { label: 'Settings', icon: '⚙', children: ['Users', 'Roles', 'Company', 'Audit Log'] },
@@ -537,12 +537,12 @@ function App() {
               <StockLedger />
             ) : active === 'Low Stock' ? (
               <LowStock onNavigate={selectItem} />
-            ) : active === 'Sales' ? (
-              <Sales />
+            ) : active === 'Sales Transactions' || active === 'Sales' ? (
+              <Sales onNavigate={selectItem} />
             ) : active === 'Customers' ? (
-              <Customers />
-            ) : active === 'Receivables' ? (
-              <Receivables />
+              <Customers onNavigate={selectItem} />
+            ) : active === 'Payments & Receivables' || active === 'Receivables' ? (
+              <Receivables onNavigate={selectItem} />
             ) : active === 'Expense Categories' ? (
               <ExpenseCategories />
             ) : active === 'Income Categories' ? (
