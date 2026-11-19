@@ -8,15 +8,21 @@ public class RentalLandRecord
     public int Id { get; set; }
     public int? FarmerId { get; set; }
     public string TenantName { get; set; } = string.Empty;
-    public string Mobile { get; set; } = string.Empty;
-    public string SurveyNo { get; set; } = string.Empty;
+    public string TenantMobile { get; set; } = string.Empty;
+    public string Mobile { get => TenantMobile; set => TenantMobile = value; }
+    public string SurveyNumber { get; set; } = string.Empty;
+    public string SurveyNo { get => SurveyNumber; set => SurveyNumber = value; }
     public decimal LandArea { get; set; }
-    public string AreaUnit { get; set; } = "acres";
+    public string AreaUnit { get; set; } = "Acres";
     public string Village { get; set; } = string.Empty;
     public string Mandal { get; set; } = string.Empty;
     public string District { get; set; } = string.Empty;
-    public decimal Rent { get; set; }
-    public string LeasePeriod { get; set; } = string.Empty;
+    public decimal RentAmount { get; set; }
+    public decimal Rent { get => RentAmount; set => RentAmount = value; }
+    public string RentFrequency { get; set; } = "Monthly";
+    public string LeaseStartDate { get; set; } = "2026-06-01";
+    public string LeaseEndDate { get; set; } = "2027-05-31";
+    public string LeasePeriod { get; set; } = "1 Year (2026-2027)";
     public string Status { get; set; } = "Active";
     public string? Remarks { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -38,14 +44,17 @@ public class RentalLandsController : ControllerBase
             Id = _nextId++,
             FarmerId = 1,
             TenantName = "Ramesh Naidu",
-            Mobile = "9848012345",
-            SurveyNo = "SY-142/B",
+            TenantMobile = "9848012345",
+            SurveyNumber = "SY-142/B",
             LandArea = 15.0m,
-            AreaUnit = "acres",
+            AreaUnit = "Acres",
             Village = "Kankipadu",
             Mandal = "Kankipadu",
             District = "Krishna",
-            Rent = 45000m,
+            RentAmount = 45000m,
+            RentFrequency = "Monthly",
+            LeaseStartDate = "2026-06-01",
+            LeaseEndDate = "2027-05-31",
             LeasePeriod = "1 Year (2026-2027)",
             Status = "Active",
             Remarks = "Leased for Paddy Kharif cultivation",
@@ -87,6 +96,13 @@ public class RentalLandsController : ControllerBase
     {
         model.Id = Interlocked.Increment(ref _nextId);
         model.CreatedAt = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(model.TenantMobile) && !string.IsNullOrWhiteSpace(model.Mobile))
+            model.TenantMobile = model.Mobile;
+        if (string.IsNullOrWhiteSpace(model.SurveyNumber) && !string.IsNullOrWhiteSpace(model.SurveyNo))
+            model.SurveyNumber = model.SurveyNo;
+        if (model.RentAmount <= 0 && model.Rent > 0)
+            model.RentAmount = model.Rent;
+
         _store[model.Id] = model;
         return CreatedAtAction(nameof(GetById), new { id = model.Id }, model);
     }
@@ -99,6 +115,13 @@ public class RentalLandsController : ControllerBase
             return NotFound(new { message = $"Rental land record with ID {id} not found." });
         }
         model.Id = id;
+        if (string.IsNullOrWhiteSpace(model.TenantMobile) && !string.IsNullOrWhiteSpace(model.Mobile))
+            model.TenantMobile = model.Mobile;
+        if (string.IsNullOrWhiteSpace(model.SurveyNumber) && !string.IsNullOrWhiteSpace(model.SurveyNo))
+            model.SurveyNumber = model.SurveyNo;
+        if (model.RentAmount <= 0 && model.Rent > 0)
+            model.RentAmount = model.Rent;
+
         _store[id] = model;
         return Ok(model);
     }
