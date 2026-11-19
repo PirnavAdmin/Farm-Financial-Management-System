@@ -291,11 +291,11 @@ builder.Services.AddSwaggerGen(c =>
         }
         if (docName == "farmers")
         {
-            return name.StartsWith("Farmer");
+            return name.StartsWith("Farmer") || name.StartsWith("RentalLand");
         }
         if (docName == "farms")
         {
-            return name.StartsWith("Farm") || name.StartsWith("Master") || name.StartsWith("Dashboard") || name.StartsWith("TotalData") || name.StartsWith("Health");
+            return name.StartsWith("Farm") || name.StartsWith("RentalLand") || name.StartsWith("Master") || name.StartsWith("Dashboard") || name.StartsWith("TotalData") || name.StartsWith("Health");
         }
         if (docName == "income")
         {
@@ -372,6 +372,7 @@ builder.Services.AddSwaggerGen(c =>
         // 3. Farms & Land Management
         if (controllerName.Equals("Farms", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Farm Profiles" };
         if (controllerName.Equals("FarmLandDetails", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Land & Soil Details" };
+        if (controllerName.Equals("RentalLands", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Rental Land Details" };
         if (controllerName.Equals("FarmDocuments", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Farm Documents Vault" };
         if (controllerName.Equals("Masters", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Master Lookups (Soil & Irrigation)" };
 

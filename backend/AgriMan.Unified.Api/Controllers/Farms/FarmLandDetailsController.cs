@@ -17,6 +17,60 @@ public class FarmLandDetailsController : ControllerBase
         _context = context;
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<LandDetailDto>>> GetAllLandDetails(
+        [FromQuery] int? farmId = null,
+        [FromQuery] int? farmerId = null,
+        [FromQuery] string? landType = null)
+    {
+        var query = _context.FarmLandDetails
+            .Include(ld => ld.Farm)
+            .Include(ld => ld.IrrigationSource)
+            .Include(ld => ld.SoilType)
+            .AsNoTracking();
+
+        if (farmId.HasValue && farmId.Value > 0)
+        {
+            query = query.Where(ld => ld.FarmId == farmId.Value);
+        }
+
+        if (farmerId.HasValue && farmerId.Value > 0)
+        {
+            query = query.Where(ld => ld.Farm != null && ld.Farm.FarmerId == farmerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(landType))
+        {
+            query = query.Where(ld => ld.LandType.ToLower() == landType.Trim().ToLower());
+        }
+
+        var lands = await query.ToListAsync();
+
+        var result = lands.Select(ld => new LandDetailDto
+        {
+            Id = ld.Id,
+            FarmId = ld.FarmId,
+            FarmName = ld.Farm?.FarmName ?? "",
+            SurveyNumber = ld.SurveyNumber,
+            LandArea = ld.LandArea,
+            AreaUnit = ld.AreaUnit,
+            LandType = ld.LandType,
+            IrrigationSourceId = ld.IrrigationSourceId,
+            IrrigationSourceName = ld.IrrigationSource?.Name ?? "N/A",
+            SoilTypeId = ld.SoilTypeId,
+            SoilTypeName = ld.SoilType?.Name ?? "N/A",
+            BoundariesNorth = ld.BoundariesNorth,
+            BoundariesSouth = ld.BoundariesSouth,
+            BoundariesEast = ld.BoundariesEast,
+            BoundariesWest = ld.BoundariesWest,
+            Remarks = ld.Remarks,
+            CreatedAt = ld.CreatedAt,
+            UpdatedAt = ld.UpdatedAt
+        }).ToList();
+
+        return Ok(result);
+    }
+
     [HttpGet("farm/{farmId:int}")]
     public async Task<ActionResult<IEnumerable<LandDetailDto>>> GetLandDetailsByFarm(int farmId)
     {

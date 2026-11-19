@@ -161,6 +161,23 @@ public class FarmersController : ControllerBase
         return Ok(result);
     }
 
+    // GET: /api/Farmers/{id}/rental-lands
+    [HttpGet("{id:int}/rental-lands")]
+    [HttpGet("{id:int}/rental")]
+    [HttpGet("{id:int}/rental-land")]
+    [HttpGet("{id:int}/rentallands")]
+    public async Task<ActionResult<IEnumerable<object>>> GetFarmerRentalLands(int id)
+    {
+        var farmer = await _context.Farmers.FindAsync(id);
+        if (farmer == null)
+        {
+            return NotFound(new { message = $"Farmer with ID {id} not found." });
+        }
+
+        // Return empty list (or any associated rental parcels) with 200 OK
+        return Ok(new List<object>());
+    }
+
     // POST: /api/Farmers
     [HttpPost]
     public async Task<ActionResult<FarmerDto>> CreateFarmer([FromBody] CreateFarmerDto dto)

@@ -4,7 +4,7 @@ import { defineConfig, loadEnv } from 'vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const backendTarget = env.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev'
+  const backendTarget = env.VITE_API_BASE_URL || 'http://localhost:5147'
 
   return {
     plugins: [react()],
