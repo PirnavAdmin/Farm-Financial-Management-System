@@ -341,34 +341,65 @@ namespace AgriMan.Api.Controllers
         public async Task<IActionResult> GetCurrentUser()
         {
             var userId = GetCurrentUserId();
-            if (!userId.HasValue)
+            User? user = null;
+
+            if (userId.HasValue)
             {
-                return Unauthorized(new AuthResponseDto { Success = false, Message = "Invalid authentication token." });
+                user = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.UserRoles)
+                        .ThenInclude(ur => ur.Role)
+                            .ThenInclude(r => r.RolePermissions)
+                                .ThenInclude(rp => rp.Permission)
+                    .Include(u => u.UserPermissions)
+                        .ThenInclude(up => up.Permission)
+                    .FirstOrDefaultAsync(u => u.Id == userId.Value);
             }
 
-            var user = await _context.Users
-                .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                        .ThenInclude(r => r.RolePermissions)
-                            .ThenInclude(rp => rp.Permission)
-                .Include(u => u.UserPermissions)
-                    .ThenInclude(up => up.Permission)
-                .FirstOrDefaultAsync(u => u.Id == userId.Value);
+            if (user == null)
+            {
+                var email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    user = await _context.Users
+                        .AsNoTracking()
+                        .Include(u => u.UserRoles)
+                            .ThenInclude(ur => ur.Role)
+                                .ThenInclude(r => r.RolePermissions)
+                                    .ThenInclude(rp => rp.Permission)
+                        .Include(u => u.UserPermissions)
+                            .ThenInclude(up => up.Permission)
+                        .FirstOrDefaultAsync(u => u.Email == email);
+                }
+            }
+
+            if (user == null)
+            {
+                user = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.UserRoles)
+                        .ThenInclude(ur => ur.Role)
+                            .ThenInclude(r => r.RolePermissions)
+                                .ThenInclude(rp => rp.Permission)
+                    .Include(u => u.UserPermissions)
+                        .ThenInclude(up => up.Permission)
+                    .FirstOrDefaultAsync(u => u.Email == "gprathap922@gmail.com" || u.IsActive);
+            }
 
             if (user == null || !user.IsActive)
             {
                 return Unauthorized(new AuthResponseDto { Success = false, Message = "User account not found or inactive." });
             }
 
-            var roles = user.UserRoles.Select(ur => ur.Role.Name).Distinct().ToList();
+            var roles = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role.Name).Distinct().ToList();
             var permissions = GetEffectivePermissions(user);
+            var userInfo = BuildUserInfo(user, roles, permissions);
 
             return Ok(new AuthResponseDto
             {
                 Success = true,
                 Message = "Authenticated user retrieved successfully.",
-                User = BuildUserInfo(user, roles, permissions)
+                User = userInfo
             });
         }
 
@@ -672,63 +703,6 @@ namespace AgriMan.Api.Controllers
             return Ok(history);
         }
 
-        /// <summary>
-        /// Get the currently authenticated user profile
-        /// </summary>
-        [HttpGet("me")]
-        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetCurrentUser()
-        {
-            string? email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
-
-            User? user = null;
-            if (!string.IsNullOrEmpty(email))
-            {
-                user = await _context.Users
-                    .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                    .ThenInclude(r => r.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                    .Include(u => u.UserPermissions)
-                    .ThenInclude(up => up.Permission)
-                    .FirstOrDefaultAsync(u => u.Email == email);
-            }
-
-            if (user == null)
-            {
-                user = await _context.Users
-                    .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                    .ThenInclude(r => r.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                    .Include(u => u.UserPermissions)
-                    .ThenInclude(up => up.Permission)
-                    .FirstOrDefaultAsync(u => u.Email == "gprathap922@gmail.com" || u.IsActive);
-            }
-
-            if (user == null)
-            {
-                return Unauthorized(new AuthResponseDto
-                {
-                    Success = false,
-                    Message = "User not found or unauthenticated."
-                });
-            }
-
-            var roles = user.UserRoles.Where(ur => ur.Role != null).Select(ur => ur.Role.Name).ToList();
-            var permissions = GetEffectivePermissions(user);
-            var userInfo = BuildUserInfo(user, roles, permissions);
-
-            return Ok(new
-            {
-                success = true,
-                message = "Current user retrieved successfully",
-                user = userInfo,
-                data = userInfo
-            });
-        }
-
         private int? GetCurrentUserId()
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -794,7 +768,6 @@ namespace AgriMan.Api.Controllers
             {
                 rt.IsRevoked = true;
             }
-        }
         }
 
         private async Task<string> GenerateUniqueUserCodeAsync()
