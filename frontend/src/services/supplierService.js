@@ -1,5 +1,175 @@
 import api from './api.js';
 
+// ─── Normalization Helpers ───────────────────────────────────────────────────
+export function normalizeSupplier(raw, index = 0) {
+  if (!raw || typeof raw !== 'object') {
+    const id = index + 1;
+    return {
+      id,
+      supplierCode: `SUP-${String(id).padStart(3, '0')}`,
+      supplierName: `Supplier ${id}`,
+      supplierType: 'General',
+      mobile: '',
+      email: '',
+      address: '',
+      city: '',
+      district: '',
+      state: 'Andhra Pradesh',
+      pinCode: '',
+      gstin: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: '',
+      branchName: '',
+      openingBalance: 0,
+      status: 'Active',
+      notes: ''
+    };
+  }
+
+  const supplierName =
+    raw.supplierName ||
+    raw.supplier_name ||
+    raw.SupplierName ||
+    raw.name ||
+    raw.Name ||
+    raw.supplier ||
+    raw.Supplier ||
+    raw.companyName ||
+    raw.businessName ||
+    `Supplier ${raw.id || index + 1}`;
+
+  const supplierCode =
+    raw.supplierCode ||
+    raw.supplier_code ||
+    raw.SupplierCode ||
+    raw.code ||
+    raw.Code ||
+    `SUP-${String(raw.id || index + 1).padStart(3, '0')}`;
+
+  const supplierType =
+    raw.supplierType ||
+    raw.supplier_type ||
+    raw.SupplierType ||
+    raw.type ||
+    raw.Type ||
+    raw.category ||
+    raw.Category ||
+    raw.supplier ||
+    raw.Supplier ||
+    'General';
+
+  const mobile = String(
+    raw.mobile ||
+    raw.Mobile ||
+    raw.phoneNumber ||
+    raw.phone ||
+    raw.contact ||
+    ''
+  );
+
+  const email = String(raw.email || raw.Email || '');
+
+  const address = String(
+    raw.address ||
+    raw.Address ||
+    raw.street ||
+    raw.location ||
+    ''
+  );
+
+  const city = String(raw.city || raw.City || raw.village || raw.mandal || '');
+  const district = String(raw.district || raw.District || '');
+  const state = String(raw.state || raw.State || 'Andhra Pradesh');
+  const pinCode = String(raw.pinCode || raw.pin_code || raw.PinCode || raw.pin || '');
+  const gstin = String(raw.gstin || raw.GSTIN || raw.gstNo || '').toUpperCase();
+
+  const bankName = String(raw.bankName || raw.bank_name || raw.BankName || raw.bank || '');
+  const accountNumber = String(raw.accountNumber || raw.account_number || raw.AccountNumber || raw.accountNo || '');
+  const ifscCode = String(raw.ifscCode || raw.ifsc_code || raw.IfscCode || raw.ifsc || '').toUpperCase();
+  const branchName = String(raw.branchName || raw.branch_name || raw.BranchName || raw.branch || '');
+
+  const openingBalance = Number(
+    raw.openingBalance !== undefined
+      ? raw.openingBalance
+      : raw.opening_balance !== undefined
+      ? raw.opening_balance
+      : raw.OpeningBalance !== undefined
+      ? raw.OpeningBalance
+      : 0
+  ) || 0;
+
+  const status =
+    raw.status ||
+    raw.Status ||
+    (raw.isActive === false ? 'Inactive' : 'Active');
+
+  const notes = String(raw.notes || raw.Notes || raw.remarks || raw.description || '');
+
+  return {
+    ...raw,
+    id: raw.id ?? raw.Id ?? index + 1,
+    supplierCode,
+    supplierName,
+    supplierType,
+    mobile,
+    email,
+    address,
+    city,
+    district,
+    state,
+    pinCode,
+    gstin,
+    bankName,
+    accountNumber,
+    ifscCode,
+    branchName,
+    openingBalance,
+    status,
+    notes
+  };
+}
+
+export function normalizeTransaction(raw, index = 0) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  return {
+    ...raw,
+    id: raw.id ?? raw.Id ?? index + 1,
+    transactionCode: raw.transactionCode || raw.transaction_code || raw.TransactionCode || raw.code || `STX-${String(index + 1).padStart(3, '0')}`,
+    transactionDate: raw.transactionDate || raw.transaction_date || raw.TransactionDate || raw.date || new Date().toISOString().split('T')[0],
+    supplierId: Number(raw.supplierId ?? raw.supplier_id ?? raw.SupplierId ?? 0),
+    supplierName: String(raw.supplierName || raw.supplier_name || raw.SupplierName || raw.supplier || ''),
+    transactionType: String(raw.transactionType || raw.transaction_type || raw.TransactionType || 'Purchase'),
+    referenceNo: String(raw.referenceNo || raw.reference_no || raw.ReferenceNo || raw.invoiceNo || ''),
+    category: String(raw.category || raw.Category || 'General'),
+    itemsSummary: String(raw.itemsSummary || raw.items_summary || raw.ItemsSummary || raw.description || ''),
+    amount: Number(raw.amount ?? raw.total_amount ?? raw.Amount ?? 0) || 0,
+    paidAmount: Number(raw.paidAmount ?? raw.paid_amount ?? raw.PaidAmount ?? 0) || 0,
+    balanceAmount: Number(raw.balanceAmount ?? raw.balance_amount ?? raw.BalanceAmount ?? 0) || 0,
+    paymentStatus: String(raw.paymentStatus || raw.payment_status || raw.PaymentStatus || 'Pending'),
+    notes: String(raw.notes || raw.Notes || '')
+  };
+}
+
+export function normalizePayment(raw, index = 0) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  return {
+    ...raw,
+    id: raw.id ?? raw.Id ?? index + 1,
+    paymentCode: raw.paymentCode || raw.payment_code || raw.PaymentCode || raw.code || `SPY-${String(index + 1).padStart(3, '0')}`,
+    paymentDate: raw.paymentDate || raw.payment_date || raw.PaymentDate || raw.date || new Date().toISOString().split('T')[0],
+    supplierId: Number(raw.supplierId ?? raw.supplier_id ?? raw.SupplierId ?? 0),
+    supplierName: String(raw.supplierName || raw.supplier_name || raw.SupplierName || raw.supplier || ''),
+    amountPaid: Number(raw.amountPaid ?? raw.amount_paid ?? raw.AmountPaid ?? 0) || 0,
+    paymentMode: String(raw.paymentMode || raw.payment_mode || raw.PaymentMode || 'Bank Transfer'),
+    referenceNo: String(raw.referenceNo || raw.reference_no || raw.ReferenceNo || ''),
+    bankAccount: String(raw.bankAccount || raw.bank_account || raw.BankAccount || ''),
+    notes: String(raw.notes || raw.Notes || '')
+  };
+}
+
 // ─── Default Reference Seed Data ─────────────────────────────────────────────
 export const SEED_SUPPLIERS = [
   {
@@ -377,56 +547,48 @@ export const supplierService = {
   getSuppliers: async () => {
     try {
       const res = await api.get('/api/Suppliers');
-      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : null;
+
       if (Array.isArray(data) && data.length > 0) {
-        writeStorage(STORAGE_KEYS.SUPPLIERS, data);
-        return data;
+        const normalized = data.map((item, idx) => normalizeSupplier(item, idx));
+        writeStorage(STORAGE_KEYS.SUPPLIERS, normalized);
+        return normalized;
       }
     } catch {
       // Backend not yet hosting /api/Suppliers or offline, use persistent local store
     }
-    return readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    const rawList = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    return rawList.map((item, idx) => normalizeSupplier(item, idx));
   },
 
   getSupplierById: async (id) => {
     try {
       const res = await api.get(`/api/Suppliers/${id}`);
       const data = res.data?.data || res.data;
-      if (data && data.id) return data;
+      if (data && (data.id || data.Id)) return normalizeSupplier(data);
     } catch {
       // Local fallback
     }
-    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS).map(normalizeSupplier);
     return list.find((s) => String(s.id) === String(id)) || null;
   },
 
   createSupplier: async (supplierData) => {
-    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS).map(normalizeSupplier);
     const nextId = list.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0) + 1;
     const nextCode = supplierService.generateSupplierCode(list);
 
-    const newSupplier = {
+    const newSupplier = normalizeSupplier({
+      ...supplierData,
       id: nextId,
       supplierCode: supplierData.supplierCode?.trim() || nextCode,
-      supplierName: supplierData.supplierName?.trim() || '',
-      supplierType: supplierData.supplierType?.trim() || supplierData.supplier?.trim() || 'General',
-      mobile: supplierData.mobile?.trim() || '',
-      email: supplierData.email?.trim() || '',
-      address: supplierData.address?.trim() || '',
-      city: supplierData.city?.trim() || '',
-      district: supplierData.district?.trim() || '',
-      state: supplierData.state?.trim() || 'Andhra Pradesh',
-      pinCode: supplierData.pinCode?.trim() || '',
-      gstin: (supplierData.gstin?.trim() || '').toUpperCase(),
-      bankName: supplierData.bankName?.trim() || '',
-      accountNumber: supplierData.accountNumber?.trim() || '',
-      ifscCode: (supplierData.ifscCode?.trim() || '').toUpperCase(),
-      branchName: supplierData.branchName?.trim() || '',
-      openingBalance: Number(supplierData.openingBalance) || 0,
-      status: supplierData.status || 'Active',
-      notes: supplierData.notes?.trim() || '',
+      supplierName: supplierData.supplierName?.trim() || `Supplier ${nextId}`,
       createdAt: new Date().toISOString().split('T')[0]
-    };
+    }, nextId - 1);
 
     try {
       await api.post('/api/Suppliers', newSupplier);
@@ -440,11 +602,11 @@ export const supplierService = {
   },
 
   updateSupplier: async (id, supplierData) => {
-    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS).map(normalizeSupplier);
     const index = list.findIndex((s) => String(s.id) === String(id));
     if (index === -1) throw new Error('Supplier record not found');
 
-    const updatedSupplier = {
+    const updatedSupplier = normalizeSupplier({
       ...list[index],
       ...supplierData,
       id: list[index].id,
@@ -453,7 +615,7 @@ export const supplierService = {
       openingBalance: supplierData.openingBalance !== undefined ? Number(supplierData.openingBalance) : list[index].openingBalance,
       gstin: (supplierData.gstin !== undefined ? supplierData.gstin : list[index].gstin || '').toUpperCase(),
       ifscCode: (supplierData.ifscCode !== undefined ? supplierData.ifscCode : list[index].ifscCode || '').toUpperCase()
-    };
+    }, index);
 
     try {
       await api.put(`/api/Suppliers/${id}`, updatedSupplier);
@@ -474,7 +636,7 @@ export const supplierService = {
       // Persisted in local store
     }
 
-    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS);
+    const list = readStorage(STORAGE_KEYS.SUPPLIERS, SEED_SUPPLIERS).map(normalizeSupplier);
     const filtered = list.filter((s) => String(s.id) !== String(id));
     writeStorage(STORAGE_KEYS.SUPPLIERS, filtered);
     return true;
@@ -483,7 +645,7 @@ export const supplierService = {
   generateSupplierCode: (existingList = []) => {
     let maxNum = 0;
     existingList.forEach((s) => {
-      const match = (s.supplierCode || '').match(/(\d+)$/);
+      const match = (s?.supplierCode || '').match(/(\d+)$/);
       if (match) {
         const num = parseInt(match[1], 10);
         if (num > maxNum) maxNum = num;
@@ -497,16 +659,22 @@ export const supplierService = {
     try {
       const url = supplierId ? `/api/SupplierTransactions?supplierId=${supplierId}` : '/api/SupplierTransactions';
       const res = await api.get(url);
-      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : null;
+
       if (Array.isArray(data) && data.length > 0) {
-        writeStorage(STORAGE_KEYS.TRANSACTIONS, data);
-        return data;
+        const normalized = data.map((t, idx) => normalizeTransaction(t, idx)).filter(Boolean);
+        writeStorage(STORAGE_KEYS.TRANSACTIONS, normalized);
+        return normalized;
       }
     } catch {
       // Local fallback
     }
 
-    const allTransactions = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
+    const allTransactions = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS).map(normalizeTransaction).filter(Boolean);
     if (supplierId) {
       return allTransactions.filter((t) => String(t.supplierId) === String(supplierId));
     }
@@ -514,7 +682,7 @@ export const supplierService = {
   },
 
   createTransaction: async (txData) => {
-    const list = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
+    const list = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS).map(normalizeTransaction).filter(Boolean);
     const nextId = list.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0) + 1;
     const nextCode = supplierService.generateTransactionCode(list);
 
@@ -529,7 +697,7 @@ export const supplierService = {
       paymentStatus = 'Partially Paid';
     }
 
-    const newTx = {
+    const newTx = normalizeTransaction({
       id: nextId,
       transactionCode: txData.transactionCode || nextCode,
       transactionDate: txData.transactionDate || new Date().toISOString().split('T')[0],
@@ -544,7 +712,7 @@ export const supplierService = {
       balanceAmount,
       paymentStatus,
       notes: txData.notes?.trim() || ''
-    };
+    }, nextId - 1);
 
     try {
       await api.post('/api/SupplierTransactions', newTx);
@@ -563,7 +731,7 @@ export const supplierService = {
     } catch {
       // Local fallback
     }
-    const list = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
+    const list = readStorage(STORAGE_KEYS.TRANSACTIONS, SEED_TRANSACTIONS).map(normalizeTransaction).filter(Boolean);
     const filtered = list.filter((t) => String(t.id) !== String(id));
     writeStorage(STORAGE_KEYS.TRANSACTIONS, filtered);
     return true;
@@ -572,7 +740,7 @@ export const supplierService = {
   generateTransactionCode: (existingList = []) => {
     let maxNum = 0;
     existingList.forEach((t) => {
-      const match = (t.transactionCode || '').match(/(\d+)$/);
+      const match = (t?.transactionCode || '').match(/(\d+)$/);
       if (match) {
         const num = parseInt(match[1], 10);
         if (num > maxNum) maxNum = num;
@@ -586,16 +754,22 @@ export const supplierService = {
     try {
       const url = supplierId ? `/api/SupplierPayments?supplierId=${supplierId}` : '/api/SupplierPayments';
       const res = await api.get(url);
-      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : null;
+
       if (Array.isArray(data) && data.length > 0) {
-        writeStorage(STORAGE_KEYS.PAYMENTS, data);
-        return data;
+        const normalized = data.map((p, idx) => normalizePayment(p, idx)).filter(Boolean);
+        writeStorage(STORAGE_KEYS.PAYMENTS, normalized);
+        return normalized;
       }
     } catch {
       // Local fallback
     }
 
-    const allPayments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS);
+    const allPayments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS).map(normalizePayment).filter(Boolean);
     if (supplierId) {
       return allPayments.filter((p) => String(p.supplierId) === String(supplierId));
     }
@@ -603,11 +777,11 @@ export const supplierService = {
   },
 
   createPayment: async (paymentData) => {
-    const list = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS);
+    const list = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS).map(normalizePayment).filter(Boolean);
     const nextId = list.reduce((max, p) => Math.max(max, Number(p.id) || 0), 0) + 1;
     const nextCode = supplierService.generatePaymentCode(list);
 
-    const newPayment = {
+    const newPayment = normalizePayment({
       id: nextId,
       paymentCode: paymentData.paymentCode || nextCode,
       paymentDate: paymentData.paymentDate || new Date().toISOString().split('T')[0],
@@ -618,7 +792,7 @@ export const supplierService = {
       referenceNo: paymentData.referenceNo?.trim() || '',
       bankAccount: paymentData.bankAccount?.trim() || 'Main Operational Account',
       notes: paymentData.notes?.trim() || ''
-    };
+    }, nextId - 1);
 
     try {
       await api.post('/api/SupplierPayments', newPayment);
@@ -637,7 +811,7 @@ export const supplierService = {
     } catch {
       // Local fallback
     }
-    const list = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS);
+    const list = readStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS).map(normalizePayment).filter(Boolean);
     const filtered = list.filter((p) => String(p.id) !== String(id));
     writeStorage(STORAGE_KEYS.PAYMENTS, filtered);
     return true;
@@ -646,7 +820,7 @@ export const supplierService = {
   generatePaymentCode: (existingList = []) => {
     let maxNum = 0;
     existingList.forEach((p) => {
-      const match = (p.paymentCode || '').match(/(\d+)$/);
+      const match = (p?.paymentCode || '').match(/(\d+)$/);
       if (match) {
         const num = parseInt(match[1], 10);
         if (num > maxNum) maxNum = num;
@@ -657,13 +831,28 @@ export const supplierService = {
 
   // ── 4. Financial Calculation & Statement Helpers ───
   computeSupplierFinancials: (supplier, allTransactions = [], allPayments = []) => {
-    const sId = String(supplier.id);
-    const supplierTxs = allTransactions.filter((t) => String(t.supplierId) === sId);
-    const supplierPymts = allPayments.filter((p) => String(p.supplierId) === sId);
+    if (!supplier) {
+      return {
+        openingBalance: 0,
+        totalPurchases: 0,
+        totalPayments: 0,
+        outstandingBalance: 0,
+        netBalance: 0,
+        transactionCount: 0,
+        paymentCount: 0
+      };
+    }
+    const sId = String(supplier.id ?? '');
+    const supplierTxs = Array.isArray(allTransactions)
+      ? allTransactions.filter((t) => String(t?.supplierId) === sId)
+      : [];
+    const supplierPymts = Array.isArray(allPayments)
+      ? allPayments.filter((p) => String(p?.supplierId) === sId)
+      : [];
 
     const openingBalance = Number(supplier.openingBalance) || 0;
-    const totalPurchases = supplierTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const totalPayments = supplierPymts.reduce((sum, p) => sum + (Number(p.amountPaid) || 0), 0);
+    const totalPurchases = supplierTxs.reduce((sum, t) => sum + (Number(t?.amount) || 0), 0);
+    const totalPayments = supplierPymts.reduce((sum, p) => sum + (Number(p?.amountPaid) || 0), 0);
     const outstandingBalance = openingBalance + totalPurchases - totalPayments;
 
     return {
@@ -678,34 +867,34 @@ export const supplierService = {
   },
 
   getSupplierStatement: (supplierId, allSuppliers = [], allTransactions = [], allPayments = []) => {
-    const supplier = allSuppliers.find((s) => String(s.id) === String(supplierId));
+    const supplier = (allSuppliers || []).find((s) => String(s?.id) === String(supplierId));
     if (!supplier) return null;
 
     const sId = String(supplierId);
-    const sTransactions = allTransactions.filter((t) => String(t.supplierId) === sId);
-    const sPayments = allPayments.filter((p) => String(p.supplierId) === sId);
+    const sTransactions = (allTransactions || []).filter((t) => String(t?.supplierId) === sId);
+    const sPayments = (allPayments || []).filter((p) => String(p?.supplierId) === sId);
 
     // Merge transactions and payments chronologically
     const ledgerEntries = [
       ...sTransactions.map((t) => ({
-        id: `tx-${t.id}`,
-        date: t.transactionDate,
+        id: `tx-${t?.id || Math.random()}`,
+        date: t?.transactionDate || '',
         type: 'Bill / Purchase',
-        ref: t.referenceNo || t.transactionCode,
-        description: t.itemsSummary || `${t.category} purchase invoice`,
-        debit: Number(t.amount) || 0,
+        ref: t?.referenceNo || t?.transactionCode || '',
+        description: t?.itemsSummary || `${t?.category || 'General'} purchase invoice`,
+        debit: Number(t?.amount) || 0,
         credit: 0
       })),
       ...sPayments.map((p) => ({
-        id: `py-${p.id}`,
-        date: p.paymentDate,
-        type: `Payment (${p.paymentMode})`,
-        ref: p.referenceNo || p.paymentCode,
-        description: p.notes || `Paid via ${p.paymentMode}`,
+        id: `py-${p?.id || Math.random()}`,
+        date: p?.paymentDate || '',
+        type: `Payment (${p?.paymentMode || 'Cash'})`,
+        ref: p?.referenceNo || p?.paymentCode || '',
+        description: p?.notes || `Paid via ${p?.paymentMode || 'Cash'}`,
         debit: 0,
-        credit: Number(p.amountPaid) || 0
+        credit: Number(p?.amountPaid) || 0
       }))
-    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+    ].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
 
     let runningBalance = Number(supplier.openingBalance) || 0;
     const entriesWithBalance = ledgerEntries.map((e) => {
@@ -716,8 +905,8 @@ export const supplierService = {
       };
     });
 
-    const totalDebit = sTransactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
-    const totalCredit = sPayments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
+    const totalDebit = sTransactions.reduce((acc, t) => acc + (Number(t?.amount) || 0), 0);
+    const totalCredit = sPayments.reduce((acc, p) => acc + (Number(p?.amountPaid) || 0), 0);
     const netDue = (Number(supplier.openingBalance) || 0) + totalDebit - totalCredit;
 
     return {

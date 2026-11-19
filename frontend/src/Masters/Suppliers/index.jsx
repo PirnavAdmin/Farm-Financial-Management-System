@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { supplierService, SEED_SUPPLIERS, SEED_TRANSACTIONS, SEED_PAYMENTS } from '../../services/supplierService';
+import {
+  supplierService,
+  normalizeSupplier,
+  normalizeTransaction,
+  normalizePayment,
+  SEED_SUPPLIERS,
+  SEED_TRANSACTIONS,
+  SEED_PAYMENTS
+} from '../../services/supplierService.js';
 import './suppliers.css';
 
 // Currency formatter for Indian Rupees (₹)
@@ -103,6 +111,16 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
   const [viewingSupplier, setViewingSupplier] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type, item }
 
+  // Three-dot action menu state
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+    const handleClickOutside = () => setOpenActionMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [openActionMenuId]);
+
   // Quick Transaction & Payment Modals
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [txFormData, setTxFormData] = useState(EMPTY_TRANSACTION_FORM);
@@ -126,11 +144,17 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
         supplierService.getTransactions(),
         supplierService.getPayments()
       ]);
-      setSuppliersList(suppliers || []);
-      setTransactionsList(transactions || []);
-      setPaymentsList(payments || []);
-      if (!selectedLedgerSupplierId && suppliers?.length > 0) {
-        setSelectedLedgerSupplierId(String(suppliers[0].id));
+
+      const normalizedSuppliers = (suppliers || []).map((s, idx) => normalizeSupplier(s, idx));
+      const normalizedTransactions = (transactions || []).map((t, idx) => normalizeTransaction(t, idx)).filter(Boolean);
+      const normalizedPayments = (payments || []).map((p, idx) => normalizePayment(p, idx)).filter(Boolean);
+
+      setSuppliersList(normalizedSuppliers);
+      setTransactionsList(normalizedTransactions);
+      setPaymentsList(normalizedPayments);
+
+      if (!selectedLedgerSupplierId && normalizedSuppliers.length > 0) {
+        setSelectedLedgerSupplierId(String(normalizedSuppliers[0].id));
       }
     } catch (err) {
       console.error('[Suppliers] Error fetching data:', err);
@@ -149,7 +173,6 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
     const total = suppliersList.length;
     const active = suppliersList.filter((s) => s.status === 'Active').length;
 
-    // Calculate total outstanding payables across all suppliers
     let totalPayables = 0;
     let totalInvoiced = 0;
     let totalPaid = 0;
@@ -175,15 +198,23 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
   const filteredSuppliers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return suppliersList.filter((s) => {
+      const sName = String(s.supplierName || '');
+      const sCode = String(s.supplierCode || '');
+      const sMobile = String(s.mobile || '');
+      const sGstin = String(s.gstin || '');
+      const sCity = String(s.city || '');
+      const sDistrict = String(s.district || '');
+      const sType = String(s.supplierType || '');
+
       const matchesSearch =
         !q ||
-        (s.supplierName && s.supplierName.toLowerCase().includes(q)) ||
-        (s.supplierCode && s.supplierCode.toLowerCase().includes(q)) ||
-        (s.mobile && s.mobile.includes(q)) ||
-        (s.gstin && s.gstin.toLowerCase().includes(q)) ||
-        (s.city && s.city.toLowerCase().includes(q)) ||
-        (s.district && s.district.toLowerCase().includes(q)) ||
-        (s.supplierType && s.supplierType.toLowerCase().includes(q));
+        sName.toLowerCase().includes(q) ||
+        sCode.toLowerCase().includes(q) ||
+        sMobile.includes(q) ||
+        sGstin.toLowerCase().includes(q) ||
+        sCity.toLowerCase().includes(q) ||
+        sDistrict.toLowerCase().includes(q) ||
+        sType.toLowerCase().includes(q);
 
       const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
       const matchesType = typeFilter === 'All' || s.supplierType === typeFilter;
@@ -200,12 +231,17 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
   const filteredTransactions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return transactionsList.filter((t) => {
+      const tSupplier = String(t.supplierName || '');
+      const tCode = String(t.transactionCode || '');
+      const tRef = String(t.referenceNo || '');
+      const tCategory = String(t.category || '');
+
       const matchesSearch =
         !q ||
-        (t.supplierName && t.supplierName.toLowerCase().includes(q)) ||
-        (t.transactionCode && t.transactionCode.toLowerCase().includes(q)) ||
-        (t.referenceNo && t.referenceNo.toLowerCase().includes(q)) ||
-        (t.category && t.category.toLowerCase().includes(q));
+        tSupplier.toLowerCase().includes(q) ||
+        tCode.toLowerCase().includes(q) ||
+        tRef.toLowerCase().includes(q) ||
+        tCategory.toLowerCase().includes(q);
 
       const matchesStatus = statusFilter === 'All' || t.paymentStatus === statusFilter;
       return matchesSearch && matchesStatus;
@@ -216,12 +252,17 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
   const filteredPayments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return paymentsList.filter((p) => {
+      const pSupplier = String(p.supplierName || '');
+      const pCode = String(p.paymentCode || '');
+      const pRef = String(p.referenceNo || '');
+      const pMode = String(p.paymentMode || '');
+
       return (
         !q ||
-        (p.supplierName && p.supplierName.toLowerCase().includes(q)) ||
-        (p.paymentCode && p.paymentCode.toLowerCase().includes(q)) ||
-        (p.referenceNo && p.referenceNo.toLowerCase().includes(q)) ||
-        (p.paymentMode && p.paymentMode.toLowerCase().includes(q))
+        pSupplier.toLowerCase().includes(q) ||
+        pCode.toLowerCase().includes(q) ||
+        pRef.toLowerCase().includes(q) ||
+        pMode.toLowerCase().includes(q)
       );
     });
   }, [paymentsList, searchQuery]);
@@ -420,10 +461,10 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
     ];
 
     const rows = filteredSuppliers.map((s) => [
-      `"${s.supplierCode}"`,
-      `"${s.supplierName}"`,
-      `"${s.supplierType}"`,
-      `"${s.mobile}"`,
+      `"${s.supplierCode || ''}"`,
+      `"${s.supplierName || ''}"`,
+      `"${s.supplierType || ''}"`,
+      `"${s.mobile || ''}"`,
       `"${s.email || ''}"`,
       `"${s.address || ''}"`,
       `"${s.city || ''}"`,
@@ -435,7 +476,7 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
       `"${s.accountNumber || ''}"`,
       `"${s.ifscCode || ''}"`,
       `"${s.openingBalance || 0}"`,
-      `"${s.status}"`
+      `"${s.status || 'Active'}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -708,28 +749,32 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                     </td>
                   </tr>
                 ) : (
-                  currentSuppliersPage.map((s) => {
+                  currentSuppliersPage.map((s, index) => {
                     const fin = supplierService.computeSupplierFinancials(s, transactionsList, paymentsList);
+                    const displayName = s.supplierName || s.supplier || 'Supplier';
+                    const avatarLetter = (displayName.charAt(0) || 'S').toUpperCase();
+                    const isNearBottom = index >= currentSuppliersPage.length - 2 && currentSuppliersPage.length > 2;
+
                     return (
                       <tr key={s.id}>
                         <td>
-                          <span className="sup-code-badge">{s.supplierCode}</span>
+                          <span className="sup-code-badge">{s.supplierCode || `SUP-${s.id}`}</span>
                         </td>
                         <td>
                           <div className="sup-name-cell">
-                            <div className="sup-avatar">{s.supplierName.charAt(0)}</div>
+                            <div className="sup-avatar">{avatarLetter}</div>
                             <div className="sup-name-info">
-                              <strong title={s.supplierName}>{s.supplierName}</strong>
+                              <strong title={displayName}>{displayName}</strong>
                               <span className="sup-type-tag">{s.supplierType || 'General'}</span>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <div>{s.mobile}</div>
+                          <div>{s.mobile || '—'}</div>
                           {s.email && <small style={{ color: '#94a3b8' }}>{s.email}</small>}
                         </td>
                         <td>
-                          <div>{s.address}</div>
+                          <div>{s.address || '—'}</div>
                           <small style={{ color: '#64748b' }}>
                             {[s.city, s.district, s.state].filter(Boolean).join(', ')}
                           </small>
@@ -746,7 +791,7 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                             <span className="sup-bank-name">{s.bankName || '—'}</span>
                             {s.accountNumber && (
                               <span className="sup-bank-acc">
-                                A/C: ••••{s.accountNumber.slice(-4)} | {s.ifscCode}
+                                A/C: ••••{String(s.accountNumber).slice(-4)} | {s.ifscCode || ''}
                               </span>
                             )}
                           </div>
@@ -767,43 +812,71 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                             onClick={() => handleToggleStatus(s)}
                           >
                             <span className="sup-status-dot" />
-                            {s.status}
+                            {s.status || 'Active'}
                           </button>
                         </td>
                         <td>
                           <div className="sup-actions">
                             <button
-                              className="sup-action-btn"
+                              className={`sup-action-btn sup-menu-trigger ${openActionMenuId === s.id ? 'active' : ''}`}
                               type="button"
-                              title="View Supplier Profile"
-                              onClick={() => setViewingSupplier(s)}
+                              title="Actions"
+                              aria-label="Actions menu"
+                              aria-expanded={openActionMenuId === s.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenActionMenuId(openActionMenuId === s.id ? null : s.id);
+                              }}
                             >
-                              👁
+                              ⋮
                             </button>
-                            <button
-                              className="sup-action-btn"
-                              type="button"
-                              title="Edit Supplier"
-                              onClick={() => handleOpenEdit(s)}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              className="sup-action-btn pay"
-                              type="button"
-                              title="Record Payment"
-                              onClick={() => handleQuickPay(s)}
-                            >
-                              ₹
-                            </button>
-                            <button
-                              className="sup-action-btn delete"
-                              type="button"
-                              title="Delete Supplier"
-                              onClick={() => setDeleteConfirm({ type: 'supplier', item: s })}
-                            >
-                              ⛌
-                            </button>
+                            {openActionMenuId === s.id && (
+                              <div
+                                className={`sup-action-dropdown ${isNearBottom ? 'drop-up' : ''}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setViewingSupplier(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">👁</span> View
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleOpenEdit(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">✎</span> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleQuickPay(s);
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">₹</span> Payment
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sup-action-menu-item delete"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setDeleteConfirm({ type: 'supplier', item: s });
+                                  }}
+                                >
+                                  <span className="sup-menu-item-icon">⛌</span> Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1570,19 +1643,21 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
             <div className="sup-modal-body">
               {/* Header Card */}
               <div className="sup-view-header-card">
-                <div className="sup-view-avatar">{viewingSupplier.supplierName.charAt(0)}</div>
+                <div className="sup-view-avatar">
+                  {((viewingSupplier.supplierName || viewingSupplier.supplier || 'S') + '').charAt(0).toUpperCase()}
+                </div>
                 <div className="sup-view-title" style={{ flex: 1 }}>
-                  <h2>{viewingSupplier.supplierName}</h2>
+                  <h2>{viewingSupplier.supplierName || viewingSupplier.supplier || 'Supplier Profile'}</h2>
                   <div className="sup-view-tags">
-                    <span className="sup-code-badge">{viewingSupplier.supplierCode}</span>
-                    <span className="sup-type-tag">{viewingSupplier.supplierType}</span>
+                    <span className="sup-code-badge">{viewingSupplier.supplierCode || `SUP-${viewingSupplier.id}`}</span>
+                    <span className="sup-type-tag">{viewingSupplier.supplierType || 'General'}</span>
                     <span
                       className={`sup-status-pill ${
                         viewingSupplier.status === 'Active' ? 'active' : 'inactive'
                       }`}
                     >
                       <span className="sup-status-dot" />
-                      {viewingSupplier.status}
+                      {viewingSupplier.status || 'Active'}
                     </span>
                   </div>
                 </div>
@@ -1638,7 +1713,7 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                   <div className="sup-detail-list">
                     <div className="sup-detail-row">
                       <span>Mobile:</span>
-                      <strong>{viewingSupplier.mobile}</strong>
+                      <strong>{viewingSupplier.mobile || '—'}</strong>
                     </div>
                     <div className="sup-detail-row">
                       <span>Email:</span>
@@ -1646,7 +1721,7 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                     </div>
                     <div className="sup-detail-row">
                       <span>Address:</span>
-                      <strong>{viewingSupplier.address}</strong>
+                      <strong>{viewingSupplier.address || '—'}</strong>
                     </div>
                     <div className="sup-detail-row">
                       <span>City / Mandal:</span>
@@ -1655,7 +1730,7 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                     <div className="sup-detail-row">
                       <span>District & State:</span>
                       <strong>
-                        {[viewingSupplier.district, viewingSupplier.state].filter(Boolean).join(', ')}
+                        {[viewingSupplier.district, viewingSupplier.state].filter(Boolean).join(', ') || '—'}
                       </strong>
                     </div>
                     <div className="sup-detail-row">

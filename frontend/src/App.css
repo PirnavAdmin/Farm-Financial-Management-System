@@ -1066,3 +1066,46 @@ html, body {
 .app-shell.dashboard-shell .submenu {
   border-left-color: #d4e3d3;
 }
+
+/* ==========================================================================
+   PUBLIC ROUTE TRANSITION (LANDING <-> LOGIN)
+   Silky smooth crossfade & scale transition between Landing Page and Login
+   ========================================================================== */
+.public-route-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #0d381e;
+  overflow: hidden;
+}
+
+.public-route-scroll-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  will-change: opacity, transform;
+}
+
+/* Phase 1: Normal active state */
+.public-route-stage-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Phase 2: Exiting state - smoothly fades and gently recedes */
+.public-route-stage-exiting {
+  opacity: 0;
+  transform: scale(0.985) translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 1, 1), transform 0.22s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Phase 3: Entering initial state - ready to bloom in */
+.public-route-stage-entering {
+  opacity: 0;
+  transform: scale(1.012) translateY(6px);
+  pointer-events: none;
+}
