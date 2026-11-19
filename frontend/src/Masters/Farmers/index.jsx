@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { farmerService } from '../../services/farmerService'
 import { farmerAddressService } from '../../services/farmerAddressService'
 import { farmerBankService } from '../../services/farmerBankService'
+import api from '../../services/api'
 import './farmers.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -16,6 +17,48 @@ const EMPTY = {
   // hasAddress / hasBank track whether the farmer already has these records
   hasAddress: false,
   hasBank: false,
+}
+
+const EMPTY_RENTAL_LAND = {
+  tenantName: '',
+  tenantMobile: '',
+  surveyNumber: '',
+  landArea: '',
+  areaUnit: 'Acres',
+  village: '',
+  mandal: '',
+  district: '',
+  rentAmount: '',
+  rentFrequency: 'Monthly',
+  leaseStartDate: '',
+  leaseEndDate: '',
+  remarks: '',
+}
+
+function mapRentalLand(record) {
+  return {
+    id: record.id ?? record.Id,
+    farmerId: record.farmerId ?? record.FarmerId,
+    tenantName: record.tenantName ?? record.TenantName ?? '',
+    tenantMobile: record.tenantMobile ?? record.TenantMobile ?? '',
+    surveyNumber: record.surveyNumber ?? record.SurveyNumber ?? '',
+    landArea: String(record.landArea ?? record.LandArea ?? ''),
+    areaUnit: record.areaUnit ?? record.AreaUnit ?? 'Acres',
+    village: record.village ?? record.Village ?? '',
+    mandal: record.mandal ?? record.Mandal ?? '',
+    district: record.district ?? record.District ?? '',
+    rentAmount: String(record.rentAmount ?? record.RentAmount ?? ''),
+    rentFrequency: record.rentFrequency ?? record.RentFrequency ?? 'Monthly',
+    leaseStartDate: String(record.leaseStartDate ?? record.LeaseStartDate ?? '').slice(0, 10),
+    leaseEndDate: String(record.leaseEndDate ?? record.LeaseEndDate ?? '').slice(0, 10),
+    remarks: record.remarks ?? record.Remarks ?? '',
+  }
+}
+
+function formatLeaseDate(value) {
+  if (!value) return '—'
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN')
 }
 
 const STATES = [
@@ -127,6 +170,12 @@ function mapFarmer(f) {
 
   const farmerId = f.id ?? f.Id ?? f.farmerId ?? f.FarmerId
   const farmerCode = f.farmerCode || f.FarmerCode || f.code || f.Code || ''
+  const rawStatus = String(f.status || f.Status || 'Unknown').trim()
+  const status = rawStatus.toLowerCase() === 'active'
+    ? 'Active'
+    : rawStatus.toLowerCase() === 'inactive'
+      ? 'Inactive'
+      : rawStatus || 'Unknown'
 
   // Look up any cached / local metadata if backend response omits extended bank fields
   const meta = getFarmerBankMeta(farmerId, farmerCode)
@@ -157,7 +206,7 @@ function mapFarmer(f) {
     aadhaar:    f.aadhaarNo   || f.AadhaarNo   || f.aadhaar || '',
     totalLand:  f.totalLand   != null ? String(f.totalLand)
               : f.TotalLand   != null ? String(f.TotalLand) : '',
-    status:     f.status      || f.Status      || 'Unknown',
+    status,
     // Address (FarmerId is PK — no separate addressId)
     hasAddress,
     village:    addr.village  || addr.Village  || f.village  || f.Village  || '',
@@ -719,18 +768,33 @@ function compareFarmerCodes(a, b) {
 }
 
 // ─── Main Farmers Page ────────────────────────────────────────────────────────
-export default function Farmers() {
+export default function Farmers({ profileEmail, profileName }) {
+  const profileStorageKey = `agriman_farmer_profile_${encodeURIComponent((profileEmail || '').trim().toLowerCase())}`
+  const profileNameStorageKey = `agriman_farmer_profile_name_${encodeURIComponent((profileName || '').trim().toLowerCase())}`
+  // Farmer ID 1 was explicitly confirmed for the seeded Prathap G account.
+  const defaultProfileId = (profileName || '').trim().toLowerCase() === 'prathap g' ? '1' : ''
   const [farmers, setFarmers]             = useState([])
   const [loading, setLoading]             = useState(true)
   const [hasLoaded, setHasLoaded]         = useState(false)
   const [apiError, setApiError]           = useState(null)   // { headline, detail }
-  const [search, setSearch]               = useState('')
-  const [statusFilter, setStatusFilter]   = useState('All')
   const [modal, setModal]                 = useState(null)   // { mode: 'add'|'edit', data }
   const [viewTarget, setViewTarget]       = useState(null)
   const [deleteTarget, setDeleteTarget]   = useState(null)
   const [deleting, setDeleting]           = useState(false)
   const [toast, setToast]                 = useState(null)
+  const [rentalModal, setRentalModal]     = useState(null)
+  const [rentalForm, setRentalForm]       = useState(null)
+  const [rentalError, setRentalError]     = useState('')
+  const [savingRental, setSavingRental]   = useState(false)
+  const [rentalLands, setRentalLands]     = useState([])
+  const [rentalLoading, setRentalLoading] = useState(false)
+  const [rentalLoadError, setRentalLoadError] = useState('')
+  const [rentalSearch, setRentalSearch]   = useState('')
+  const [deletingRentalId, setDeletingRentalId] = useState(null)
+  const [profileFarmSummary, setProfileFarmSummary] = useState(null)
+  const selectedProfileId = localStorage.getItem(profileStorageKey)
+    || localStorage.getItem(profileNameStorageKey)
+    || defaultProfileId
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -755,26 +819,99 @@ export default function Farmers() {
 
   useEffect(() => { fetchFarmers() }, [fetchFarmers])
 
-  // ── Filtered and Sorted list ───────────────────────────────────────────────
-  const filtered = farmers
-    .filter(f => {
-      const q = search.toLowerCase().trim()
-      const matchSearch = !q || [f.code, f.name, f.fatherName, f.mobile, f.village, f.mandal, f.district, f.bankName]
-        .some(v => (v || '').toLowerCase().includes(q))
-      const matchStatus = statusFilter === 'All' || f.status === statusFilter
-      return matchSearch && matchStatus
+  const emailFarmer = profileEmail
+    ? farmers.find(f => f.email.trim().toLowerCase() === profileEmail.trim().toLowerCase())
+    : null
+  const normalizedProfileName = (profileName || '').trim().toLowerCase()
+  const nameMatches = normalizedProfileName && !normalizedProfileName.includes('@') && normalizedProfileName !== 'user'
+    ? farmers.filter(f => {
+      const farmerName = f.name.trim().toLowerCase()
+      return farmerName === normalizedProfileName
+        || farmerName.startsWith(`${normalizedProfileName} `)
+        || normalizedProfileName.startsWith(`${farmerName} `)
     })
-    .sort(compareFarmerCodes)
+    : []
+  const selectedProfile = farmers.find(f => String(f.id) === selectedProfileId)
+  const currentFarmer = emailFarmer || selectedProfile || (nameMatches.length === 1 ? nameMatches[0] : null)
+
+  useEffect(() => {
+    const farmerId = currentFarmer?.id
+    if (!farmerId) return undefined
+
+    let active = true
+    async function fetchProfileFarmSummary() {
+      try {
+        const response = await api.get(`/api/Farms/farmer/${farmerId}`)
+        const data = response.data?.data ?? response.data
+        const farmRecords = data?.farms ?? data?.Farms
+        if (!Array.isArray(farmRecords)) {
+          throw new Error('The Farms API returned an unsupported profile response.')
+        }
+        const parcelCount = farmRecords.reduce((total, farm) => {
+          const lands = farm.lands ?? farm.Lands
+          return total + (Array.isArray(lands) ? lands.length : 0)
+        }, 0)
+        const location = currentFarmer.village
+          || farmRecords[0]?.village
+          || farmRecords[0]?.Village
+          || 'Location not added'
+        if (active) setProfileFarmSummary({ farmerId, parcelCount, location, error: '' })
+      } catch (error) {
+        if (active) {
+          setProfileFarmSummary({
+            farmerId,
+            parcelCount: null,
+            location: '',
+            error: error.friendlyMessage || error.message || 'Farm details could not be loaded.',
+          })
+        }
+      }
+    }
+
+    fetchProfileFarmSummary()
+    return () => { active = false }
+  }, [currentFarmer?.id, currentFarmer?.village])
+
+  const fetchRentalLands = useCallback(async () => {
+    if (!currentFarmer?.id) {
+      setRentalLands([])
+      setRentalLoadError('')
+      setRentalLoading(false)
+      return
+    }
+
+    setRentalLoading(true)
+    setRentalLoadError('')
+    try {
+      const response = await api.get(`/api/RentalLands/farmer/${currentFarmer.id}`)
+      const records = response.data?.data ?? response.data
+      if (!Array.isArray(records)) {
+        throw new Error('The Rental Lands API returned an unsupported response.')
+      }
+      setRentalLands(records.map(mapRentalLand))
+    } catch (error) {
+      setRentalLands([])
+      setRentalLoadError(errorText(error, 'list rental land'))
+    } finally {
+      setRentalLoading(false)
+    }
+  }, [currentFarmer?.id])
+
+  useEffect(() => { fetchRentalLands() }, [fetchRentalLands])
+
+  const normalizedRentalSearch = rentalSearch.trim().toLowerCase()
+  const visibleRentalLands = rentalLands.filter(record => (
+    !normalizedRentalSearch || [
+      record.tenantName, record.tenantMobile, record.surveyNumber, record.areaUnit,
+      record.village, record.mandal, record.district, record.rentAmount,
+      record.rentFrequency, record.leaseStartDate, record.leaseEndDate, record.remarks,
+    ].some(value => String(value ?? '').toLowerCase().includes(normalizedRentalSearch))
+  ))
 
   const counts = {
-    All:      farmers.length,
-    Active:   farmers.filter(f => f.status === 'Active').length,
-    Inactive: farmers.filter(f => f.status === 'Inactive').length,
-  }
-
-  // ── Open Add form ──────────────────────────────────────────────────────────
-  function openAdd() {
-    setModal({ mode: 'add', data: { ...EMPTY, code: farmerService.generateFarmerCode(farmers) } })
+    All: 0,
+    Active: 0,
+    Inactive: 0,
   }
 
   // ── Open View drawer — re-fetch fresh data for the single farmer ─────────────
@@ -884,20 +1021,77 @@ export default function Farmers() {
     }
   }
 
-  // ── Toggle Status ──────────────────────────────────────────────────────────
-  async function toggleStatus(farmer) {
-    const newStatus = farmer.status === 'Active' ? 'Inactive' : 'Active'
+  function openRentalLandForm(record = null, mode = 'add') {
+    setRentalForm(record ? { ...record } : {
+      ...EMPTY_RENTAL_LAND,
+      village: currentFarmer?.village || '',
+      mandal: currentFarmer?.mandal || '',
+      district: currentFarmer?.district || '',
+    })
+    setRentalError('')
+    setRentalModal({ mode, id: record?.id || null })
+  }
+
+  async function handleRentalLandSubmit(event) {
+    event.preventDefault()
+    if (!rentalForm || !rentalModal || rentalModal.mode === 'view' || savingRental) return
+    if (!currentFarmer?.id) {
+      setRentalError('Link a farmer profile to this account before saving rental land.')
+      return
+    }
+
+    setSavingRental(true)
+    setRentalError('')
     try {
-      await farmerService.updateFarmer(farmer.id, { ...farmer, status: newStatus })
-      showToast(`${farmer.name} set to ${newStatus}`)
-      await fetchFarmers()
-    } catch (err) {
-      showToast(errorText(err, 'update'), 'error')
+      const payload = {
+        farmerId: Number(currentFarmer.id),
+        tenantName: rentalForm.tenantName.trim(),
+        tenantMobile: rentalForm.tenantMobile.trim(),
+        surveyNumber: rentalForm.surveyNumber.trim(),
+        landArea: Number(rentalForm.landArea),
+        areaUnit: rentalForm.areaUnit,
+        village: rentalForm.village.trim(),
+        mandal: rentalForm.mandal.trim(),
+        district: rentalForm.district.trim(),
+        rentAmount: Number(rentalForm.rentAmount),
+        rentFrequency: rentalForm.rentFrequency,
+        leaseStartDate: rentalForm.leaseStartDate,
+        leaseEndDate: rentalForm.leaseEndDate,
+        remarks: rentalForm.remarks.trim() || null,
+      }
+
+      if (rentalModal.mode === 'edit') {
+        await api.put(`/api/RentalLands/${rentalModal.id}`, payload)
+      } else {
+        await api.post('/api/RentalLands', payload)
+      }
+
+      setRentalModal(null)
+      setRentalForm(null)
+      showToast(rentalModal.mode === 'edit' ? 'Rental land updated successfully.' : 'Rental land saved successfully.')
+      await fetchRentalLands()
+    } catch (error) {
+      setRentalError(errorText(error, 'save rental land'))
+    } finally {
+      setSavingRental(false)
     }
   }
 
-  const showError = apiError && farmers.length === 0
-  const showEmpty = hasLoaded && !loading && !showError && filtered.length === 0
+  async function handleDeleteRentalLand(record) {
+    if (deletingRentalId !== null) return
+    if (!window.confirm(`Delete the rental land record for ${record.tenantName} (Survey ${record.surveyNumber})?`)) return
+
+    setDeletingRentalId(record.id)
+    try {
+      await api.delete(`/api/RentalLands/${record.id}`)
+      showToast('Rental land record deleted successfully.')
+      await fetchRentalLands()
+    } catch (error) {
+      showToast(errorText(error, 'delete rental land'), 'error')
+    } finally {
+      setDeletingRentalId(null)
+    }
+  }
 
   return (
     <div className="fm-page">
@@ -916,9 +1110,6 @@ export default function Farmers() {
           <h1 className="fm-title">Farmers</h1>
           <p className="fm-subtitle">Manage all registered farmers and their details</p>
         </div>
-        <button className="fm-btn-primary fm-add-btn" onClick={openAdd} type="button">
-          + Add Farmer
-        </button>
       </div>
 
       {/* Error Banner */}
@@ -937,6 +1128,54 @@ export default function Farmers() {
         </div>
       )}
 
+      <section className="fm-profile-card" aria-label="Main farmer profile">
+        {loading && !hasLoaded ? (
+          <div className="fm-profile-message" role="status">Loading your farmer profile…</div>
+        ) : currentFarmer ? (
+          <>
+            <div className="fm-profile-identity">
+              <div className="fm-avatar fm-profile-avatar">
+                {currentFarmer.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}
+              </div>
+              <div className="fm-profile-name">
+                <span className="fm-profile-eyebrow">MY FARMER PROFILE</span>
+                <h2>{currentFarmer.name}</h2>
+                <span>{currentFarmer.code} · {currentFarmer.fatherName || 'Farmer'}</span>
+              </div>
+            </div>
+            <div className="fm-profile-summary-block">
+              <span>CONTACT</span>
+              <strong>{currentFarmer.mobile || 'Mobile not added'}</strong>
+              <small>{currentFarmer.email || profileEmail || 'Email not added'}</small>
+            </div>
+            <div className="fm-profile-summary-block">
+              <span>MY FARM</span>
+              <strong>
+                {currentFarmer.totalLand
+                  ? `${Number(currentFarmer.totalLand).toFixed(1)} acres`
+                  : 'Land details unavailable'}
+              </strong>
+              <small>
+                {profileFarmSummary?.farmerId === currentFarmer.id
+                  ? profileFarmSummary.error
+                    ? 'Farm details unavailable'
+                    : `${profileFarmSummary.location} · ${profileFarmSummary.parcelCount} farm ${profileFarmSummary.parcelCount === 1 ? 'parcel' : 'parcels'}`
+                  : 'Loading farm details…'}
+              </small>
+            </div>
+            <button type="button" className="fm-profile-view-button" onClick={() => openView(currentFarmer)}>
+              View full profile <span aria-hidden="true">→</span>
+            </button>
+          </>
+        ) : (
+          <div className="fm-profile-message">
+            <span className="fm-profile-eyebrow">MY FARMER PROFILE</span>
+            <strong>{profileName || 'Signed-in user'}</strong>
+            <span>No farmer profile record could be matched to this account.</span>
+          </div>
+        )}
+      </section>
+
       {/* Toolbar */}
       <div className="fm-toolbar">
         <div className="fm-search-wrap">
@@ -948,25 +1187,25 @@ export default function Farmers() {
           </span>
           <input
             className="fm-search"
-            placeholder="Search by name, code, mobile, village, bank…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            aria-label="Search farmers"
+            placeholder="Search tenant, survey number or location…"
+            value={rentalSearch}
+            onChange={event => setRentalSearch(event.target.value)}
+            aria-label="Search rental land"
           />
-          {search && (
-            <button className="fm-clear-search" onClick={() => setSearch('')} type="button" aria-label="Clear search">✕</button>
+          {rentalSearch && (
+            <button className="fm-clear-search" onClick={() => setRentalSearch('')} type="button" aria-label="Clear search">✕</button>
           )}
         </div>
         <div className="fm-filter-group">
           {['All', 'Active', 'Inactive'].map(s => (
             <button
               key={s} type="button"
-              className={`fm-filter-btn${statusFilter === s ? ' active' : ''}`}
-              onClick={() => setStatusFilter(s)}
+              className={`fm-filter-btn${s === 'All' ? ' active' : ''}`}
+              disabled
             >
               {s}
               <span className="fm-filter-count">
-                {loading && !hasLoaded ? '…' : showError ? '—' : counts[s]}
+                {counts[s]}
               </span>
             </button>
           ))}
@@ -983,126 +1222,121 @@ export default function Farmers() {
         </div>
       </div>
 
-      {/* Table */}
+      <div className="fm-rental-heading">
+        <div>
+          <h2>Rental Land Details</h2>
+          <p>People and plots linked to the land you leased out</p>
+        </div>
+        <button
+          type="button"
+          className="fm-rental-add-btn"
+          onClick={openRentalLandForm}
+          title="Add a rental land record"
+        >
+          + Add Rental Land
+        </button>
+      </div>
+
       <div className="fm-table-wrap">
-        <table className="fm-table">
+        <table className="fm-table fm-rental-table">
           <thead>
             <tr>
-              <th className="fm-th-code">Farmer Code</th>
-              <th className="fm-th-name">Farmer Name</th>
-              <th className="fm-th-mobile">Mobile</th>
-              <th className="fm-th-village">Village</th>
-              <th className="fm-th-mandal">Mandal</th>
-              <th className="fm-th-district">District</th>
-              <th className="fm-th-land fm-col-num">Total Land</th>
-              <th className="fm-th-status">Status</th>
+              <th>Tenant / Receiver</th>
+              <th>Mobile</th>
+              <th>Survey No.</th>
+              <th className="fm-th-land fm-col-num">Land Area</th>
+              <th>Village</th>
+              <th>Mandal</th>
+              <th>District</th>
+              <th>Rent</th>
+              <th>Lease Period</th>
               <th className="fm-th-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && !hasLoaded ? (
               <tr>
-                <td colSpan={9} className="fm-state-cell">
-                  <div className="fm-loading-state">
-                    <div className="fm-loading-spinner"></div>
-                    <p>Loading farmers…</p>
-                  </div>
+                <td colSpan={10} className="fm-state-cell">
+                  <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
                 </td>
               </tr>
-            ) : showError ? (
+            ) : !currentFarmer ? (
               <tr>
-                <td colSpan={9} className="fm-state-cell">
+                <td colSpan={10} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">⚠</div>
-                    <p>Farmers could not be loaded</p>
-                    <span>Check the error above and click Retry.</span>
+                    <p>No linked land owner profile.</p>
+                    <span>Link a farmer profile to view and save rental land records.</span>
                   </div>
                 </td>
               </tr>
-            ) : showEmpty ? (
+            ) : rentalLoadError ? (
               <tr>
-                <td colSpan={9} className="fm-state-cell">
+                <td colSpan={10} className="fm-state-cell">
+                  <div className="fm-empty-state">
+                    <div className="fm-empty-icon">⚠</div>
+                    <p>Rental land could not be loaded.</p>
+                    <span>{rentalLoadError}</span>
+                    <button className="fm-btn-secondary" type="button" onClick={fetchRentalLands}>Retry</button>
+                  </div>
+                </td>
+              </tr>
+            ) : rentalLoading ? (
+              <tr>
+                <td colSpan={10} className="fm-state-cell">
+                  <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
+                </td>
+              </tr>
+            ) : visibleRentalLands.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">🌾</div>
-                    <p>{farmers.length === 0 ? 'No farmers registered yet.' : 'No farmers match your search or filters.'}</p>
-                    <span>{farmers.length === 0 ? 'Click "+ Add Farmer" to register the first farmer.' : 'Try adjusting your search or status filter.'}</span>
-                    {farmers.length === 0 && (
-                      <button className="fm-btn-primary" style={{ marginTop: '12px' }} onClick={openAdd} type="button">
-                        + Add Farmer
-                      </button>
-                    )}
+                    <p>{rentalLands.length ? 'No rental land matches your search.' : 'No rental land records to display.'}</p>
+                    <span>{rentalLands.length ? 'Try another tenant, survey number, or location.' : 'Use Add Rental Land to record tenant and lease details.'}</span>
                   </div>
                 </td>
               </tr>
-            ) : (
-              filtered.map(f => (
-                <tr key={f.id} className={loading ? 'fm-row-refreshing' : ''}>
-                  <td className="fm-td-code"><span className="fm-code">{f.code}</span></td>
-                  <td className="fm-td-name">
-                    <div className="fm-name-cell">
-                      <div className="fm-avatar">{f.name.charAt(0)}</div>
-                      <div className="fm-name-info">
-                        <strong className="fm-farmer-name">{f.name}</strong>
-                        {f.fatherName ? (
-                          <span className="fm-farmer-subtext" title={`Father / Husband Name: ${f.fatherName}`}>
-                            {f.fatherName}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="fm-td-mobile">{f.mobile}</td>
-                  <td className="fm-td-village">{f.village  || '—'}</td>
-                  <td className="fm-td-mandal">{f.mandal   || '—'}</td>
-                  <td className="fm-td-district">{f.district || '—'}</td>
-                  <td className="fm-td-land fm-col-num">{f.totalLand ? `${Number(f.totalLand).toFixed(1)} ac` : '—'}</td>
-                  <td className="fm-td-status">
-                    <button
-                      className={`fm-status-pill fm-status-${f.status.toLowerCase()}`}
-                      onClick={() => toggleStatus(f)}
-                      title={`Status: ${f.status} (Click to toggle)`}
-                      type="button"
-                    >
-                      <span className="fm-status-dot"></span>{f.status}
+            ) : visibleRentalLands.map(record => (
+              <tr key={record.id}>
+                <td><strong>{record.tenantName}</strong></td>
+                <td>{record.tenantMobile}</td>
+                <td>{record.surveyNumber}</td>
+                <td className="fm-td-land fm-col-num">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
+                <td>{record.village}</td>
+                <td>{record.mandal}</td>
+                <td>{record.district}</td>
+                <td>₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
+                <td>{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
+                <td className="fm-td-actions">
+                  <div className="fm-actions">
+                    <button className="fm-action-btn fm-view" onClick={() => openRentalLandForm(record, 'view')} title="View Rental Land" aria-label={`View rental land for ${record.tenantName}`} type="button">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
-                  </td>
-                  <td className="fm-td-actions">
-                    <div className="fm-actions">
-                      <button className="fm-action-btn fm-view" onClick={() => openView(f)} title="View Farmer Details" aria-label="View Farmer Details" type="button">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </button>
-                      <button className="fm-action-btn fm-edit" onClick={() => openEdit(f)} title="Edit Farmer" aria-label="Edit Farmer" type="button">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                          <path d="m15 5 4 4" />
-                        </svg>
-                      </button>
-                      <button className="fm-action-btn fm-delete" onClick={() => setDeleteTarget(f)} title="Delete Farmer" aria-label="Delete Farmer" type="button">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          <line x1="10" x2="10" y1="11" y2="17" />
-                          <line x1="14" x2="14" y1="11" y2="17" />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
+                    <button className="fm-action-btn fm-edit" onClick={() => openRentalLandForm(record, 'edit')} title="Edit Rental Land" aria-label={`Edit rental land for ${record.tenantName}`} type="button">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                    </button>
+                    <button className="fm-action-btn fm-delete" onClick={() => handleDeleteRentalLand(record)} title="Delete Rental Land" aria-label={`Delete rental land for ${record.tenantName}`} type="button" disabled={deletingRentalId !== null}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        <line x1="10" x2="10" y1="11" y2="17" />
+                        <line x1="14" x2="14" y1="11" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Footer */}
-      <div className="fm-table-footer">
-        Showing <strong>{showError ? '—' : filtered.length}</strong> of <strong>{showError ? '—' : farmers.length}</strong> farmers
-        &nbsp;·&nbsp; Active: <strong>{loading && !hasLoaded || showError ? '—' : counts.Active}</strong>
-        &nbsp;·&nbsp; Inactive: <strong>{loading && !hasLoaded || showError ? '—' : counts.Inactive}</strong>
       </div>
 
       {/* Modals */}
@@ -1119,6 +1353,116 @@ export default function Farmers() {
           onCancel={() => setDeleteTarget(null)}
           deleting={deleting}
         />
+      )}
+      {rentalModal && rentalForm && (
+        <div className="fm-overlay" role="presentation" onClick={event => {
+          if (event.target === event.currentTarget) setRentalModal(null)
+        }}>
+          <section className="fm-modal fm-rental-modal" role="dialog" aria-modal="true" aria-labelledby="fm-rental-modal-title">
+            <header className="fm-modal-head">
+              <div>
+                <h2 id="fm-rental-modal-title">
+                  Add Rental Land
+                </h2>
+                <p>
+                  {currentFarmer ? `Land leased out by ${currentFarmer.name}.` : 'Record the person and plot receiving the leased land.'}
+                </p>
+              </div>
+              <button
+                className="fm-close"
+                onClick={() => setRentalModal(null)}
+                aria-label="Close"
+                type="button"
+              >✕</button>
+            </header>
+            <form className="fm-form" onSubmit={event => event.preventDefault()} noValidate>
+              <div className="fm-form-body">
+                <div className="fm-section-label">Tenant / Receiver</div>
+                <div className="fm-row">
+                  <div className="fm-field">
+                    <label htmlFor="rental-tenant-name">Tenant / Receiver Name <span className="fm-req">*</span></label>
+                    <input id="rental-tenant-name" name="tenantName" value={rentalForm.tenantName} onChange={event => setRentalForm({ ...rentalForm, tenantName: event.target.value })} required maxLength={150} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-tenant-mobile">Mobile Number <span className="fm-req">*</span></label>
+                    <input id="rental-tenant-mobile" name="tenantMobile" type="tel" value={rentalForm.tenantMobile} onChange={event => setRentalForm({ ...rentalForm, tenantMobile: event.target.value })} required maxLength={20} pattern="^\+?[0-9\s()-]{7,20}$" />
+                  </div>
+                </div>
+
+                <div className="fm-section-label">Plot and Lease Details</div>
+                <div className="fm-row">
+                  <div className="fm-field">
+                    <label htmlFor="rental-survey-number">Survey Number <span className="fm-req">*</span></label>
+                    <input id="rental-survey-number" name="surveyNumber" value={rentalForm.surveyNumber} onChange={event => setRentalForm({ ...rentalForm, surveyNumber: event.target.value })} required maxLength={100} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-land-area">Land Area <span className="fm-req">*</span></label>
+                    <input id="rental-land-area" name="landArea" type="number" value={rentalForm.landArea} onChange={event => setRentalForm({ ...rentalForm, landArea: event.target.value })} required min="0.01" max="100000" step="any" />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-area-unit">Area Unit <span className="fm-req">*</span></label>
+                    <select id="rental-area-unit" name="areaUnit" value={rentalForm.areaUnit} onChange={event => setRentalForm({ ...rentalForm, areaUnit: event.target.value })} required>
+                      {['Acres', 'Hectares', 'Cents', 'Square Feet', 'Gunthas'].map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="fm-row">
+                  <div className="fm-field">
+                    <label htmlFor="rental-village">Village <span className="fm-req">*</span></label>
+                    <input id="rental-village" name="village" value={rentalForm.village} onChange={event => setRentalForm({ ...rentalForm, village: event.target.value })} required maxLength={100} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-mandal">Mandal <span className="fm-req">*</span></label>
+                    <input id="rental-mandal" name="mandal" value={rentalForm.mandal} onChange={event => setRentalForm({ ...rentalForm, mandal: event.target.value })} required maxLength={100} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-district">District <span className="fm-req">*</span></label>
+                    <input id="rental-district" name="district" value={rentalForm.district} onChange={event => setRentalForm({ ...rentalForm, district: event.target.value })} required maxLength={100} />
+                  </div>
+                </div>
+                <div className="fm-row">
+                  <div className="fm-field">
+                    <label htmlFor="rental-rent-amount">Rent Amount <span className="fm-req">*</span></label>
+                    <input id="rental-rent-amount" name="rentAmount" type="number" value={rentalForm.rentAmount} onChange={event => setRentalForm({ ...rentalForm, rentAmount: event.target.value })} required min="0.01" max="1000000000" step="0.01" />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-rent-frequency">Rent Frequency <span className="fm-req">*</span></label>
+                    <select id="rental-rent-frequency" name="rentFrequency" value={rentalForm.rentFrequency} onChange={event => setRentalForm({ ...rentalForm, rentFrequency: event.target.value })} required>
+                      {['Monthly', 'Yearly', 'Seasonal', 'One-time'].map(frequency => <option key={frequency} value={frequency}>{frequency}</option>)}
+                    </select>
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-lease-start">Lease Start Date <span className="fm-req">*</span></label>
+                    <input id="rental-lease-start" name="leaseStartDate" type="date" value={rentalForm.leaseStartDate} onChange={event => setRentalForm({ ...rentalForm, leaseStartDate: event.target.value })} required />
+                  </div>
+                </div>
+                <div className="fm-row fm-row-2">
+                  <div className="fm-field">
+                    <label htmlFor="rental-lease-end">Lease End Date <span className="fm-req">*</span></label>
+                    <input id="rental-lease-end" name="leaseEndDate" type="date" value={rentalForm.leaseEndDate} onChange={event => setRentalForm({ ...rentalForm, leaseEndDate: event.target.value })} required min={rentalForm.leaseStartDate || undefined} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-remarks">Remarks</label>
+                    <textarea id="rental-remarks" name="remarks" value={rentalForm.remarks} onChange={event => setRentalForm({ ...rentalForm, remarks: event.target.value })} maxLength={500} rows={2} />
+                  </div>
+                </div>
+              </div>
+              <footer className="fm-modal-foot">
+                <span className="fm-rental-note">UI preview only — entries will not be saved.</span>
+                <div className="fm-tab-nav-btns">
+                  <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={() => setRentalModal(null)}>Close</button>
+                  <button
+                    type="button"
+                    className="fm-btn-primary fm-foot-btn"
+                    onClick={() => showToast('UI preview only — rental entries are not saved.', 'error')}
+                  >
+                    Save Rental Land
+                  </button>
+                </div>
+              </footer>
+            </form>
+          </section>
+        </div>
       )}
     </div>
   )

@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="580" viewBox="0 0 1600 580">
+  <rect width="1600" height="580" fill="#f5f8f4"/>
+  <rect x="36" y="28" width="1528" height="524" rx="18" fill="#fff" stroke="#e5ebe4"/>
+  <text x="74" y="78" fill="#719078" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="2">MASTERS  /  FARMERS</text>
+  <text x="74" y="124" fill="#20362a" font-family="Arial,sans-serif" font-size="32" font-weight="700">Farmers</text>
+  <text x="74" y="153" fill="#758278" font-family="Arial,sans-serif" font-size="14">Manage farmer profiles, contact information and land records.</text>
+  <rect x="1367" y="68" width="158" height="48" rx="11" fill="#188247"/>
+  <text x="1446" y="98" fill="#fff" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700">＋ Add Farmer</text>
+  <rect x="72" y="177" width="1452" height="102" rx="13" fill="#f7fbf6" stroke="#dce8da"/>
+  <circle cx="127" cy="228" r="29" fill="#dceedd"/>
+  <text x="127" y="234" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700">RK</text>
+  <text x="176" y="207" fill="#718078" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">MY FARMER PROFILE</text>
+  <text x="176" y="235" fill="#24372b" font-family="Arial,sans-serif" font-size="17" font-weight="700">Ravi Kumar</text>
+  <text x="176" y="257" fill="#78857c" font-family="Arial,sans-serif" font-size="11">FRM-001  ·  S/o Mohan  ·  Farmer &amp; account owner</text>
+  <line x1="666" y1="198" x2="666" y2="259" stroke="#e0e9df"/>
+  <text x="704" y="211" fill="#849087" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">CONTACT</text>
+  <text x="704" y="236" fill="#334239" font-family="Arial,sans-serif" font-size="12">+91 90000 00001</text>
+  <text x="704" y="257" fill="#849087" font-family="Arial,sans-serif" font-size="10">ravi.kumar@example.com</text>
+  <line x1="1018" y1="198" x2="1018" y2="259" stroke="#e0e9df"/>
+  <text x="1055" y="211" fill="#849087" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">MY FARM</text>
+  <text x="1055" y="237" fill="#24372b" font-family="Arial,sans-serif" font-size="17" font-weight="700">8.0 acres</text>
+  <text x="1055" y="258" fill="#849087" font-family="Arial,sans-serif" font-size="10">Kankipadu · 2 farm parcels</text>
+  <rect x="1310" y="213" width="178" height="32" rx="8" fill="#fff" stroke="#dce8da"/>
+  <text x="1399" y="234" fill="#527258" text-anchor="middle" font-family="Arial,sans-serif" font-size="10">View full profile →</text>
+  <g transform="translate(0 120)">
+  <rect x="72" y="190" width="478" height="52" rx="10" fill="#fff" stroke="#dce5dc"/>
+  <circle cx="97" cy="214" r="8" fill="none" stroke="#829186" stroke-width="2"/>
+  <line x1="103" y1="220" x2="109" y2="226" stroke="#829186" stroke-width="2"/>
+  <text x="124" y="219" fill="#97a29a" font-family="Arial,sans-serif" font-size="13">Search tenant, survey number or location...</text>
+  <circle cx="526" cy="214" r="13" fill="#f1f5f1"/>
+  <text x="526" y="219" fill="#718078" text-anchor="middle" font-family="Arial,sans-serif" font-size="14">×</text>
+  <rect x="857" y="190" width="119" height="52" rx="10" fill="#eaf7ed" stroke="#4aa66a"/>
+  <text x="916" y="220" fill="#236440" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700">All <tspan fill="#438451">  0</tspan></text>
+  <rect x="989" y="190" width="134" height="52" rx="10" fill="#fff" stroke="#dce5dc"/>
+  <text x="1056" y="220" fill="#526257" text-anchor="middle" font-family="Arial,sans-serif" font-size="13">Active <tspan fill="#438451">  0</tspan></text>
+  <rect x="1136" y="190" width="151" height="52" rx="10" fill="#fff" stroke="#dce5dc"/>
+  <text x="1211" y="220" fill="#526257" text-anchor="middle" font-family="Arial,sans-serif" font-size="13">Inactive <tspan fill="#829086">  0</tspan></text>
+  <rect x="1300" y="190" width="54" height="52" rx="10" fill="#fff" stroke="#dce5dc"/>
+  <text x="1327" y="222" fill="#64746a" text-anchor="middle" font-family="Arial,sans-serif" font-size="22">↻</text>
+  <rect x="1366" y="190" width="158" height="52" rx="10" fill="#fff" stroke="#dce5dc"/>
+  <text x="1445" y="220" fill="#526257" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Columns  ▾</text>
+  <rect x="72" y="255" width="1452" height="135" rx="13" fill="#fff" stroke="#dfe7df"/>
+  <text x="94" y="285" fill="#24372b" font-family="Arial,sans-serif" font-size="15" font-weight="700">Rental Land Details</text>
+  <text x="94" y="304" fill="#849087" font-family="Arial,sans-serif" font-size="10">People and plots linked to the land you leased out</text>
+  <rect x="1363" y="267" width="137" height="32" rx="8" fill="#edf7ed" stroke="#d6e8d5"/>
+  <text x="1431" y="288" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700">＋ Add rental land</text>
+  <rect x="94" y="317" width="1408" height="25" rx="5" fill="#f7f9f7"/>
+  <text x="103" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">TENANT / RECEIVER</text>
+  <text x="260" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">MOBILE</text>
+  <text x="408" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">SURVEY NO.</text>
+  <text x="560" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">LAND AREA</text>
+  <text x="720" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">VILLAGE</text>
+  <text x="865" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">MANDAL</text>
+  <text x="1002" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">DISTRICT</text>
+  <text x="1160" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">RENT</text>
+  <text x="1290" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">LEASE PERIOD</text>
+  <text x="1430" y="334" fill="#87938a" font-family="Arial,sans-serif" font-size="8" font-weight="700">ACTIONS</text>
+  <text x="798" y="368" fill="#526257" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="700">No rental land records to display</text>
+  <text x="798" y="384" fill="#87938a" text-anchor="middle" font-family="Arial,sans-serif" font-size="9">UI preview only — entries are not saved</text>
+  <g transform="translate(0 150)" display="none">
+  <rect x="72" y="268" width="1452" height="536" fill="none" stroke="none"/>
+  <rect x="73" y="268" width="1450" height="61" fill="#f4f8f4"/>
+  <line x1="72" y1="329" x2="1524" y2="329" stroke="#e2e9e2"/>
+  <text x="94" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">FARMER  ↕</text>
+  <text x="385" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">CONTACT</text>
+  <text x="607" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">LOCATION</text>
+  <text x="893" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">LAND  ↕</text>
+  <text x="1070" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">STATUS</text>
+  <text x="1260" y="305" fill="#728077" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">ACTIONS</text>
+  <rect x="73" y="330" width="1450" height="116" fill="#fff"/>
+  <circle cx="120" cy="388" r="25" fill="#def2e2"/>
+  <text x="120" y="393" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700">RK</text>
+  <text x="161" y="380" fill="#24372b" font-family="Arial,sans-serif" font-size="14" font-weight="700">Shyam Reddy</text>
+  <text x="161" y="402" fill="#78857c" font-family="Arial,sans-serif" font-size="11">FRM-002  ·  S/o Venkat Reddy</text>
+  <text x="385" y="384" fill="#334239" font-family="Arial,sans-serif" font-size="12">+91 98••• 1201</text>
+  <text x="385" y="405" fill="#849087" font-family="Arial,sans-serif" font-size="10">Phone verified</text>
+  <text x="607" y="383" fill="#334239" font-family="Arial,sans-serif" font-size="12">Kankipadu</text>
+  <text x="607" y="404" fill="#849087" font-family="Arial,sans-serif" font-size="10">Krishna district</text>
+  <text x="893" y="391" fill="#334239" font-family="Arial,sans-serif" font-size="13" font-weight="700">8.0 ac</text>
+  <rect x="1067" y="373" width="77" height="27" rx="13" fill="#e5f6e9"/>
+  <circle cx="1082" cy="386" r="3.5" fill="#378552"/>
+  <text x="1092" y="390" fill="#34794a" font-family="Arial,sans-serif" font-size="11" font-weight="700">Active</text>
+  <rect x="1247" y="360" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1282" y="393" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">View</text>
+  <rect x="1326" y="360" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1361" y="393" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Edit</text>
+  <rect x="1405" y="360" width="90" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1450" y="393" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">More ⋯</text>
+  <line x1="72" y1="446" x2="1524" y2="446" stroke="#edf1ed"/>
+  <rect x="73" y="447" width="1450" height="116" fill="#fbfdfb"/>
+  <circle cx="120" cy="505" r="25" fill="#def2e2"/>
+  <text x="120" y="510" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700">SP</text>
+  <text x="161" y="497" fill="#24372b" font-family="Arial,sans-serif" font-size="14" font-weight="700">Sita Prasad</text>
+  <text x="161" y="519" fill="#78857c" font-family="Arial,sans-serif" font-size="11">FRM-002  ·  S/o Ramesh</text>
+  <text x="385" y="501" fill="#334239" font-family="Arial,sans-serif" font-size="12">+91 97••• 3420</text>
+  <text x="385" y="522" fill="#849087" font-family="Arial,sans-serif" font-size="10">Phone verified</text>
+  <text x="607" y="500" fill="#334239" font-family="Arial,sans-serif" font-size="12">Village not added</text>
+  <text x="607" y="521" fill="#9aa49c" font-family="Arial,sans-serif" font-size="10">Add location details</text>
+  <text x="893" y="508" fill="#334239" font-family="Arial,sans-serif" font-size="13" font-weight="700">10.0 ac</text>
+  <rect x="1067" y="490" width="89" height="27" rx="13" fill="#fff3d4"/>
+  <circle cx="1082" cy="503" r="3.5" fill="#b57921"/>
+  <text x="1092" y="507" fill="#9b681d" font-family="Arial,sans-serif" font-size="11" font-weight="700">Inactive</text>
+  <rect x="1247" y="477" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1282" y="510" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">View</text>
+  <rect x="1326" y="477" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1361" y="510" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Edit</text>
+  <rect x="1405" y="477" width="90" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1450" y="510" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">More ⋯</text>
+  <line x1="72" y1="563" x2="1524" y2="563" stroke="#edf1ed"/>
+  <rect x="73" y="564" width="1450" height="116" fill="#fff"/>
+  <circle cx="120" cy="622" r="25" fill="#def2e2"/>
+  <text x="120" y="627" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700">AM</text>
+  <text x="161" y="614" fill="#24372b" font-family="Arial,sans-serif" font-size="14" font-weight="700">Anil Murthy</text>
+  <text x="161" y="636" fill="#78857c" font-family="Arial,sans-serif" font-size="11">FRM-003  ·  S/o Krishna</text>
+  <text x="385" y="618" fill="#334239" font-family="Arial,sans-serif" font-size="12">+91 99••• 6408</text>
+  <text x="385" y="639" fill="#849087" font-family="Arial,sans-serif" font-size="10">Phone verified</text>
+  <text x="607" y="617" fill="#334239" font-family="Arial,sans-serif" font-size="12">Village not added</text>
+  <text x="607" y="638" fill="#9aa49c" font-family="Arial,sans-serif" font-size="10">Add location details</text>
+  <text x="893" y="625" fill="#334239" font-family="Arial,sans-serif" font-size="13" font-weight="700">—</text>
+  <text x="893" y="644" fill="#9aa49c" font-family="Arial,sans-serif" font-size="10">Land not added</text>
+  <rect x="1067" y="607" width="77" height="27" rx="13" fill="#e5f6e9"/>
+  <circle cx="1082" cy="620" r="3.5" fill="#378552"/>
+  <text x="1092" y="624" fill="#34794a" font-family="Arial,sans-serif" font-size="11" font-weight="700">Active</text>
+  <rect x="1247" y="594" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1282" y="627" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">View</text>
+  <rect x="1326" y="594" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1361" y="627" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Edit</text>
+  <rect x="1405" y="594" width="90" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1450" y="627" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">More ⋯</text>
+  <line x1="72" y1="680" x2="1524" y2="680" stroke="#edf1ed"/>
+  <rect x="73" y="681" width="1450" height="116" fill="#fbfdfb"/>
+  <circle cx="120" cy="739" r="25" fill="#def2e2"/>
+  <text x="120" y="744" fill="#34794a" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700">NK</text>
+  <text x="161" y="731" fill="#24372b" font-family="Arial,sans-serif" font-size="14" font-weight="700">Naveen Kumar</text>
+  <text x="161" y="753" fill="#78857c" font-family="Arial,sans-serif" font-size="11">FRM-004  ·  S/o Srinivas</text>
+  <text x="385" y="735" fill="#334239" font-family="Arial,sans-serif" font-size="12">+91 94••• 8215</text>
+  <text x="385" y="756" fill="#849087" font-family="Arial,sans-serif" font-size="10">Phone verified</text>
+  <text x="607" y="734" fill="#334239" font-family="Arial,sans-serif" font-size="12">Village not added</text>
+  <text x="607" y="755" fill="#9aa49c" font-family="Arial,sans-serif" font-size="10">Add location details</text>
+  <text x="893" y="742" fill="#334239" font-family="Arial,sans-serif" font-size="13" font-weight="700">—</text>
+  <text x="893" y="761" fill="#9aa49c" font-family="Arial,sans-serif" font-size="10">Land not added</text>
+  <rect x="1067" y="724" width="77" height="27" rx="13" fill="#e5f6e9"/>
+  <circle cx="1082" cy="737" r="3.5" fill="#378552"/>
+  <text x="1092" y="741" fill="#34794a" font-family="Arial,sans-serif" font-size="11" font-weight="700">Active</text>
+  <rect x="1247" y="711" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1282" y="744" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">View</text>
+  <rect x="1326" y="711" width="70" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1361" y="744" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Edit</text>
+  <rect x="1405" y="711" width="90" height="54" rx="9" fill="#fff" stroke="#e0e8e0"/>
+  <text x="1450" y="744" fill="#65766a" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">More ⋯</text>
+  <rect x="72" y="825" width="1452" height="1" fill="#edf1ed"/>
+  <text x="76" y="858" fill="#718078" font-family="Arial,sans-serif" font-size="12">Showing <tspan fill="#24372b" font-weight="700">4</tspan> of 4 other farmers</text>
+  <text x="317" y="858" fill="#718078" font-family="Arial,sans-serif" font-size="12">Rows per page</text>
+  <rect x="409" y="837" width="61" height="32" rx="7" fill="#fff" stroke="#e0e8e0"/>
+  <text x="439" y="858" fill="#526257" text-anchor="middle" font-family="Arial,sans-serif" font-size="11">10  ▾</text>
+  <text x="1322" y="858" fill="#91a096" font-family="Arial,sans-serif" font-size="11">Preview concept · Sample data</text>
+  </g>
+  </g>
+</svg>

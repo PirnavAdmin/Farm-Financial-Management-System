@@ -163,6 +163,9 @@ function App() {
   const [userEmail, setUserEmail] = useState(() => {
     return localStorage.getItem('agriman_user_email') || sessionStorage.getItem('agriman_user_email') || 'User'
   })
+  const [accountEmail, setAccountEmail] = useState(() => {
+    return localStorage.getItem('agriman_account_email') || sessionStorage.getItem('agriman_account_email') || ''
+  })
   const [userRole, setUserRole] = useState(() => {
     return localStorage.getItem('agriman_user_role') || sessionStorage.getItem('agriman_user_role') || 'User'
   })
@@ -262,11 +265,14 @@ function App() {
 
         if (!mounted) return
         const displayName = user.fullName || user.name || user.email || user.phoneNumber || storage.getItem('agriman_user_email') || 'User'
+        const email = user.email || user.Email || storage.getItem('agriman_account_email') || ''
         const role = user.role || storage.getItem('agriman_user_role') || 'User'
         storage.setItem('agriman_user_email', displayName)
         storage.setItem('agriman_user_name', displayName)
+        if (email) storage.setItem('agriman_account_email', email)
         storage.setItem('agriman_user_role', role)
         setUserEmail(displayName)
+        setAccountEmail(email)
         setUserName(displayName)
         setUserRole(role)
         setLoggedIn(true)
@@ -278,10 +284,12 @@ function App() {
             currentStorage.removeItem('agriman_refresh_token')
             currentStorage.removeItem('agriman_user_email')
             currentStorage.removeItem('agriman_user_name')
+            currentStorage.removeItem('agriman_account_email')
             currentStorage.removeItem('agriman_user_role')
           }
           setLoggedIn(false)
           setUserEmail('User')
+          setAccountEmail('')
           setUserName('User')
           setUserRole('User')
         }
@@ -295,20 +303,24 @@ function App() {
   function handleLogin(user, token, rememberMe, identifier, refreshToken) {
     const storage = rememberMe ? localStorage : sessionStorage
     const displayName = user.fullName || user.name || user.email || user.phoneNumber || identifier || 'User'
+    const email = user.email || user.Email || identifier || ''
     const role = user.role || 'User'
     for (const currentStorage of [localStorage, sessionStorage]) {
       currentStorage.removeItem('agriman_access_token')
       currentStorage.removeItem('agriman_refresh_token')
       currentStorage.removeItem('agriman_user_email')
       currentStorage.removeItem('agriman_user_name')
+      currentStorage.removeItem('agriman_account_email')
       currentStorage.removeItem('agriman_user_role')
     }
     storage.setItem('agriman_access_token', token)
     if (refreshToken) storage.setItem('agriman_refresh_token', refreshToken)
     storage.setItem('agriman_user_email', displayName)
     storage.setItem('agriman_user_name', user.fullName || user.name || displayName)
+    if (email) storage.setItem('agriman_account_email', email)
     storage.setItem('agriman_user_role', role)
     setUserEmail(displayName)
+    setAccountEmail(email)
     setUserName(user.fullName || user.name || displayName)
     setUserRole(role)
     setLoggedIn(true)
@@ -322,9 +334,11 @@ function App() {
       storage.removeItem('agriman_refresh_token')
       storage.removeItem('agriman_user_email')
       storage.removeItem('agriman_user_name')
+      storage.removeItem('agriman_account_email')
       storage.removeItem('agriman_user_role')
     }
     setUserEmail('User')
+    setAccountEmail('')
     setUserName('User')
     setUserRole('User')
   }
@@ -467,7 +481,7 @@ function App() {
         <ModuleErrorBoundary active={active}>
         {active === 'Farmers' ? (
           <section className="page-content">
-            <Farmers />
+            <Farmers profileEmail={accountEmail} profileName={userName} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : active === 'Users' ? (
