@@ -407,6 +407,12 @@ builder.Services.AddSwaggerGen(c =>
             return new[] { "13. Machinery & Equipment" };
         }
 
+        // 10. Loans & Finance API
+        if (controllerName.Equals("Loan", StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { "10. Finance - Loans & Liabilities API" };
+        }
+
         // 14. Purchase Orders
         if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "14. Purchases - Purchase Orders & Inward Deliveries" };
 
@@ -420,7 +426,6 @@ builder.Services.AddSwaggerGen(c =>
 
         // 16. Buyer & Customer Management
         if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "16. Buyers - Customers, Wholesalers & Traders" };
-
         return new[] { controllerName };
     });
 
@@ -485,7 +490,8 @@ using (var scope = app.Services.CreateScope())
     {
         var farmDb = services.GetRequiredService<FarmDbContext>();
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
-        logger.LogInformation("[Farmersdb] 2. Farm Management module ready.");
+        await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
+        logger.LogInformation("[Farmersdb] 2. Farm Management module & Loans ready.");
     }
     catch (Exception ex)
     {
