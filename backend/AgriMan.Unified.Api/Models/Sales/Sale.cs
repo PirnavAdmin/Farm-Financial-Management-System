@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace SalesApi.Models;
 
@@ -16,6 +17,8 @@ public class Sale
 
     [Required]
     public DateTime SalesDate { get; set; }
+
+    public int? BuyerId { get; set; }
 
     [Required]
     [MaxLength(150)]
@@ -59,7 +62,18 @@ public class Sale
     [MaxLength(30)]
     public string PaymentStatus { get; set; } = "Pending";
 
+    [MaxLength(500)]
+    public string? Remarks { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    [ForeignKey(nameof(BuyerId))]
+    [JsonIgnore]
+    public Buyer? BuyerEntity { get; set; }
+
+    public ICollection<SalesItem> Items { get; set; } = new List<SalesItem>();
+
+    public ICollection<SalesPayment> Payments { get; set; } = new List<SalesPayment>();
 }

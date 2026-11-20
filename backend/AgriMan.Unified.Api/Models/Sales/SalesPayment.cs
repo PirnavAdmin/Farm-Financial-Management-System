@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace SalesApi.Models;
 
@@ -9,6 +10,10 @@ public class SalesPayment
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
+
+    public int? SaleId { get; set; }
+
+    public int? BuyerId { get; set; }
 
     [Required]
     [MaxLength(50)]
@@ -31,7 +36,7 @@ public class SalesPayment
 
     [Required]
     [MaxLength(30)]
-    public string PaymentMode { get; set; } = "Bank"; // Cash, Bank, UPI
+    public string PaymentMode { get; set; } = "Bank"; // Cash, Bank, UPI, Cheque, NEFT/RTGS
 
     [MaxLength(100)]
     public string? ReferenceNo { get; set; }
@@ -40,4 +45,14 @@ public class SalesPayment
     public string? Remarks { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? UpdatedAt { get; set; }
+
+    [ForeignKey(nameof(SaleId))]
+    [JsonIgnore]
+    public Sale? Sale { get; set; }
+
+    [ForeignKey(nameof(BuyerId))]
+    [JsonIgnore]
+    public Buyer? BuyerEntity { get; set; }
 }

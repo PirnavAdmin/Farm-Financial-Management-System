@@ -1,123 +1,143 @@
+using AgriMan.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SalesApi.Data;
-using SalesApi.Models;
+using SalesApi.DTOs;
+using SalesApi.Services;
 
 namespace SalesApi.Controllers;
 
+/// <summary>
+/// Module 10 - Sales Payments and Receivables API (`SalesPayments` table).
+/// Automatically synchronizes parent Sale PaymentStatus (Pending / Partially Paid / Paid).
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class SalesPaymentsController : ControllerBase
 {
-    private readonly SalesDbContext _context;
+    private readonly ISalesService _salesService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<SalesPaymentsController> _logger;
 
-    public SalesPaymentsController(SalesDbContext context, ILogger<SalesPaymentsController> logger)
+    public SalesPaymentsController(
+        ISalesService salesService,
+        IAuditService auditService,
+        ILogger<SalesPaymentsController> logger)
     {
-        _context = context;
+        _salesService = salesService;
+        _auditService = auditService;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get all sales payment vouchers with optional search, buyer, salesNo, paymentMode, and date filters.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SalesPayment>>> GetAll([FromQuery] string? search, [FromQuery] string? buyer, [FromQuery] string? salesNo)
+    [ProducesResponseType(typeof(List<SalesPaymentResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<SalesPaymentResponseDto>>> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] string? buyer,
+        [FromQuery] string? salesNo,
+        [FromQuery] string? paymentMode,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate)
     {
-        var query = _context.SalesPayments.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim().ToLower();
-            query = query.Where(p =>
-                p.PaymentNo.ToLower().Contains(term) ||
-                p.Buyer.ToLower().Contains(term) ||
-                p.SalesNo.ToLower().Contains(term) ||
-                (p.ReferenceNo != null && p.ReferenceNo.ToLower().Contains(term)));
-        }
-
-        if (!string.IsNullOrWhiteSpace(buyer))
-        {
-            query = query.Where(p => p.Buyer.ToLower() == buyer.Trim().ToLower());
-        }
-
-        if (!string.IsNullOrWhiteSpace(salesNo))
-        {
-            query = query.Where(p => p.SalesNo.ToLower() == salesNo.Trim().ToLower());
-        }
-
-        var payments = await query.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.Id).ToListAsync();
+        var payments = await _salesService.GetPaymentsAsync(search, buyer, salesNo, paymentMode, fromDate, toDate);
         return Ok(payments);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<SalesPayment>> Create([FromBody] SalesPayment payment)
+    /// <summary>
+    /// Get a single sales payment voucher by ID.
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(SalesPaymentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SalesPaymentResponseDto>> GetById(int id)
     {
-        if (string.IsNullOrWhiteSpace(payment.PaymentNo))
-        {
-            var nextId = (await _context.SalesPayments.MaxAsync(p => (int?)p.Id) ?? 0) + 1;
-            payment.PaymentNo = $"SPAY-{DateTime.UtcNow.Year}-{nextId:D3}";
-        }
+        var payment = await _salesService.GetPaymentByIdAsync(id);
+        if (payment == null)
+            return NotFound(new { message = $"Payment record with ID {id} not found." });
 
-        payment.CreatedAt = DateTime.UtcNow;
-        _context.SalesPayments.Add(payment);
-
-        // Update the related sale status if sales record exists
-        var sale = await _context.Sales.FirstOrDefaultAsync(s => s.SalesNo.ToLower() == payment.SalesNo.Trim().ToLower());
-        if (sale != null)
-        {
-            var previousPaid = await _context.SalesPayments
-                .Where(p => p.SalesNo.ToLower() == sale.SalesNo.ToLower())
-                .SumAsync(p => p.PaymentAmount);
-
-            var totalPaid = previousPaid + payment.PaymentAmount;
-            if (totalPaid >= sale.NetAmount)
-            {
-                sale.PaymentStatus = "Paid";
-            }
-            else if (totalPaid > 0)
-            {
-                sale.PaymentStatus = "Partially Paid";
-            }
-            sale.UpdatedAt = DateTime.UtcNow;
-        }
-
-        await _context.SaveChangesAsync();
         return Ok(payment);
     }
 
+    /// <summary>
+    /// Get payment collection summary and breakdown by payment mode (Cash, Bank, UPI, etc.).
+    /// </summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(SalesPaymentSummaryDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<SalesPaymentSummaryDto>> GetSummary()
+    {
+        var summary = await _salesService.GetPaymentsSummaryAsync();
+        return Ok(summary);
+    }
+
+    /// <summary>
+    /// Record a new sales payment voucher and automatically recalculate the parent Sale PaymentStatus.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(SalesPaymentResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SalesPaymentResponseDto>> Create([FromBody] CreateSalesPaymentDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.CreatePaymentAsync(dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        await TryAuditAsync("Create", "SalesPayment", result.Data!.PaymentNo,
+            $"SalesNo={result.Data.SalesNo}, Amount={result.Data.PaymentAmount}, Mode={result.Data.PaymentMode}");
+        return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result.Data);
+    }
+
+    /// <summary>
+    /// Update an existing payment voucher and recalculate the parent Sale PaymentStatus.
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(SalesPaymentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SalesPaymentResponseDto>> Update(int id, [FromBody] UpdateSalesPaymentDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.UpdatePaymentAsync(id, dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        await TryAuditAsync("Update", "SalesPayment", result.Data!.PaymentNo,
+            $"SalesNo={result.Data.SalesNo}, Amount={result.Data.PaymentAmount}");
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Delete a sales payment voucher and automatically recalculate the parent Sale PaymentStatus.
+    /// </summary>
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        var payment = await _context.SalesPayments.FindAsync(id);
-        if (payment == null) return NotFound(new { message = $"Payment record with ID {id} not found." });
+        var result = await _salesService.DeletePaymentAsync(id);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        var salesNo = payment.SalesNo;
-        _context.SalesPayments.Remove(payment);
-        await _context.SaveChangesAsync();
-
-        // Recalculate sale status
-        var sale = await _context.Sales.FirstOrDefaultAsync(s => s.SalesNo.ToLower() == salesNo.ToLower());
-        if (sale != null)
-        {
-            var remainingPaid = await _context.SalesPayments
-                .Where(p => p.SalesNo.ToLower() == sale.SalesNo.ToLower())
-                .SumAsync(p => p.PaymentAmount);
-
-            if (remainingPaid >= sale.NetAmount)
-            {
-                sale.PaymentStatus = "Paid";
-            }
-            else if (remainingPaid > 0)
-            {
-                sale.PaymentStatus = "Partially Paid";
-            }
-            else
-            {
-                sale.PaymentStatus = "Pending";
-            }
-            sale.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-        }
-
+        await TryAuditAsync("Delete", "SalesPayment", id.ToString(), "Deleted sales payment voucher");
         return NoContent();
+    }
+
+    private async Task TryAuditAsync(string action, string entityType, string? entityId, string details)
+    {
+        try
+        {
+            var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditService.LogActionAsync(actorId, actorName, action, entityType, entityId, details, ip);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Non-blocking audit log skipped for {EntityType} {Action}", entityType, action);
+        }
     }
 }

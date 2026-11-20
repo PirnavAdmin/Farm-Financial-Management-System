@@ -340,13 +340,28 @@ CREATE TABLE IF NOT EXISTS `machinery_expenses` (
     CONSTRAINT `fk_mach_exp_mach` FOREIGN KEY (`MachineryId`) REFERENCES `machinery` (`Id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 13. Sales Table
-DROP TABLE IF EXISTS `Sales`;
-DROP TABLE IF EXISTS `sales`;
-CREATE TABLE `Sales` (
+-- 13. Module 10: Sales Management Tables (Buyers, Sales, SalesItems, SalesPayments)
+CREATE TABLE IF NOT EXISTS `Buyers` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `BuyerCode` VARCHAR(50) NOT NULL UNIQUE,
+    `BuyerName` VARCHAR(150) NOT NULL,
+    `Mobile` VARCHAR(20) NOT NULL,
+    `Address` VARCHAR(255) DEFAULT NULL,
+    `BusinessName` VARCHAR(150) DEFAULT NULL,
+    `Gstin` VARCHAR(30) DEFAULT NULL,
+    `OpeningBalance` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `Status` VARCHAR(20) NOT NULL DEFAULT 'Active',
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_buyers_name` (`BuyerName`),
+    INDEX `idx_buyers_status` (`Status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `Sales` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `SalesNo` VARCHAR(50) NOT NULL UNIQUE,
-    `SalesDate` DATE NOT NULL,
+    `SalesDate` DATETIME NOT NULL,
+    `BuyerId` INT DEFAULT NULL,
     `Buyer` VARCHAR(150) NOT NULL,
     `Farm` VARCHAR(150) NOT NULL,
     `Crop` VARCHAR(100) NOT NULL,
@@ -358,13 +373,64 @@ CREATE TABLE `Sales` (
     `Transport` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
     `NetAmount` DECIMAL(18, 2) NOT NULL,
     `PaymentStatus` VARCHAR(30) NOT NULL DEFAULT 'Pending',
+    `Remarks` VARCHAR(500) DEFAULT NULL,
     `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `UpdatedAt` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+    `UpdatedAt` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_sales_date` (`SalesDate`),
+    INDEX `idx_sales_buyer` (`Buyer`),
+    INDEX `idx_sales_status` (`PaymentStatus`),
+    CONSTRAINT `fk_sales_buyer` FOREIGN KEY (`BuyerId`) REFERENCES `Buyers` (`Id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Sample Sales record
-INSERT IGNORE INTO `Sales` (`Id`, `SalesNo`, `SalesDate`, `Buyer`, `Farm`, `Crop`, `Quantity`, `Unit`, `Rate`, `GrossAmount`, `Commission`, `Transport`, `NetAmount`, `PaymentStatus`, `CreatedAt`)
-VALUES (1, 'SAL-2026-001', '2026-10-25', 'Sri Lakshmi Traders', 'Farm 1', 'Paddy (Rice)', 100.00, 'Quintals', 2250.00, 225000.00, 2000.00, 3000.00, 220000.00, 'Completed', NOW());
+CREATE TABLE IF NOT EXISTS `SalesItems` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `SaleId` INT DEFAULT NULL,
+    `SalesNo` VARCHAR(50) NOT NULL,
+    `Crop` VARCHAR(100) NOT NULL,
+    `Quantity` DECIMAL(18, 2) NOT NULL,
+    `Unit` VARCHAR(20) NOT NULL DEFAULT 'kg',
+    `Rate` DECIMAL(18, 2) NOT NULL,
+    `Amount` DECIMAL(18, 2) NOT NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_sales_items_saleid` (`SaleId`),
+    INDEX `idx_sales_items_salesno` (`SalesNo`),
+    CONSTRAINT `fk_sales_items_sale` FOREIGN KEY (`SaleId`) REFERENCES `Sales` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `SalesPayments` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `SaleId` INT DEFAULT NULL,
+    `BuyerId` INT DEFAULT NULL,
+    `PaymentNo` VARCHAR(50) NOT NULL UNIQUE,
+    `PaymentDate` DATETIME NOT NULL,
+    `Buyer` VARCHAR(150) NOT NULL,
+    `SalesNo` VARCHAR(50) NOT NULL,
+    `PaymentAmount` DECIMAL(18, 2) NOT NULL,
+    `PaymentMode` VARCHAR(30) NOT NULL DEFAULT 'Bank',
+    `ReferenceNo` VARCHAR(100) DEFAULT NULL,
+    `Remarks` VARCHAR(255) DEFAULT NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_sales_payments_saleid` (`SaleId`),
+    INDEX `idx_sales_payments_salesno` (`SalesNo`),
+    INDEX `idx_sales_payments_buyer` (`Buyer`),
+    CONSTRAINT `fk_sales_payments_sale` FOREIGN KEY (`SaleId`) REFERENCES `Sales` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_sales_payments_buyer` FOREIGN KEY (`BuyerId`) REFERENCES `Buyers` (`Id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `Buyers` (`Id`, `BuyerCode`, `BuyerName`, `Mobile`, `Address`, `BusinessName`, `Gstin`, `OpeningBalance`, `Status`) VALUES
+(1, 'BUY-001', 'Sri Lakshmi Traders', '9876543210', 'Main Market Yard, Vijayawada, Andhra Pradesh', 'Sri Lakshmi Agri Traders', '37ABCDE1234F1Z5', 25000.00, 'Active'),
+(2, 'BUY-002', 'Dairy Cooperative Society', '9876512340', 'Milk Chilling Centre, Guntur, Andhra Pradesh', 'Guntur Milk Producers Union', '37FGHIJ5678K1Z2', 0.00, 'Active'),
+(3, 'BUY-003', 'Hyderabad Wholesale Mandi', '9849011223', 'Bowenpally Market Yard, Secunderabad, Telangana', 'Telangana Agro Mandi Pvt Ltd', '36AAACT9876Q1Z9', 15000.00, 'Active');
+
+INSERT IGNORE INTO `Sales` (`Id`, `SalesNo`, `SalesDate`, `BuyerId`, `Buyer`, `Farm`, `Crop`, `Quantity`, `Unit`, `Rate`, `GrossAmount`, `Commission`, `Transport`, `NetAmount`, `PaymentStatus`, `CreatedAt`)
+VALUES (1, 'SAL-2026-001', '2026-10-25 00:00:00', 1, 'Sri Lakshmi Traders', 'Sunrise Valley Farm', 'Paddy (Rice)', 100.00, 'Quintals', 2250.00, 225000.00, 2000.00, 3000.00, 220000.00, 'Paid', NOW());
+
+INSERT IGNORE INTO `SalesItems` (`Id`, `SaleId`, `SalesNo`, `Crop`, `Quantity`, `Unit`, `Rate`, `Amount`)
+VALUES (1, 1, 'SAL-2026-001', 'Paddy (Rice)', 100.00, 'Quintals', 2250.00, 225000.00);
+
+INSERT IGNORE INTO `SalesPayments` (`Id`, `SaleId`, `BuyerId`, `PaymentNo`, `PaymentDate`, `Buyer`, `SalesNo`, `PaymentAmount`, `PaymentMode`, `ReferenceNo`, `Remarks`)
+VALUES (1, 1, 1, 'SPAY-2026-001', '2026-10-25 00:00:00', 'Sri Lakshmi Traders', 'SAL-2026-001', 220000.00, 'Bank', 'UTR-HDFC-99238472', 'Full settlement for Paddy harvest sales');
 
 -- Sample Machinery
 INSERT IGNORE INTO `machinery` (`Id`, `MachineName`, `MachineType`, `RegistrationNo`, `PurchaseDate`, `PurchaseCost`, `CurrentValue`, `FuelType`, `Status`) VALUES

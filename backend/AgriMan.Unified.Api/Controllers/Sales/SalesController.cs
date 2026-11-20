@@ -1,117 +1,62 @@
+using System.Text;
+using AgriMan.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SalesApi.Data;
 using SalesApi.DTOs;
-using SalesApi.Models;
+using SalesApi.Services;
 
 namespace SalesApi.Controllers;
 
+/// <summary>
+/// Module 10 - Sales Management API: Sales transactions, line items (SalesItems),
+/// payments, receivables, analytics, and CSV exports.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class SalesController : ControllerBase
 {
+    private readonly ISalesService _salesService;
     private readonly SalesDbContext _context;
+    private readonly IAuditService _auditService;
     private readonly ILogger<SalesController> _logger;
 
-    public SalesController(SalesDbContext context, ILogger<SalesController> logger)
+    public SalesController(
+        ISalesService salesService,
+        SalesDbContext context,
+        IAuditService auditService,
+        ILogger<SalesController> logger)
     {
+        _salesService = salesService;
         _context = context;
+        _auditService = auditService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get paginated list of sales records with filtering, searching, and sorting.
+    /// Get paginated list of sales records with search, status, buyer, crop, farm, date range, and sorting.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<SaleResponseDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<SaleResponseDto>>> GetAll([FromQuery] SaleQueryParameters query)
     {
-        var salesQuery = _context.Sales.AsNoTracking().AsQueryable();
-
-        // 1. Search filter across SalesNo, Buyer, Farm, Crop
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            var term = query.Search.Trim().ToLower();
-            salesQuery = salesQuery.Where(s =>
-                s.SalesNo.ToLower().Contains(term) ||
-                s.Buyer.ToLower().Contains(term) ||
-                s.Farm.ToLower().Contains(term) ||
-                s.Crop.ToLower().Contains(term));
-        }
-
-        // 2. Status filter
-        if (!string.IsNullOrWhiteSpace(query.Status) && !query.Status.Equals("all", StringComparison.OrdinalIgnoreCase))
-        {
-            salesQuery = salesQuery.Where(s => s.PaymentStatus.ToLower() == query.Status.Trim().ToLower());
-        }
-
-        // 3. Crop filter
-        if (!string.IsNullOrWhiteSpace(query.Crop))
-        {
-            salesQuery = salesQuery.Where(s => s.Crop.ToLower() == query.Crop.Trim().ToLower());
-        }
-
-        // 4. Farm filter
-        if (!string.IsNullOrWhiteSpace(query.Farm))
-        {
-            salesQuery = salesQuery.Where(s => s.Farm.ToLower() == query.Farm.Trim().ToLower());
-        }
-
-        // 5. Date filters
-        if (query.FromDate.HasValue)
-        {
-            salesQuery = salesQuery.Where(s => s.SalesDate >= query.FromDate.Value);
-        }
-        if (query.ToDate.HasValue)
-        {
-            salesQuery = salesQuery.Where(s => s.SalesDate <= query.ToDate.Value);
-        }
-
-        var totalCount = await salesQuery.CountAsync();
-
-        // 6. Sorting
-        salesQuery = query.SortBy?.ToLower() switch
-        {
-            "dateasc" => salesQuery.OrderBy(s => s.SalesDate),
-            "amountdesc" => salesQuery.OrderByDescending(s => s.NetAmount),
-            "amountasc" => salesQuery.OrderBy(s => s.NetAmount),
-            _ => salesQuery.OrderByDescending(s => s.SalesDate).ThenByDescending(s => s.Id)
-        };
-
-        // 7. Pagination
-        var page = query.Page > 0 ? query.Page : 1;
-        var pageSize = query.PageSize > 0 ? query.PageSize : 10;
-        var items = await salesQuery
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(s => MapToDto(s))
-            .ToListAsync();
-
-        return Ok(new PagedResult<SaleResponseDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        });
+        var result = await _salesService.GetSalesAsync(query);
+        return Ok(result);
     }
 
     /// <summary>
-    /// Get single sales record by ID.
+    /// Get single sales record by ID including its line items and payments.
     /// </summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SaleResponseDto>> GetById(int id)
     {
-        var sale = await _context.Sales.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        var sale = await _salesService.GetSaleByIdAsync(id);
         if (sale == null)
-        {
             return NotFound(new { message = $"Sales record with ID {id} not found." });
-        }
 
-        return Ok(MapToDto(sale));
+        return Ok(sale);
     }
 
     /// <summary>
@@ -122,111 +67,103 @@ public class SalesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SaleResponseDto>> GetBySalesNo(string salesNo)
     {
-        var sale = await _context.Sales.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.SalesNo.ToLower() == salesNo.Trim().ToLower());
-
+        var sale = await _salesService.GetSaleByNoAsync(salesNo);
         if (sale == null)
-        {
             return NotFound(new { message = $"Sales record with SalesNo '{salesNo}' not found." });
-        }
 
-        return Ok(MapToDto(sale));
+        return Ok(sale);
     }
 
     /// <summary>
-    /// Get sales analytics summary (total amount, commission, transport, net, status breakdown).
+    /// Get sales KPI summary (total gross, commission, transport, net, collected vs outstanding, status counts).
     /// </summary>
     [HttpGet("summary")]
     [ProducesResponseType(typeof(SaleSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<SaleSummaryDto>> GetSummary()
     {
-        var sales = await _context.Sales.AsNoTracking().ToListAsync();
-
-        var summary = new SaleSummaryDto
-        {
-            TotalSalesCount = sales.Count,
-            TotalGrossAmount = sales.Sum(s => s.GrossAmount),
-            TotalCommission = sales.Sum(s => s.Commission),
-            TotalTransport = sales.Sum(s => s.Transport),
-            TotalNetAmount = sales.Sum(s => s.NetAmount),
-            PendingCount = sales.Count(s => string.Equals(s.PaymentStatus, "Pending", StringComparison.OrdinalIgnoreCase)),
-            PartPaidCount = sales.Count(s => string.Equals(s.PaymentStatus, "Part Paid", StringComparison.OrdinalIgnoreCase)),
-            PaidCount = sales.Count(s => string.Equals(s.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)),
-            PendingAmount = sales.Where(s => !string.Equals(s.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)).Sum(s => s.NetAmount),
-            PaidAmount = sales.Where(s => string.Equals(s.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)).Sum(s => s.NetAmount)
-        };
-
+        var summary = await _salesService.GetSalesSummaryAsync();
         return Ok(summary);
     }
 
     /// <summary>
-    /// Create a new sales record with automatic calculation of Gross and Net amounts.
+    /// Get detailed sales analytics grouped by Crop, Buyer, Farm, and Month.
+    /// </summary>
+    [HttpGet("analytics")]
+    [ProducesResponseType(typeof(SalesAnalyticsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<SalesAnalyticsDto>> GetAnalytics(
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
+    {
+        var analytics = await _salesService.GetSalesAnalyticsAsync(fromDate, toDate);
+        return Ok(analytics);
+    }
+
+    /// <summary>
+    /// Get sales receivables overview (Total Sales, Amount Received, Outstanding Balance, Payment Status per sale).
+    /// </summary>
+    [HttpGet("receivables")]
+    [ProducesResponseType(typeof(ReceivablesOverviewDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReceivablesOverviewDto>> GetReceivables(
+        [FromQuery] string? search = null,
+        [FromQuery] string? buyer = null,
+        [FromQuery] string? status = null)
+    {
+        var overview = await _salesService.GetReceivablesAsync(search, buyer, status);
+        return Ok(overview);
+    }
+
+    /// <summary>
+    /// Sync or settle a receivable entry directly by Sales Number.
+    /// </summary>
+    [HttpPut("receivables/{salesNo}")]
+    [ProducesResponseType(typeof(ReceivableItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReceivableItemDto>> SyncReceivable(string salesNo, [FromBody] SyncReceivableDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.SyncReceivableAsync(salesNo, dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        await TryAuditAsync("UpdateReceivable", "Sale", salesNo, $"AmountReceived={dto.AmountReceived}");
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Export filtered sales records as a CSV file.
+    /// </summary>
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    public async Task<IActionResult> ExportCsv([FromQuery] SaleQueryParameters query)
+    {
+        var csv = await _salesService.ExportSalesCsvAsync(query);
+        var bytes = Encoding.UTF8.GetBytes(csv);
+        var fileName = $"agriman_sales_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(bytes, "text/csv", fileName);
+    }
+
+    /// <summary>
+    /// Create a new sales record with automatic Gross/Net calculation, SalesItems creation, and optional initial payment.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SaleResponseDto>> Create([FromBody] CreateSaleDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        // Auto-generate SalesNo if not provided
-        var salesNo = dto.SalesNo?.Trim();
-        if (string.IsNullOrWhiteSpace(salesNo))
-        {
-            var nextId = (await _context.Sales.MaxAsync(s => (int?)s.Id) ?? 0) + 1;
-            salesNo = $"SAL-{DateTime.UtcNow.Year}-{nextId:D3}";
-        }
-        else
-        {
-            // Verify uniqueness
-            var exists = await _context.Sales.AnyAsync(s => s.SalesNo.ToLower() == salesNo.ToLower());
-            if (exists)
-            {
-                return BadRequest(new { message = $"Sales record with SalesNo '{salesNo}' already exists." });
-            }
-        }
+        var result = await _salesService.CreateSaleAsync(dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        // Auto calculate Gross Amount = Quantity * Rate
-        var grossAmount = dto.GrossAmount.HasValue && dto.GrossAmount.Value > 0
-            ? dto.GrossAmount.Value
-            : Math.Round(dto.Quantity * dto.Rate, 2);
-
-        // Auto calculate Net Amount = GrossAmount - Commission - Transport
-        var netAmount = dto.NetAmount.HasValue && dto.NetAmount.Value > 0
-            ? dto.NetAmount.Value
-            : Math.Round(grossAmount - dto.Commission - dto.Transport, 2);
-
-        var sale = new Sale
-        {
-            SalesNo = salesNo,
-            SalesDate = dto.SalesDate ?? DateTime.UtcNow,
-            Buyer = dto.Buyer.Trim(),
-            Farm = dto.Farm.Trim(),
-            Crop = dto.Crop.Trim(),
-            Quantity = dto.Quantity,
-            Unit = string.IsNullOrWhiteSpace(dto.Unit) ? "kg" : dto.Unit.Trim(),
-            Rate = dto.Rate,
-            GrossAmount = grossAmount,
-            Commission = dto.Commission,
-            Transport = dto.Transport,
-            NetAmount = netAmount,
-            PaymentStatus = string.IsNullOrWhiteSpace(dto.PaymentStatus) ? "Pending" : dto.PaymentStatus.Trim(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Sales.Add(sale);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Created Sales record ID {Id} ({SalesNo})", sale.Id, sale.SalesNo);
-
-        return CreatedAtAction(nameof(GetById), new { id = sale.Id }, MapToDto(sale));
+        await TryAuditAsync("Create", "Sale", result.Data!.SalesNo, $"NetAmount={result.Data.NetAmount}, Buyer={result.Data.Buyer}");
+        return CreatedAtAction(nameof(GetById), new { id = result.Data.Id }, result.Data);
     }
 
     /// <summary>
-    /// Update an existing sales record.
+    /// Update an existing sales record and synchronize its SalesItems and PaymentStatus.
     /// </summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status200OK)]
@@ -234,152 +171,192 @@ public class SalesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SaleResponseDto>> Update(int id, [FromBody] UpdateSaleDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var sale = await _context.Sales.FindAsync(id);
-        if (sale == null)
-        {
-            return NotFound(new { message = $"Sales record with ID {id} not found." });
-        }
+        var result = await _salesService.UpdateSaleAsync(id, dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        // Check SalesNo conflict if changed
-        if (!string.IsNullOrWhiteSpace(dto.SalesNo) && !dto.SalesNo.Equals(sale.SalesNo, StringComparison.OrdinalIgnoreCase))
-        {
-            var conflict = await _context.Sales.AnyAsync(s => s.Id != id && s.SalesNo.ToLower() == dto.SalesNo.Trim().ToLower());
-            if (conflict)
-            {
-                return BadRequest(new { message = $"SalesNo '{dto.SalesNo}' is already taken by another record." });
-            }
-            sale.SalesNo = dto.SalesNo.Trim();
-        }
-
-        var grossAmount = dto.GrossAmount.HasValue && dto.GrossAmount.Value > 0
-            ? dto.GrossAmount.Value
-            : Math.Round(dto.Quantity * dto.Rate, 2);
-
-        var netAmount = dto.NetAmount.HasValue && dto.NetAmount.Value > 0
-            ? dto.NetAmount.Value
-            : Math.Round(grossAmount - dto.Commission - dto.Transport, 2);
-
-        sale.SalesDate = dto.SalesDate ?? sale.SalesDate;
-        sale.Buyer = dto.Buyer.Trim();
-        sale.Farm = dto.Farm.Trim();
-        sale.Crop = dto.Crop.Trim();
-        sale.Quantity = dto.Quantity;
-        sale.Unit = string.IsNullOrWhiteSpace(dto.Unit) ? "kg" : dto.Unit.Trim();
-        sale.Rate = dto.Rate;
-        sale.GrossAmount = grossAmount;
-        sale.Commission = dto.Commission;
-        sale.Transport = dto.Transport;
-        sale.NetAmount = netAmount;
-        sale.PaymentStatus = string.IsNullOrWhiteSpace(dto.PaymentStatus) ? sale.PaymentStatus : dto.PaymentStatus.Trim();
-        sale.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Updated Sales record ID {Id} ({SalesNo})", sale.Id, sale.SalesNo);
-
-        return Ok(MapToDto(sale));
+        await TryAuditAsync("Update", "Sale", result.Data!.SalesNo, $"NetAmount={result.Data.NetAmount}, Status={result.Data.PaymentStatus}");
+        return Ok(result.Data);
     }
 
     /// <summary>
-    /// Delete a sales record by ID.
+    /// Update the PaymentStatus of a sales record.
+    /// </summary>
+    [HttpPatch("{id:int}/status")]
+    [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleResponseDto>> UpdateStatus(int id, [FromBody] UpdateSaleStatusDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.UpdateSaleStatusAsync(id, dto.PaymentStatus);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        await TryAuditAsync("UpdateStatus", "Sale", result.Data!.SalesNo, $"PaymentStatus={result.Data.PaymentStatus}");
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Delete a sales record along with its associated SalesItems and SalesPayments.
     /// </summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        var sale = await _context.Sales.FindAsync(id);
-        if (sale == null)
-        {
-            return NotFound(new { message = $"Sales record with ID {id} not found." });
-        }
+        var result = await _salesService.DeleteSaleAsync(id);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        _context.Sales.Remove(sale);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Deleted Sales record ID {Id} ({SalesNo})", id, sale.SalesNo);
-
+        await TryAuditAsync("Delete", "Sale", id.ToString(), "Deleted sale and linked items/payments");
         return NoContent();
     }
 
+    // -------------------------------------------------------------------------
+    // NESTED SALES ITEMS ENDPOINTS (`SalesItems`)
+    // -------------------------------------------------------------------------
+
     /// <summary>
-    /// Seed default sales records if database is empty.
+    /// Get all line items for a specific sale.
+    /// </summary>
+    [HttpGet("{id:int}/items")]
+    [ProducesResponseType(typeof(List<SalesItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SalesItemDto>>> GetItems(int id)
+    {
+        var result = await _salesService.GetSaleItemsAsync(id);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Add a line item to an existing sale and recalculate Gross/Net amounts.
+    /// </summary>
+    [HttpPost("{id:int}/items")]
+    [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleResponseDto>> AddItem(int id, [FromBody] CreateSalesItemDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.AddSaleItemAsync(id, dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        return StatusCode(StatusCodes.Status201Created, result.Data);
+    }
+
+    /// <summary>
+    /// Update a specific line item of a sale and recalculate Gross/Net amounts.
+    /// </summary>
+    [HttpPut("{id:int}/items/{itemId:int}")]
+    [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleResponseDto>> UpdateItem(int id, int itemId, [FromBody] UpdateSalesItemDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _salesService.UpdateSaleItemAsync(id, itemId, dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Remove a line item from a sale and recalculate Gross/Net amounts.
+    /// </summary>
+    [HttpDelete("{id:int}/items/{itemId:int}")]
+    [ProducesResponseType(typeof(SaleResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SaleResponseDto>> DeleteItem(int id, int itemId)
+    {
+        var result = await _salesService.DeleteSaleItemAsync(id, itemId);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        return Ok(result.Data);
+    }
+
+    // -------------------------------------------------------------------------
+    // NESTED SALES PAYMENTS ENDPOINTS (`SalesPayments`)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Get all payments recorded against a specific sale ID.
+    /// </summary>
+    [HttpGet("{id:int}/payments")]
+    [ProducesResponseType(typeof(List<SalesPaymentResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SalesPaymentResponseDto>>> GetSalePayments(int id)
+    {
+        var sale = await _salesService.GetSaleByIdAsync(id);
+        if (sale == null)
+            return NotFound(new { message = $"Sales record with ID {id} not found." });
+
+        return Ok(sale.Payments);
+    }
+
+    /// <summary>
+    /// Record a payment directly against a specific sale ID and automatically update PaymentStatus.
+    /// </summary>
+    [HttpPost("{id:int}/payments")]
+    [ProducesResponseType(typeof(SalesPaymentResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SalesPaymentResponseDto>> AddSalePayment(int id, [FromBody] CreateSalesPaymentDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        dto.SaleId = id;
+        var result = await _salesService.CreatePaymentAsync(dto);
+        if (!result.Success)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
+
+        await TryAuditAsync("Create", "SalesPayment", result.Data!.PaymentNo, $"SaleId={id}, Amount={result.Data.PaymentAmount}");
+        return StatusCode(StatusCodes.Status201Created, result.Data);
+    }
+
+    /// <summary>
+    /// Seed default Buyers, Sales, SalesItems, and SalesPayments if tables are empty.
     /// </summary>
     [HttpPost("seed")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Seed()
     {
-        if (await _context.Sales.AnyAsync())
+        var (buyers, sales, items, payments) = await SalesDbInitializer.SeedInitialDataAsync(_context, _logger);
+        return Ok(new
         {
-            return Ok(new { message = "Database already contains sales records. No seed performed." });
-        }
-
-        var seedRecords = new List<Sale>
-        {
-            new()
-            {
-                SalesNo = "SAL-2026-001",
-                SalesDate = new DateTime(2026, 11, 1),
-                Buyer = "Green Agro Foods Ltd",
-                Farm = "Sunrise Valley Farm",
-                Crop = "Organic Tomatoes",
-                Quantity = 1500m,
-                Unit = "kg",
-                Rate = 35m,
-                GrossAmount = 52500m,
-                Commission = 1500m,
-                Transport = 2000m,
-                NetAmount = 49000m,
-                PaymentStatus = "Paid",
-                CreatedAt = DateTime.UtcNow
-            },
-            new()
-            {
-                SalesNo = "SAL-2026-002",
-                SalesDate = new DateTime(2026, 11, 3),
-                Buyer = "Fresh Mart Wholesale",
-                Farm = "Green Hills Orchard",
-                Crop = "Potatoes",
-                Quantity = 800m,
-                Unit = "kg",
-                Rate = 20m,
-                GrossAmount = 16000m,
-                Commission = 500m,
-                Transport = 500m,
-                NetAmount = 15000m,
-                PaymentStatus = "Pending",
-                CreatedAt = DateTime.UtcNow
-            }
-        };
-
-        _context.Sales.AddRange(seedRecords);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Successfully seeded initial sales records.", count = seedRecords.Count });
+            message = buyers + sales + items + payments > 0
+                ? "Successfully seeded initial Module 10 Sales records."
+                : "Database already contains Module 10 Sales records. No seed performed.",
+            buyersSeeded = buyers,
+            salesSeeded = sales,
+            salesItemsSeeded = items,
+            salesPaymentsSeeded = payments
+        });
     }
 
-    private static SaleResponseDto MapToDto(Sale s) => new()
+    private async Task TryAuditAsync(string action, string entityType, string? entityId, string details)
     {
-        Id = s.Id,
-        SalesNo = s.SalesNo,
-        SalesDate = s.SalesDate,
-        Buyer = s.Buyer,
-        Farm = s.Farm,
-        Crop = s.Crop,
-        Quantity = s.Quantity,
-        Unit = s.Unit,
-        Rate = s.Rate,
-        GrossAmount = s.GrossAmount,
-        Commission = s.Commission,
-        Transport = s.Transport,
-        NetAmount = s.NetAmount,
-        PaymentStatus = s.PaymentStatus,
-        CreatedAt = s.CreatedAt,
-        UpdatedAt = s.UpdatedAt
-    };
+        try
+        {
+            var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditService.LogActionAsync(actorId, actorName, action, entityType, entityId, details, ip);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Non-blocking audit log skipped for {EntityType} {Action}", entityType, action);
+        }
+    }
 }

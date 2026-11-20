@@ -125,10 +125,33 @@ namespace FarmManagementApi.Controllers
         [HttpGet("outstanding-receivables")]
         public async Task<IActionResult> GetOutstandingReceivables()
         {
-            var pendingSales = await _salesDb.Sales
-                .Where(s => s.PaymentStatus != "Paid" && s.PaymentStatus != "Completed")
-                .SumAsync(s => (decimal?)s.NetAmount) ?? 0m;
-            return Ok(new { outstandingReceivables = pendingSales });
+            var outstanding = await ComputeOutstandingSalesReceivablesAsync();
+            return Ok(new { outstandingReceivables = outstanding });
+        }
+
+        private async Task<decimal> ComputeOutstandingSalesReceivablesAsync()
+        {
+            var sales = await _salesDb.Sales.AsNoTracking().ToListAsync();
+            var payments = await _salesDb.SalesPayments.AsNoTracking().ToListAsync();
+
+            decimal totalOutstanding = 0m;
+            foreach (var s in sales)
+            {
+                var recordedPaid = payments
+                    .Where(p => p.SaleId == s.Id || p.SalesNo.Equals(s.SalesNo, StringComparison.OrdinalIgnoreCase))
+                    .Sum(p => p.PaymentAmount);
+
+                var isMarkedPaid = string.Equals(s.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(s.PaymentStatus, "Completed", StringComparison.OrdinalIgnoreCase);
+
+                var effectivePaid = isMarkedPaid && recordedPaid <= 0m
+                    ? s.NetAmount
+                    : Math.Min(s.NetAmount, Math.Max(0m, recordedPaid));
+
+                totalOutstanding += Math.Max(0m, s.NetAmount - effectivePaid);
+            }
+
+            return Math.Round(totalOutstanding, 2);
         }
 
         // GET: api/Dashboard/outstanding-payables
@@ -201,9 +224,7 @@ namespace FarmManagementApi.Controllers
 
             var totalSales = await _salesDb.Sales.SumAsync(s => (decimal?)s.NetAmount) ?? 0m;
 
-            var pendingSales = await _salesDb.Sales
-                .Where(s => s.PaymentStatus != "Paid" && s.PaymentStatus != "Completed")
-                .SumAsync(s => (decimal?)s.NetAmount) ?? 0m;
+            var pendingSales = await ComputeOutstandingSalesReceivablesAsync();
 
             var pendingPurchases = await _farmDb.Purchases
                 .Where(p => p.PaymentStatus != "Paid" && p.PaymentStatus != "Completed")

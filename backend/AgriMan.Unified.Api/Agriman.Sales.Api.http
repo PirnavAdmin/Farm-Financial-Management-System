@@ -1,0 +1,117 @@
+@Host = http://localhost:5200
+
+### 1. Seed Module 10 Sales Data (Buyers, Sales, SalesItems, SalesPayments)
+POST {{Host}}/api/Sales/seed
+Accept: application/json
+
+### 2. Get Paginated Sales List (with search, buyer, crop, farm, status, date filters)
+GET {{Host}}/api/Sales?page=1&pageSize=20&sortBy=DateDesc
+Accept: application/json
+
+### 3. Get Sales KPI Summary
+GET {{Host}}/api/Sales/summary
+Accept: application/json
+
+### 4. Get Sales Analytics (by Crop, Buyer, Farm, Monthly Trend)
+GET {{Host}}/api/Sales/analytics
+Accept: application/json
+
+### 5. Create Sale (auto-calculates Gross & Net + auto-creates SalesItem)
+POST {{Host}}/api/Sales
+Content-Type: application/json
+
+{
+  "salesDate": "2026-11-20",
+  "buyer": "Sri Lakshmi Traders",
+  "farm": "Sunrise Valley Farm",
+  "crop": "Cotton",
+  "quantity": 50,
+  "unit": "Quintals",
+  "rate": 7200,
+  "commission": 3600,
+  "transport": 2400,
+  "paymentStatus": "Pending",
+  "remarks": "First picking cotton lot"
+}
+
+### 6. Create Multi-Item Sale with Initial Payment
+POST {{Host}}/api/Sales
+Content-Type: application/json
+
+{
+  "salesDate": "2026-11-20",
+  "buyer": "Hyderabad Wholesale Mandi",
+  "farm": "Green Hills Orchard",
+  "commission": 1500,
+  "transport": 1000,
+  "initialPaymentAmount": 50000,
+  "paymentMode": "UPI",
+  "referenceNo": "UPI-2026-99102",
+  "items": [
+    { "crop": "Organic Tomatoes", "quantity": 1000, "unit": "kg", "rate": 35 },
+    { "crop": "Chilli", "quantity": 5, "unit": "Quintals", "rate": 16000 }
+  ]
+}
+
+### 7. Get Sale By ID (includes Items & Payments)
+GET {{Host}}/api/Sales/1
+Accept: application/json
+
+### 8. Get Line Items for Sale ID 1
+GET {{Host}}/api/Sales/1/items
+Accept: application/json
+
+### 9. Export Sales as CSV
+GET {{Host}}/api/Sales/export
+Accept: text/csv
+
+### 10. Get Buyers List (with computed sales & outstanding balance)
+GET {{Host}}/api/Buyers
+Accept: application/json
+
+### 11. Get Buyers Summary KPIs
+GET {{Host}}/api/Buyers/summary
+Accept: application/json
+
+### 12. Get Buyer Financial Ledger (Profile + Sales + Payments)
+GET {{Host}}/api/Buyers/1/ledger
+Accept: application/json
+
+### 13. Create Buyer
+POST {{Host}}/api/Buyers
+Content-Type: application/json
+
+{
+  "buyerName": "Godavari Agro Exports",
+  "mobile": "9849556677",
+  "address": "Rajahmundry Market Yard, Andhra Pradesh",
+  "businessName": "Godavari Agro Exports Pvt Ltd",
+  "gstin": "37AABCG1234K1Z1",
+  "openingBalance": 10000,
+  "status": "Active"
+}
+
+### 14. Get Sales Receivables Overview
+GET {{Host}}/api/Sales/receivables
+Accept: application/json
+
+### 15. Get All Sales Payments
+GET {{Host}}/api/SalesPayments
+Accept: application/json
+
+### 16. Get Sales Payments Summary (breakdown by payment mode)
+GET {{Host}}/api/SalesPayments/summary
+Accept: application/json
+
+### 17. Record a Sales Payment (auto-updates parent Sale PaymentStatus)
+POST {{Host}}/api/SalesPayments
+Content-Type: application/json
+
+{
+  "salesNo": "SAL-2026-003",
+  "paymentDate": "2026-11-20",
+  "paymentAmount": 66500,
+  "paymentMode": "Bank",
+  "referenceNo": "NEFT-SBI-990182",
+  "remarks": "Part payment received for Maize sale"
+}

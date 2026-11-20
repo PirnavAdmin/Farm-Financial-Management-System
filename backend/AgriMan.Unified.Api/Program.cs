@@ -9,6 +9,7 @@ using Agriman.Machinery.Api.Data;
 using Agriman.Machinery.Api.Serialization;
 using SalesApi.Data;
 using SalesApi.Models;
+using SalesApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -65,6 +66,7 @@ builder.Services.AddDbContext<ExpenseDbContext>(options =>
 builder.Services.AddDbContext<SalesDbContext>(options =>
     options.UseMySql(mySqlConnectionString, mySqlServerVersion, sqlOptions =>
     {
+        sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_Sales");
         sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(120);
     }));
@@ -84,6 +86,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -349,10 +352,12 @@ builder.Services.AddSwaggerGen(c =>
             return new[] { "7. Expenses API" };
         }
 
-        // 8. Sales API
-        if (ns.Contains("Sales") || controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase))
+        // 8. Sales API (Module 10: Sales, SalesItems, Buyers, SalesPayments)
+        if (ns.Contains("Sales") || controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { "8. Sales - Crop Sales & Revenue" };
+            if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Buyers / Customers" };
+            if (controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Payments & Receivables" };
+            return new[] { "8. Sales - Crop Sales & Line Items" };
         }
 
         // 9. Machinery & Equipment API
@@ -445,60 +450,16 @@ using (var scope = app.Services.CreateScope())
         logger.LogWarning("[Farmersdb] 3. Expenses notice: " + ex.Message);
     }
 
-    // 4. Sales Database Tables -> Farmersdb
+    // 4. Sales Database Tables (Module 10: Buyers, Sales, SalesItems, SalesPayments) -> agriman_db
     try
     {
         var salesDb = services.GetRequiredService<SalesDbContext>();
-        // Seed initial Sales records if empty in Farmersdb
-        if (!await salesDb.Sales.AnyAsync())
-        {
-            var seedSales = new List<Sale>
-            {
-                new()
-                {
-                    SalesNo = "SAL-2026-001",
-                    SalesDate = new DateTime(2026, 11, 1),
-                    Buyer = "Green Agro Foods Ltd",
-                    Farm = "Sunrise Valley Farm",
-                    Crop = "Organic Tomatoes",
-                    Quantity = 1500m,
-                    Unit = "kg",
-                    Rate = 35m,
-                    GrossAmount = 52500m,
-                    Commission = 1500m,
-                    Transport = 2000m,
-                    NetAmount = 49000m,
-                    PaymentStatus = "Paid",
-                    CreatedAt = DateTime.UtcNow
-                },
-                new()
-                {
-                    SalesNo = "SAL-2026-002",
-                    SalesDate = new DateTime(2026, 11, 3),
-                    Buyer = "Fresh Mart Wholesale",
-                    Farm = "Green Hills Orchard",
-                    Crop = "Potatoes",
-                    Quantity = 800m,
-                    Unit = "kg",
-                    Rate = 20m,
-                    GrossAmount = 16000m,
-                    Commission = 500m,
-                    Transport = 500m,
-                    NetAmount = 15000m,
-                    PaymentStatus = "Pending",
-                    CreatedAt = DateTime.UtcNow
-                }
-            };
-            salesDb.Sales.AddRange(seedSales);
-            await salesDb.SaveChangesAsync();
-            logger.LogInformation("[Farmersdb] Seeded initial sales records.");
-        }
-
-        logger.LogInformation("[Farmersdb] 4. Sales module ready.");
+        await SalesDbInitializer.InitializeAsync(salesDb, logger);
+        logger.LogInformation("[agriman_db] 4. Sales module ready (Buyers, Sales, SalesItems, SalesPayments).");
     }
     catch (Exception ex)
     {
-        logger.LogWarning("[Farmersdb] 4. Sales notice: " + ex.Message);
+        logger.LogWarning("[agriman_db] 4. Sales notice: " + ex.Message);
     }
 
     // 5. Machinery & Operating Expenses Database Tables -> agriman_db

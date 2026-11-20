@@ -8,7 +8,7 @@ using SalesApi.Data;
 
 #nullable disable
 
-namespace SalesApi.Migrations
+namespace AgriMan.Unified.Api.Migrations.Sales
 {
     [DbContext(typeof(SalesDbContext))]
     partial class SalesDbContextModelSnapshot : ModelSnapshot
@@ -17,10 +17,76 @@ namespace SalesApi.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+
+            modelBuilder.Entity("SalesApi.Models.Buyer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("BusinessName")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("BuyerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("BuyerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Gstin")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("Mobile")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerCode")
+                        .IsUnique();
+
+                    b.HasIndex("BuyerName");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Buyers", (string)null);
+                });
 
             modelBuilder.Entity("SalesApi.Models.Sale", b =>
                 {
@@ -28,12 +94,15 @@ namespace SalesApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Buyer")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int?>("BuyerId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Commission")
                         .ValueGeneratedOnAdd()
@@ -42,17 +111,17 @@ namespace SalesApi.Migrations
                         .HasDefaultValue(0m);
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Crop")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Farm")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<decimal>("GrossAmount")
                         .HasPrecision(18, 2)
@@ -66,7 +135,7 @@ namespace SalesApi.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("Pending");
 
                     b.Property<decimal>("Quantity")
@@ -77,13 +146,17 @@ namespace SalesApi.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<DateTime>("SalesDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("SalesNo")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<decimal>("Transport")
                         .ValueGeneratedOnAdd()
@@ -95,15 +168,202 @@ namespace SalesApi.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("kg");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Buyer");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("PaymentStatus");
+
+                    b.HasIndex("SalesDate");
+
+                    b.HasIndex("SalesNo")
+                        .IsUnique();
+
                     b.ToTable("Sales", (string)null);
+                });
+
+            modelBuilder.Entity("SalesApi.Models.SalesItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Crop")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("SaleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SalesNo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("kg");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("SalesNo");
+
+                    b.ToTable("SalesItems", (string)null);
+                });
+
+            modelBuilder.Entity("SalesApi.Models.SalesPayment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Buyer")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int?>("BuyerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("PaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PaymentMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("Bank");
+
+                    b.Property<string>("PaymentNo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ReferenceNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("SaleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SalesNo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Buyer");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("PaymentNo")
+                        .IsUnique();
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("SalesNo");
+
+                    b.ToTable("SalesPayments", (string)null);
+                });
+
+            modelBuilder.Entity("SalesApi.Models.Sale", b =>
+                {
+                    b.HasOne("SalesApi.Models.Buyer", "BuyerEntity")
+                        .WithMany("Sales")
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("BuyerEntity");
+                });
+
+            modelBuilder.Entity("SalesApi.Models.SalesItem", b =>
+                {
+                    b.HasOne("SalesApi.Models.Sale", "Sale")
+                        .WithMany("Items")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("SalesApi.Models.SalesPayment", b =>
+                {
+                    b.HasOne("SalesApi.Models.Buyer", "BuyerEntity")
+                        .WithMany("Payments")
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SalesApi.Models.Sale", "Sale")
+                        .WithMany("Payments")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("BuyerEntity");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("SalesApi.Models.Buyer", b =>
+                {
+                    b.Navigation("Payments");
+
+                    b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("SalesApi.Models.Sale", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Payments");
                 });
 #pragma warning restore 612, 618
         }

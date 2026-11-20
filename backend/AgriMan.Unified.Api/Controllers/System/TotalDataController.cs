@@ -261,6 +261,7 @@ public class TotalDataController : ControllerBase
                 s.Id,
                 s.SalesNo,
                 s.SalesDate,
+                s.BuyerId,
                 s.Buyer,
                 s.Farm,
                 s.Crop,
@@ -272,6 +273,56 @@ public class TotalDataController : ControllerBase
                 s.Transport,
                 s.NetAmount,
                 s.PaymentStatus
+            })
+            .ToListAsync(cancellationToken);
+
+        var buyers = await _salesDb.Buyers.AsNoTracking()
+            .OrderBy(b => b.BuyerName)
+            .Take(limit)
+            .Select(b => new
+            {
+                b.Id,
+                b.BuyerCode,
+                b.BuyerName,
+                b.Mobile,
+                b.BusinessName,
+                b.Gstin,
+                b.OpeningBalance,
+                b.Status
+            })
+            .ToListAsync(cancellationToken);
+
+        var salesItems = await _salesDb.SalesItems.AsNoTracking()
+            .OrderByDescending(i => i.Id)
+            .Take(limit)
+            .Select(i => new
+            {
+                i.Id,
+                i.SaleId,
+                i.SalesNo,
+                i.Crop,
+                i.Quantity,
+                i.Unit,
+                i.Rate,
+                i.Amount
+            })
+            .ToListAsync(cancellationToken);
+
+        var salesPayments = await _salesDb.SalesPayments.AsNoTracking()
+            .OrderByDescending(p => p.PaymentDate)
+            .ThenByDescending(p => p.Id)
+            .Take(limit)
+            .Select(p => new
+            {
+                p.Id,
+                p.SaleId,
+                p.PaymentNo,
+                p.PaymentDate,
+                p.Buyer,
+                p.SalesNo,
+                p.PaymentAmount,
+                p.PaymentMode,
+                p.ReferenceNo
             })
             .ToListAsync(cancellationToken);
 
@@ -335,7 +386,7 @@ public class TotalDataController : ControllerBase
                 purchases = new { suppliers, orders = purchases },
                 inventory = new { products, stock = inventory },
                 expenses = new { transactions = expenses },
-                sales = new { items = sales },
+                sales = new { items = sales, buyers, salesItems, payments = salesPayments },
                 machinery = new
                 {
                     machines = machineries,
@@ -372,6 +423,10 @@ public class TotalDataController : ControllerBase
 
         var salesCount = await _salesDb.Sales.CountAsync(cancellationToken);
         var totalSalesNet = await _salesDb.Sales.SumAsync(x => (decimal?)x.NetAmount, cancellationToken) ?? 0m;
+        var buyersCount = await _salesDb.Buyers.CountAsync(cancellationToken);
+        var salesItemsCount = await _salesDb.SalesItems.CountAsync(cancellationToken);
+        var salesPaymentsCount = await _salesDb.SalesPayments.CountAsync(cancellationToken);
+        var totalSalesCollected = await _salesDb.SalesPayments.SumAsync(x => (decimal?)x.PaymentAmount, cancellationToken) ?? 0m;
 
         var machineryCount = await _machineryDb.Machineries.CountAsync(cancellationToken);
         var totalMachineryPurchaseCost = await _machineryDb.Machineries.SumAsync(x => (decimal?)x.PurchaseCost, cancellationToken) ?? 0m;
@@ -388,7 +443,15 @@ public class TotalDataController : ControllerBase
             purchases = new { suppliersCount, purchaseCount = purchasesCount, totalAmount = totalPurchaseAmount },
             inventory = new { productsCount, inventoryLocationsCount, totalCurrentStock },
             expenses = new { transactionCount = expenseCount, totalAmount = totalExpenseAmount },
-            sales = new { saleCount = salesCount, totalNetAmount = totalSalesNet },
+            sales = new
+            {
+                saleCount = salesCount,
+                totalNetAmount = totalSalesNet,
+                buyersCount,
+                salesItemsCount,
+                paymentsCount = salesPaymentsCount,
+                totalCollectedAmount = totalSalesCollected
+            },
             machinery = new
             {
                 totalMachines = machineryCount,

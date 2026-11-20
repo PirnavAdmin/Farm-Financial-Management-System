@@ -4,6 +4,7 @@ public class SaleQueryParameters
 {
     public string? Search { get; set; }
     public string? Status { get; set; }
+    public string? Buyer { get; set; }
     public string? Crop { get; set; }
     public string? Farm { get; set; }
     public DateTime? FromDate { get; set; }
@@ -34,4 +35,37 @@ public class SaleSummaryDto
     public int PaidCount { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal PaidAmount { get; set; }
+}
+
+public class SalesBreakdownItemDto
+{
+    public string Key { get; set; } = string.Empty;
+    public int SalesCount { get; set; }
+    public decimal TotalQuantity { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal Commission { get; set; }
+    public decimal Transport { get; set; }
+    public decimal NetAmount { get; set; }
+    public decimal AmountReceived { get; set; }
+    public decimal OutstandingAmount { get; set; }
+}
+
+public class MonthlySalesTrendDto
+{
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public string MonthLabel { get; set; } = string.Empty;
+    public int SalesCount { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal NetAmount { get; set; }
+    public decimal AmountReceived { get; set; }
+}
+
+public class SalesAnalyticsDto
+{
+    public SaleSummaryDto Summary { get; set; } = new();
+    public List<SalesBreakdownItemDto> ByCrop { get; set; } = new();
+    public List<SalesBreakdownItemDto> ByBuyer { get; set; } = new();
+    public List<SalesBreakdownItemDto> ByFarm { get; set; } = new();
+    public List<MonthlySalesTrendDto> MonthlyTrend { get; set; } = new();
 }
