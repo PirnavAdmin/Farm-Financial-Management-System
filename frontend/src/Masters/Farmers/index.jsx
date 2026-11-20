@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { farmerService } from '../../services/farmerService'
 import { farmerAddressService } from '../../services/farmerAddressService'
 import { farmerBankService } from '../../services/farmerBankService'
@@ -32,10 +33,13 @@ const EMPTY_RENTAL_LAND = {
   rentFrequency: 'Monthly',
   leaseStartDate: '',
   leaseEndDate: '',
+  status: 'Active',
   remarks: '',
 }
 
 function mapRentalLand(record) {
+  const rawStatus = String(record.status ?? record.Status ?? 'Active').trim().toLowerCase()
+
   return {
     id: record.id ?? record.Id,
     farmerId: record.farmerId ?? record.FarmerId,
@@ -51,6 +55,7 @@ function mapRentalLand(record) {
     rentFrequency: record.rentFrequency ?? record.RentFrequency ?? 'Monthly',
     leaseStartDate: String(record.leaseStartDate ?? record.LeaseStartDate ?? '').slice(0, 10),
     leaseEndDate: String(record.leaseEndDate ?? record.LeaseEndDate ?? '').slice(0, 10),
+    status: rawStatus === 'inactive' ? 'Inactive' : 'Active',
     remarks: record.remarks ?? record.Remarks ?? '',
   }
 }
@@ -796,11 +801,30 @@ export default function Farmers({ profileEmail, profileName }) {
   const [rentalLoading, setRentalLoading] = useState(false)
   const [rentalLoadError, setRentalLoadError] = useState('')
   const [rentalSearch, setRentalSearch]   = useState('')
+  const [openRentalMenuId, setOpenRentalMenuId] = useState(null)
+  const [rentalMenuPosition, setRentalMenuPosition] = useState(null)
   const [deletingRentalId, setDeletingRentalId] = useState(null)
   const [profileFarmSummary, setProfileFarmSummary] = useState(null)
   const selectedProfileId = localStorage.getItem(profileStorageKey)
     || localStorage.getItem(profileNameStorageKey)
     || defaultProfileId
+
+  useEffect(() => {
+    if (openRentalMenuId === null) return undefined
+
+    const closeMenu = () => {
+      setOpenRentalMenuId(null)
+      setRentalMenuPosition(null)
+    }
+    window.addEventListener('click', closeMenu)
+    window.addEventListener('resize', closeMenu)
+    window.addEventListener('scroll', closeMenu, true)
+    return () => {
+      window.removeEventListener('click', closeMenu)
+      window.removeEventListener('resize', closeMenu)
+      window.removeEventListener('scroll', closeMenu, true)
+    }
+  }, [openRentalMenuId])
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -1068,6 +1092,7 @@ export default function Farmers({ profileEmail, profileName }) {
         rentFrequency: rentalForm.rentFrequency || 'Monthly',
         leaseStartDate: rentalForm.leaseStartDate || '',
         leaseEndDate: rentalForm.leaseEndDate || '',
+        status: rentalForm.status || 'Active',
         remarks: rentalForm.remarks ? String(rentalForm.remarks).trim() : null,
       }
 
@@ -1261,19 +1286,20 @@ export default function Farmers({ profileEmail, profileName }) {
               <th>District</th>
               <th>Rent</th>
               <th>Lease Period</th>
+              <th>Status</th>
               <th className="fm-th-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && !hasLoaded ? (
               <tr>
-                <td colSpan={10} className="fm-state-cell">
+                <td colSpan={11} className="fm-state-cell">
                   <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
                 </td>
               </tr>
             ) : !currentFarmer ? (
               <tr>
-                <td colSpan={10} className="fm-state-cell">
+                <td colSpan={11} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">⚠</div>
                     <p>No linked land owner profile.</p>
@@ -1283,7 +1309,7 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : rentalLoadError ? (
               <tr>
-                <td colSpan={10} className="fm-state-cell">
+                <td colSpan={11} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">⚠</div>
                     <p>Rental land could not be loaded.</p>
@@ -1294,13 +1320,13 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : rentalLoading ? (
               <tr>
-                <td colSpan={10} className="fm-state-cell">
+                <td colSpan={11} className="fm-state-cell">
                   <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
                 </td>
               </tr>
             ) : visibleRentalLands.length === 0 ? (
               <tr>
-                <td colSpan={10} className="fm-state-cell">
+                <td colSpan={11} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">🌾</div>
                     <p>{rentalLands.length ? 'No rental land matches your search.' : 'No rental land records to display.'}</p>
@@ -1309,43 +1335,127 @@ export default function Farmers({ profileEmail, profileName }) {
                 </td>
               </tr>
             ) : visibleRentalLands.map(record => (
-              <tr key={record.id}>
-                <td><strong>{record.tenantName}</strong></td>
-                <td>{record.tenantMobile}</td>
-                <td>{record.surveyNumber}</td>
-                <td className="fm-td-land fm-col-num">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
-                <td>{record.village}</td>
-                <td>{record.mandal}</td>
-                <td>{record.district}</td>
-                <td>₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
-                <td>{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
-                <td className="fm-td-actions">
-                  <div className="fm-actions">
-                    <button className="fm-action-btn fm-view" onClick={() => openRentalLandForm(record, 'view')} title="View Rental Land" aria-label={`View rental land for ${record.tenantName}`} type="button">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
-                    <button className="fm-action-btn fm-edit" onClick={() => openRentalLandForm(record, 'edit')} title="Edit Rental Land" aria-label={`Edit rental land for ${record.tenantName}`} type="button">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                        <path d="m15 5 4 4" />
-                      </svg>
-                    </button>
-                    <button className="fm-action-btn fm-delete" onClick={() => handleDeleteRentalLand(record)} title="Delete Rental Land" aria-label={`Delete rental land for ${record.tenantName}`} type="button" disabled={deletingRentalId !== null}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        <line x1="10" x2="10" y1="11" y2="17" />
-                        <line x1="14" x2="14" y1="11" y2="17" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                <tr key={record.id}>
+                  <td><strong>{record.tenantName}</strong></td>
+                  <td>{record.tenantMobile}</td>
+                  <td>{record.surveyNumber}</td>
+                  <td className="fm-td-land fm-col-num">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
+                  <td>{record.village}</td>
+                  <td>{record.mandal}</td>
+                  <td>{record.district}</td>
+                  <td>₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
+                  <td>{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
+                  <td>
+                    <span className={`fm-status-pill fm-status-${record.status.toLowerCase()} fm-rental-status`}>
+                      <span className="fm-status-dot"></span>{record.status}
+                    </span>
+                  </td>
+                  <td className="fm-td-actions">
+                    <div className="fm-actions">
+                      <button
+                        className={`fm-action-btn fm-menu-trigger ${openRentalMenuId === record.id ? 'active' : ''}`}
+                        type="button"
+                        title="Actions"
+                        aria-label={`Actions for ${record.tenantName}`}
+                        aria-haspopup="menu"
+                        aria-expanded={openRentalMenuId === record.id}
+                        onClick={event => {
+                          event.stopPropagation()
+                          if (openRentalMenuId === record.id) {
+                            setOpenRentalMenuId(null)
+                            setRentalMenuPosition(null)
+                            return
+                          }
+
+                          const buttonRect = event.currentTarget.getBoundingClientRect()
+                          const menuWidth = 150
+                          setRentalMenuPosition({
+                            top: buttonRect.bottom + 4,
+                            left: Math.max(
+                              8,
+                              Math.min(
+                                buttonRect.left + buttonRect.width / 2 - menuWidth / 2,
+                                window.innerWidth - menuWidth - 8
+                              )
+                            ),
+                          })
+                          setOpenRentalMenuId(record.id)
+                        }}
+                      >
+                        ⋮
+                      </button>
+                      {openRentalMenuId === record.id && rentalMenuPosition && createPortal(
+                        <div
+                          className="fm-action-dropdown"
+                          style={{ top: rentalMenuPosition.top, left: rentalMenuPosition.left }}
+                          role="menu"
+                          onClick={event => event.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            className="fm-action-menu-item"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenRentalMenuId(null)
+                              setRentalMenuPosition(null)
+                              openRentalLandForm(record, 'view')
+                            }}
+                          >
+                            <span className="fm-menu-item-icon">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </span>
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            className="fm-action-menu-item"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenRentalMenuId(null)
+                              setRentalMenuPosition(null)
+                              openRentalLandForm(record, 'edit')
+                            }}
+                          >
+                            <span className="fm-menu-item-icon">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                <path d="m15 5 4 4" />
+                              </svg>
+                            </span>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="fm-action-menu-item delete"
+                            role="menuitem"
+                            disabled={deletingRentalId !== null}
+                            onClick={() => {
+                              setOpenRentalMenuId(null)
+                              setRentalMenuPosition(null)
+                              handleDeleteRentalLand(record)
+                            }}
+                          >
+                            <span className="fm-menu-item-icon">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                <line x1="10" x2="10" y1="11" y2="17" />
+                                <line x1="14" x2="14" y1="11" y2="17" />
+                              </svg>
+                            </span>
+                            Delete
+                          </button>
+                        </div>,
+                        document.body
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

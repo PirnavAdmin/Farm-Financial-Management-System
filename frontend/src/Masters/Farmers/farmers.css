@@ -564,7 +564,7 @@
 }
 
 .fm-rental-table {
-  min-width: 1380px;
+  min-width: 1480px;
 }
 
 .fm-table thead tr {
@@ -616,6 +616,15 @@
   width: 170px;
   min-width: 170px;
   text-align: center;
+}
+
+.fm-table th.fm-th-actions {
+  text-align: center;
+}
+
+.fm-table td.fm-td-actions .fm-actions {
+  width: 100%;
+  justify-content: center;
 }
 
 .fm-table tbody tr:hover td {
@@ -735,12 +744,98 @@
   background: #fef3c7;
 }
 
+.fm-rental-status,
+.fm-rental-status:hover {
+  cursor: default;
+  opacity: 1;
+  transform: none;
+}
+
 /* ── Actions ─────────────────────────────────────────────────────────────── */
 .fm-actions {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+}
+
+.fm-action-btn.fm-menu-trigger {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fm-action-btn.fm-menu-trigger:hover,
+.fm-action-btn.fm-menu-trigger.active {
+  color: #1e3325;
+  border-color: #cfe0d1;
+  background: #f5faf3;
+}
+
+.fm-action-dropdown {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  width: 150px;
+  max-width: calc(100vw - 16px);
+  flex-direction: column;
+  padding: 4px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.fm-action-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.fm-action-menu-item:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.fm-action-menu-item.delete {
+  border-top: 1px solid #f8fafc;
+  color: #dc2626;
+}
+
+.fm-action-menu-item.delete:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.fm-action-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.fm-menu-item-icon {
+  display: inline-flex;
+  width: 16px;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.fm-action-menu-item:hover .fm-menu-item-icon {
+  color: inherit;
 }
 
 .fm-action-btn {
