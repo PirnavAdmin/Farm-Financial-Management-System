@@ -196,7 +196,8 @@ export function buildDashboardWidgets(metrics = {}) {
     outstandingPayables = 0,
     labourCost = 0,
     inputCost = 0,
-    machineryCost = 0
+    machineryCost = 0,
+    loansFinance = 0
   } = metrics;
 
   const margin = totalIncome > 0
@@ -326,6 +327,16 @@ export function buildDashboardWidgets(metrics = {}) {
       icon: '🚜',
       color: '#2563eb',
       bgColor: '#eff6ff'
+    },
+    {
+      id: 'loans-finance',
+      label: 'Loans & Finance',
+      value: formatINR(loansFinance),
+      numeric: loansFinance,
+      subtext: 'Active credit & crop term loans',
+      icon: '🏛',
+      color: '#6366f1',
+      bgColor: '#f5f3ff'
     }
   ];
 }
@@ -622,7 +633,8 @@ export async function loadCompleteDashboard() {
     activeCropsResult,
     upcomingPaymentsResult,
     recentTransactionsResult,
-    lowStockResult
+    lowStockResult,
+    loansResult
   ] = await Promise.allSettled([
     getDashboardSummary(),
     getTotalFarms(),
@@ -631,7 +643,8 @@ export async function loadCompleteDashboard() {
     getActiveCropsDetails(),
     getUpcomingPayments(),
     getRecentTransactions(),
-    getLowStockItems()
+    getLowStockItems(),
+    api.get('/api/Loan/summary').catch(() => null)
   ]);
 
   // Extract summary or fall back to individual metrics
@@ -698,6 +711,13 @@ export async function loadCompleteDashboard() {
   const totalExpenditure = Number(summaryData.totalExpenditure ?? 0);
   const netProfit = Number(summaryData.netProfit ?? (totalIncome - totalExpenditure));
 
+  // Loans & Finance value
+  let loansFinance = 0;
+  if (loansResult?.status === 'fulfilled' && loansResult.value?.data) {
+    const ld = loansResult.value.data;
+    loansFinance = Number(ld.totalOutstanding ?? ld.outstandingAmount ?? ld.totalSanctionAmount ?? 0);
+  }
+
   const metrics = {
     totalIncome,
     totalExpenditure,
@@ -712,7 +732,8 @@ export async function loadCompleteDashboard() {
     outstandingPayables: Number(summaryData.outstandingPayables ?? 0),
     labourCost: Number(summaryData.labourCost ?? 0),
     inputCost: Number(summaryData.inputCost ?? 0),
-    machineryCost: Number(summaryData.machineryCost ?? 0)
+    machineryCost: Number(summaryData.machineryCost ?? 0),
+    loansFinance
   };
 
   // Top cards data
@@ -725,9 +746,11 @@ export async function loadCompleteDashboard() {
     totalExpense: formatINR(totalExpenditure),
     netProfit: formatINR(netProfit),
     marginText: `${operatingMargin}% operating margin`,
+    operatingMargin,
     rawIncome: totalIncome,
     rawExpense: totalExpenditure,
-    rawProfit: netProfit
+    rawProfit: netProfit,
+    loansFinance: formatINR(loansFinance)
   };
 
   // 12 KPI Widgets

@@ -1,0 +1,351 @@
+/* ==========================================================================
+   AGRIMAN - Professional Enterprise SaaS / ERP Sidebar
+   Strict Reference Implementation (media_1795098744213_684c7d4e.jpg)
+   ========================================================================== */
+
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+  flex: 0 0 260px;
+  height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  border-right: 1px solid #E6EAE5;
+  z-index: 20;
+  overflow: hidden;
+  position: relative;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              flex 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  flex: 0 0 0px !important;
+  padding: 0 !important;
+  border-right: none !important;
+  overflow: hidden !important;
+  visibility: hidden;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Top Branding Lockup
+   -------------------------------------------------------------------------- */
+.sidebar-brand-section {
+  padding: 18px 16px 12px 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+}
+
+.sidebar-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sidebar-brand-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #14532D;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  font-family: inherit;
+  display: flex;
+  align-items: baseline;
+}
+
+.sidebar-brand-title sup {
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 2px;
+  color: #14532D;
+}
+
+.sidebar-brand-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #78827B;
+  margin-top: 3px;
+  white-space: nowrap;
+  letter-spacing: 0.1px;
+}
+
+.sidebar-divider {
+  margin: 0 16px 12px 16px;
+  height: 1px;
+  background-color: #E6EAE5;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Workspace Section Header
+   -------------------------------------------------------------------------- */
+.sidebar-workspace-header {
+  padding: 0 16px 8px 16px;
+  flex-shrink: 0;
+}
+
+.workspace-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #78827B;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Scrollable Navigation Area
+   -------------------------------------------------------------------------- */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 12px 24px 12px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+.sidebar-menu-group {
+  margin-bottom: 2px;
+}
+
+/* Subtle Divider before Notifications & Settings */
+.sidebar-group-divider {
+  height: 1px;
+  background-color: #E6EAE5;
+  margin: 10px 4px 10px 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Menu Items (Buttons)
+   -------------------------------------------------------------------------- */
+.sidebar-menu-item {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #26332B;
+  transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sidebar-menu-item:hover {
+  background-color: #F4F7F2;
+  color: #245438;
+}
+
+.sidebar-menu-item:focus-visible {
+  outline: 2px solid #245438;
+  outline-offset: 1px;
+}
+
+/* Main Menu Icon */
+.sidebar-item-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #26332B;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.sidebar-menu-item:hover .sidebar-item-icon {
+  color: #245438;
+}
+
+.sidebar-item-label {
+  flex: 1;
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------------------------------------------------------------
+   Active & Expanded Menu States
+   -------------------------------------------------------------------------- */
+
+/* Active State (e.g. Dashboard) */
+.sidebar-menu-item.active {
+  background-color: #245438;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.sidebar-menu-item.active .sidebar-item-icon {
+  color: #FFFFFF;
+}
+
+.sidebar-menu-item.active:hover {
+  background-color: #1E4930;
+  color: #FFFFFF;
+}
+
+/* Expanded State (e.g. Finance when open) */
+.sidebar-menu-item.expanded-open {
+  background-color: #EAF0E8;
+  color: #26332B;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.sidebar-menu-item.expanded-open .sidebar-item-icon {
+  color: #245438;
+}
+
+.sidebar-menu-item.expanded-open .sidebar-chevron {
+  color: #26332B;
+}
+
+.sidebar-menu-item.expanded-open:hover {
+  background-color: #E2EAE0;
+  color: #245438;
+}
+
+/* Chevron indicator */
+.sidebar-chevron {
+  margin-left: auto;
+  color: #26332B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+
+/* --------------------------------------------------------------------------
+   Notifications Badge
+   -------------------------------------------------------------------------- */
+.sidebar-badge {
+  margin-left: auto;
+  background-color: #D8EED2;
+  color: #245438;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Submenu Indented Structure
+   -------------------------------------------------------------------------- */
+.sidebar-submenu {
+  position: relative;
+  margin: 2px 0 6px 12px;
+  padding-left: 10px;
+  border-left: 1.5px solid #D6DED3;
+}
+
+.sidebar-submenu-item {
+  position: relative;
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: #26332B;
+  box-sizing: border-box;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-submenu-item:hover {
+  background-color: #F4F7F2;
+  color: #245438;
+}
+
+.sidebar-submenu-item:focus-visible {
+  outline: 2px solid #245438;
+  outline-offset: 1px;
+}
+
+/* Submenu Contextual Outline Icon */
+.sidebar-submenu-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #245438;
+  flex-shrink: 0;
+}
+
+.sidebar-submenu-label {
+  flex: 1;
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Submenu Selected State */
+.sidebar-submenu-item.selected {
+  background-color: #EAF0E8;
+  color: #245438;
+  font-weight: 600;
+}
+
+.sidebar-submenu-item.selected .sidebar-submenu-icon {
+  color: #245438;
+}

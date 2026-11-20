@@ -50,6 +50,13 @@ namespace FarmManagementApi.Data
         public DbSet<CropCategory> CropCategories => Set<CropCategory>();
         public DbSet<CropSeason> CropSeasons => Set<CropSeason>();
 
+        // 7. Loans & Finance DbSets
+        public DbSet<Loan> Loans => Set<Loan>();
+        public DbSet<LoanDisbursement> LoanDisbursements => Set<LoanDisbursement>();
+        public DbSet<LoanInstallment> LoanInstallments => Set<LoanInstallment>();
+        public DbSet<LoanPayment> LoanPayments => Set<LoanPayment>();
+        public DbSet<LoanDocument> LoanDocuments => Set<LoanDocument>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -550,6 +557,199 @@ namespace FarmManagementApi.Data
                       .HasForeignKey(a => a.ProductId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+
+            // ==========================================
+            // Loans table
+            // ==========================================
+            modelBuilder.Entity<Loan>(entity =>
+            {
+                entity.ToTable("loans");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LoanNo).IsUnique();
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.BankLender);
+
+                entity.HasMany(l => l.Disbursements)
+                      .WithOne(d => d.Loan)
+                      .HasForeignKey(d => d.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(l => l.Installments)
+                      .WithOne(i => i.Loan)
+                      .HasForeignKey(i => i.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(l => l.Payments)
+                      .WithOne(p => p.Loan)
+                      .HasForeignKey(p => p.LoanId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(l => l.Documents)
+                      .WithOne(doc => doc.Loan)
+                      .HasForeignKey(doc => doc.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==========================================
+            // Loan Disbursements table
+            // ==========================================
+            modelBuilder.Entity<LoanDisbursement>(entity =>
+            {
+                entity.ToTable("loan_disbursements");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.DisbursementNo).IsUnique();
+                entity.HasIndex(e => e.LoanId);
+            });
+
+            // ==========================================
+            // Loan Installments table
+            // ==========================================
+            modelBuilder.Entity<LoanInstallment>(entity =>
+            {
+                entity.ToTable("loan_installments");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.LoanId, e.InstallmentNumber });
+                entity.HasIndex(e => e.DueDate);
+                entity.HasIndex(e => e.Status);
+            });
+
+            // ==========================================
+            // Loan Payments table
+            // ==========================================
+            modelBuilder.Entity<LoanPayment>(entity =>
+            {
+                entity.ToTable("loan_payments");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.VoucherNo).IsUnique();
+                entity.HasIndex(e => e.LoanId);
+                entity.HasIndex(e => e.PaymentDate);
+            });
+
+            // ==========================================
+            // Loan Documents table
+            // ==========================================
+            modelBuilder.Entity<LoanDocument>(entity =>
+            {
+                entity.ToTable("loan_documents");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LoanId);
+            });
+        }
+
+        public static async Task EnsureLoanTablesCreatedAsync(FarmDbContext context)
+        {
+            try
+            {
+                var sql = @"
+CREATE TABLE IF NOT EXISTS `loans` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanNo` VARCHAR(50) NOT NULL,
+    `LoanAccountNo` VARCHAR(100) NULL,
+    `BankLender` VARCHAR(150) NOT NULL,
+    `LoanType` VARCHAR(100) NOT NULL,
+    `LoanPurpose` VARCHAR(500) NULL,
+    `SanctionAmount` DECIMAL(18,2) NOT NULL,
+    `DisbursedAmount` DECIMAL(18,2) NOT NULL,
+    `OutstandingPrincipal` DECIMAL(18,2) NOT NULL,
+    `InterestRate` DECIMAL(5,2) NOT NULL,
+    `InterestType` VARCHAR(20) NOT NULL DEFAULT 'Fixed',
+    `TenureMonths` INT NOT NULL DEFAULT 12,
+    `RepaymentFrequency` VARCHAR(30) NOT NULL DEFAULT 'Monthly',
+    `EmiAmount` DECIMAL(18,2) NOT NULL,
+    `StartDate` DATETIME NOT NULL,
+    `EndDate` DATETIME NOT NULL,
+    `NextEmiDueDate` DATETIME NULL,
+    `ProcessingFees` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `Status` VARCHAR(30) NOT NULL DEFAULT 'Active',
+    `Remarks` VARCHAR(500) NULL,
+    `ClosedDate` DATETIME NULL,
+    `ClosureCertificateUrl` VARCHAR(500) NULL,
+    `ClosureRemarks` VARCHAR(500) NULL,
+    `FarmerId` INT NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt` DATETIME NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loans_LoanNo` (`LoanNo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_disbursements` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `DisbursementNo` VARCHAR(50) NOT NULL,
+    `DisbursementDate` DATETIME NOT NULL,
+    `DisbursedAmount` DECIMAL(18,2) NOT NULL,
+    `BankAccount` VARCHAR(150) NULL,
+    `ReferenceNo` VARCHAR(100) NULL,
+    `Remarks` VARCHAR(500) NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loan_disbursements_DisbursementNo` (`DisbursementNo`),
+    KEY `IX_loan_disbursements_LoanId` (`LoanId`),
+    CONSTRAINT `FK_loan_disbursements_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_installments` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `InstallmentNumber` INT NOT NULL,
+    `DueDate` DATETIME NOT NULL,
+    `OpeningPrincipal` DECIMAL(18,2) NOT NULL,
+    `PrincipalAmount` DECIMAL(18,2) NOT NULL,
+    `InterestAmount` DECIMAL(18,2) NOT NULL,
+    `EmiAmount` DECIMAL(18,2) NOT NULL,
+    `PaidAmount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `RemainingAmount` DECIMAL(18,2) NOT NULL,
+    `ClosingPrincipal` DECIMAL(18,2) NOT NULL,
+    `Status` VARCHAR(30) NOT NULL DEFAULT 'Pending',
+    `PaidDate` DATETIME NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    KEY `IX_loan_installments_LoanId` (`LoanId`),
+    KEY `IX_loan_installments_DueDate` (`DueDate`),
+    KEY `IX_loan_installments_Status` (`Status`),
+    CONSTRAINT `FK_loan_installments_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_payments` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `VoucherNo` VARCHAR(50) NOT NULL,
+    `PaymentDate` DATETIME NOT NULL,
+    `InstallmentNumber` INT NULL,
+    `Principal` DECIMAL(18,2) NOT NULL,
+    `Interest` DECIMAL(18,2) NOT NULL,
+    `Penalty` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `TotalPayment` DECIMAL(18,2) NOT NULL,
+    `PaymentMode` VARCHAR(50) NOT NULL,
+    `ReferenceNo` VARCHAR(100) NULL,
+    `Remarks` VARCHAR(500) NULL,
+    `PaymentType` VARCHAR(50) NOT NULL DEFAULT 'Regular EMI',
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loan_payments_VoucherNo` (`VoucherNo`),
+    KEY `IX_loan_payments_LoanId` (`LoanId`),
+    KEY `IX_loan_payments_PaymentDate` (`PaymentDate`),
+    CONSTRAINT `FK_loan_payments_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_documents` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `DocumentName` VARCHAR(200) NOT NULL,
+    `DocumentType` VARCHAR(100) NOT NULL,
+    `FileUrl` VARCHAR(500) NOT NULL,
+    `UploadedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    KEY `IX_loan_documents_LoanId` (`LoanId`),
+    CONSTRAINT `FK_loan_documents_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+                await context.Database.ExecuteSqlRawAsync(sql);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Loan Table Ensure Note]: {ex.Message}");
+            }
         }
     }
 }
