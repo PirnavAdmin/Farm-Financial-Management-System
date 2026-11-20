@@ -125,6 +125,63 @@
   transform: translateY(-1px);
 }
 
+/* ── Navigation Tabs ─────────────────────────────────────────────────────── */
+.mch-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mch-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.mch-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.mch-tab-btn:hover {
+  color: #1e3325;
+}
+
+.mch-tab-btn.active {
+  color: #31794a;
+  font-weight: 600;
+  border-bottom-color: #31794a;
+}
+
+.mch-tab-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.mch-tab-btn.active .mch-tab-badge {
+  background: #eaf4ed;
+  color: #2b6a41;
+}
+
 /* ── Summary KPI Cards ───────────────────────────────────────────────────── */
 .mch-stats-grid {
   display: grid;
