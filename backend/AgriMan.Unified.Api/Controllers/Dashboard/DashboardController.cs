@@ -251,7 +251,7 @@ namespace FarmManagementApi.Controllers
         [HttpGet("crop-wise-profit")]
         public async Task<IActionResult> GetCropWiseProfit()
         {
-            var crops = await _farmDb.Crops.Take(7).ToListAsync();
+            var crops = await _farmDb.Crops.OrderBy(c => c.Id).Take(7).ToListAsync();
             var list = new List<object>();
 
             for (int idx = 0; idx < crops.Count; idx++)
@@ -299,7 +299,7 @@ namespace FarmManagementApi.Controllers
         [HttpGet("active-crops-details")]
         public async Task<IActionResult> GetActiveCropsDetails()
         {
-            var crops = await _farmDb.Crops.Take(5).ToListAsync();
+            var crops = await _farmDb.Crops.OrderBy(c => c.Id).Take(5).ToListAsync();
             var list = crops.Select((c, idx) => new
             {
                 id = c.Id,

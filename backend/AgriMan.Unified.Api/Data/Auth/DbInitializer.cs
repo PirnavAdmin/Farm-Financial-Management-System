@@ -312,22 +312,32 @@ namespace AgriMan.Api.Data
                 }
             }
 
-            // Ensure Identifier and RememberMe columns exist on pre-existing login_history tables
-            var optionalAlterStatements = new[]
+            // Ensure Identifier and RememberMe columns exist on pre-existing login_history tables without throwing duplicate column errors
+            var optionalColumns = new (string ColumnName, string AlterSql)[]
             {
-                "ALTER TABLE `login_history` ADD COLUMN `Identifier` VARCHAR(150) DEFAULT NULL AFTER `Email`;",
-                "ALTER TABLE `login_history` ADD COLUMN `RememberMe` TINYINT(1) NOT NULL DEFAULT 0 AFTER `UserAgent`;"
+                ("Identifier", "ALTER TABLE `login_history` ADD COLUMN `Identifier` VARCHAR(150) DEFAULT NULL AFTER `Email`;"),
+                ("RememberMe", "ALTER TABLE `login_history` ADD COLUMN `RememberMe` TINYINT(1) NOT NULL DEFAULT 0 AFTER `UserAgent`;")
             };
 
-            foreach (var alterSql in optionalAlterStatements)
+            foreach (var (columnName, alterSql) in optionalColumns)
             {
                 try
                 {
-                    await context.Database.ExecuteSqlRawAsync(alterSql);
+                    using var cmd = context.Database.GetDbConnection().CreateCommand();
+                    cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'login_history' AND COLUMN_NAME = '{columnName}';";
+                    if (context.Database.GetDbConnection().State != System.Data.ConnectionState.Open)
+                    {
+                        await context.Database.OpenConnectionAsync();
+                    }
+                    var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    if (count == 0)
+                    {
+                        await context.Database.ExecuteSqlRawAsync(alterSql);
+                    }
                 }
                 catch
                 {
-                    // Column already exists; safe to ignore
+                    // Column already exists or table does not exist yet; safe to ignore
                 }
             }
         }

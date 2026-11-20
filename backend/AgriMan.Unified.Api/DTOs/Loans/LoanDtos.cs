@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace FarmManagementApi.DTOs
 {
@@ -197,5 +198,12 @@ namespace FarmManagementApi.DTOs
 
         [MaxLength(500)]
         public string? Remarks { get; set; }
+    }
+
+    public class LoanDocumentUploadDto
+    {
+        public IFormFile? File { get; set; }
+
+        public string? DocumentType { get; set; }
     }
 }
