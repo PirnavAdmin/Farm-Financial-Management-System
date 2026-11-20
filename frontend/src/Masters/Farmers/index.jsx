@@ -241,6 +241,12 @@ function getFarmerApiError(error, operation = 'request') {
   if (status === 403)  return { headline: 'Access denied (403)',  detail: 'You do not have permission to access Farmers.' }
   if (status === 409)  return { headline: 'Conflict (409)',       detail: 'A record with this data already exists.' }
   if (status === 500)  return { headline: 'Server error (500)',   detail: 'The ASP.NET Core backend encountered an error. Check the backend console.' }
+  if (status === 502 || status === 503 || status === 504) {
+    return {
+      headline: 'Cannot connect to backend server (502)',
+      detail: 'The ASP.NET Core backend is not running or unreachable on port 5147. Please start the backend (run-backend.bat) and click Retry.',
+    }
+  }
   if (status === 0 || (!error.response && error.request))
     return { headline: 'Cannot reach backend', detail: 'Verify the backend is running and the ngrok URL in .env is current, then retry.' }
 
@@ -820,12 +826,12 @@ export default function Farmers({ profileEmail, profileName }) {
   useEffect(() => { fetchFarmers() }, [fetchFarmers])
 
   const emailFarmer = profileEmail
-    ? farmers.find(f => f.email.trim().toLowerCase() === profileEmail.trim().toLowerCase())
+    ? farmers.find(f => (f.email || '').trim().toLowerCase() === profileEmail.trim().toLowerCase())
     : null
   const normalizedProfileName = (profileName || '').trim().toLowerCase()
   const nameMatches = normalizedProfileName && !normalizedProfileName.includes('@') && normalizedProfileName !== 'user'
     ? farmers.filter(f => {
-      const farmerName = f.name.trim().toLowerCase()
+      const farmerName = (f.name || '').trim().toLowerCase()
       return farmerName === normalizedProfileName
         || farmerName.startsWith(`${normalizedProfileName} `)
         || normalizedProfileName.startsWith(`${farmerName} `)
@@ -1023,7 +1029,11 @@ export default function Farmers({ profileEmail, profileName }) {
   }
 
   function openRentalLandForm(record = null, mode = 'add') {
-    setRentalForm(record ? { ...record } : {
+    setRentalForm(record ? {
+      ...EMPTY_RENTAL_LAND,
+      ...record,
+      remarks: record.remarks || '',
+    } : {
       ...EMPTY_RENTAL_LAND,
       village: currentFarmer?.village || '',
       mandal: currentFarmer?.mandal || '',
@@ -1046,19 +1056,19 @@ export default function Farmers({ profileEmail, profileName }) {
     try {
       const payload = {
         farmerId: Number(currentFarmer.id),
-        tenantName: rentalForm.tenantName.trim(),
-        tenantMobile: rentalForm.tenantMobile.trim(),
-        surveyNumber: rentalForm.surveyNumber.trim(),
-        landArea: Number(rentalForm.landArea),
-        areaUnit: rentalForm.areaUnit,
-        village: rentalForm.village.trim(),
-        mandal: rentalForm.mandal.trim(),
-        district: rentalForm.district.trim(),
-        rentAmount: Number(rentalForm.rentAmount),
-        rentFrequency: rentalForm.rentFrequency,
-        leaseStartDate: rentalForm.leaseStartDate,
-        leaseEndDate: rentalForm.leaseEndDate,
-        remarks: rentalForm.remarks.trim() || null,
+        tenantName: String(rentalForm.tenantName || '').trim(),
+        tenantMobile: String(rentalForm.tenantMobile || '').trim(),
+        surveyNumber: String(rentalForm.surveyNumber || '').trim(),
+        landArea: Number(rentalForm.landArea || 0),
+        areaUnit: rentalForm.areaUnit || 'Acres',
+        village: String(rentalForm.village || '').trim(),
+        mandal: String(rentalForm.mandal || '').trim(),
+        district: String(rentalForm.district || '').trim(),
+        rentAmount: Number(rentalForm.rentAmount || 0),
+        rentFrequency: rentalForm.rentFrequency || 'Monthly',
+        leaseStartDate: rentalForm.leaseStartDate || '',
+        leaseEndDate: rentalForm.leaseEndDate || '',
+        remarks: rentalForm.remarks ? String(rentalForm.remarks).trim() : null,
       }
 
       if (rentalModal.mode === 'edit') {
@@ -1136,7 +1146,7 @@ export default function Farmers({ profileEmail, profileName }) {
           <>
             <div className="fm-profile-identity">
               <div className="fm-avatar fm-profile-avatar">
-                {currentFarmer.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}
+                {(currentFarmer.name || '').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'F'}
               </div>
               <div className="fm-profile-name">
                 <span className="fm-profile-eyebrow">MY FARMER PROFILE</span>
