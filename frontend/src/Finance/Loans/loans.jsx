@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import TableActionMenu from '../../TableActionMenu'
 import './loans.css'
 import { loanService } from './loanService'
 import {
@@ -1109,68 +1110,43 @@ export default function Loans() {
                           {loan.status || 'Active'}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
-                        <div className="loan-actions-cell" style={{ justifyContent: 'flex-end' }}>
-                          <button
-                            type="button"
-                            className="loan-btn-action"
-                            title="View Full Loan Details & Schedule"
-                            onClick={() => openLoanDetails(loan)}
-                          >
-                            <EyeIcon size={14} /> View
-                          </button>
-
-                          {loan.status !== 'Closed' && (
-                            <button
-                              type="button"
-                              className="loan-btn-action loan-btn-pay"
-                              title="Record Loan Payment"
-                              onClick={() => handleOpenAddPayment(loan.loanNo)}
-                            >
-                              <ReceiptTextIcon size={14} /> Pay
-                            </button>
-                          )}
-
-                          {loan.status !== 'Closed' && (loan.disbursedAmount < loan.sanctionAmount) && (
-                            <button
-                              type="button"
-                              className="loan-btn-action"
-                              title="Record Additional Disbursement"
-                              onClick={() => handleOpenDisbursement(loan)}
-                            >
-                              <CoinsIcon size={14} /> Disburse
-                            </button>
-                          )}
-
-                          {loan.status !== 'Closed' && (
-                            <button
-                              type="button"
-                              className="loan-btn-action"
-                              style={{ color: '#059669', borderColor: '#a7f3d0' }}
-                              title="Settle & Close Loan"
-                              onClick={() => handleOpenCloseLoan(loan)}
-                            >
-                              <ShieldCheckIcon size={14} /> Close
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            className="loan-btn-action"
-                            title="Edit Loan"
-                            onClick={() => handleOpenEditLoan(loan)}
-                          >
-                            <EditIcon size={14} />
-                          </button>
-
-                          <button
-                            type="button"
-                            className="loan-btn-action loan-btn-danger"
-                            title="Delete Loan"
-                            onClick={() => setDeleteConfirm({ type: 'loan', item: loan })}
-                          >
-                            <TrashIcon size={14} />
-                          </button>
+<td style={{ textAlign: 'center' }}>
+                        <div className="loan-actions-cell" style={{ justifyContent: 'center' }}>
+                          <TableActionMenu
+                            items={[
+                              {
+                                label: 'View Details',
+                                icon: 'view',
+                                onClick: () => openLoanDetails(loan),
+                              },
+                              loan.status !== 'Closed' ? {
+                                label: 'Record Payment',
+                                icon: 'pay',
+                                onClick: () => handleOpenAddPayment(loan.loanNo),
+                              } : null,
+                              loan.status !== 'Closed' && loan.disbursedAmount < loan.sanctionAmount ? {
+                                label: 'Disburse Funds',
+                                icon: <CoinsIcon size={14} />,
+                                onClick: () => handleOpenDisbursement(loan),
+                              } : null,
+                              loan.status !== 'Closed' ? {
+                                label: 'Settle & Close',
+                                icon: <ShieldCheckIcon size={14} />,
+                                onClick: () => handleOpenCloseLoan(loan),
+                              } : null,
+                              {
+                                label: 'Edit Loan',
+                                icon: 'edit',
+                                onClick: () => handleOpenEditLoan(loan),
+                              },
+                              {
+                                label: 'Delete Loan',
+                                icon: 'delete',
+                                danger: true,
+                                onClick: () => setDeleteConfirm({ type: 'loan', item: loan }),
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -1259,7 +1235,7 @@ export default function Loans() {
                 </tr>
               </thead>
               <tbody>
-                {pagedRecords.length === 0 ? (
+{pagedRecords.length === 0 ? (
                   <tr>
                     <td colSpan={12} style={{ textAlign: 'center', padding: '48px 16px' }}>
                       <div style={{ color: '#64748b', fontSize: '13px' }}>

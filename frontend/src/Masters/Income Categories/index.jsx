@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useMemo, useState } from 'react'
 import { createIncome, deleteIncome, listIncome, updateIncome } from './incomeService.js'
 import './income.css'
@@ -370,9 +371,13 @@ export default function Income() {
                       <td>{record.paymentMode || record.paymentMethod || '—'}</td>
                       <td><StatusBadge status={record.status} /></td>
                       <td><div className="income-row-actions">
-                        <button type="button" aria-label={`View ${record.incomeNo || 'income record'}`} title="View details" onClick={() => openDetails(record)}><Icon name="view" /></button>
-                        <button type="button" aria-label={`Edit ${record.incomeNo || 'income record'}`} title="Edit income" onClick={() => openEdit(record)}><Icon name="edit" /></button>
-                        <button type="button" aria-label={`Delete ${record.incomeNo || 'income record'}`} title="Delete income" onClick={() => setPendingDelete(record)}><Icon name="delete" /></button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Details', icon: 'view', onClick: () => openDetails(record) },
+                            { label: 'Edit Income', icon: 'edit', onClick: () => openEdit(record) },
+                            { label: 'Delete Income', icon: 'delete', danger: true, onClick: () => setPendingDelete(record) },
+                          ]}
+                        />
                       </div></td>
                     </tr>
                   ))}

@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react';
 import salesService, { formatCurrency, formatDate } from '../../services/salesService';
 import './customers.css';
@@ -356,30 +357,13 @@ export default function Customers({ onNavigate }) {
                     <td className="sales-bold-amount">{formatCurrency(buyer.openingBalance || 0)}</td>
                     <td>
                       <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
-                        <button
-                          type="button"
-                          className="sales-btn-action"
-                          title="View Details"
-                          onClick={() => setViewDetails(buyer)}
-                        >
-                          👁️
-                        </button>
-                        <button
-                          type="button"
-                          className="sales-btn-action"
-                          title="Edit Buyer"
-                          onClick={() => openEditModal(buyer)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className="sales-btn-action sales-btn-danger"
-                          title="Delete Buyer"
-                          onClick={() => setDeleteConfirm(buyer)}
-                        >
-                          🗑️
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Details', icon: 'view', onClick: () => setViewDetails(buyer) },
+                            { label: 'Edit Buyer', icon: 'edit', onClick: () => openEditModal(buyer) },
+                            { label: 'Delete Buyer', icon: 'delete', danger: true, onClick: () => setDeleteConfirm(buyer) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

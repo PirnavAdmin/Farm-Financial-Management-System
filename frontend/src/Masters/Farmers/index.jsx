@@ -1176,7 +1176,6 @@ export default function Farmers({ profileEmail, profileName }) {
               <div className="fm-profile-name">
                 <span className="fm-profile-eyebrow">MY FARMER PROFILE</span>
                 <h2>{currentFarmer.name}</h2>
-                <span>{currentFarmer.code} · {currentFarmer.fatherName || 'Farmer'}</span>
               </div>
             </div>
             <div className="fm-profile-summary-block">
@@ -1195,7 +1194,7 @@ export default function Farmers({ profileEmail, profileName }) {
                 {profileFarmSummary?.farmerId === currentFarmer.id
                   ? profileFarmSummary.error
                     ? 'Farm details unavailable'
-                    : `${profileFarmSummary.location} · ${profileFarmSummary.parcelCount} farm ${profileFarmSummary.parcelCount === 1 ? 'parcel' : 'parcels'}`
+                    : profileFarmSummary.location
                   : 'Loading farm details…'}
               </small>
             </div>

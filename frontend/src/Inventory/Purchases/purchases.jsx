@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react'
 import useInventory from '../useInventory'
 import './purchases.css'
@@ -398,28 +399,27 @@ export default function Purchases() {
                     ))}
                     <td>
                       <div className="user-actions">
-                        <button
-                          type="button"
-                          title="Edit"
-                          aria-label={`Edit ${screenName} record`}
-                          onClick={() => {
-                            setModal({
-                              isEdit: true,
-                              rawRecord: record._raw,
-                              values: { ...record }
-                            })
-                          }}
-                        >
-                          &#9998;
-                        </button>
-                        <button
-                          type="button"
-                          title="Delete"
-                          aria-label={`Delete ${screenName} record`}
-                          onClick={() => deleteRecord(record)}
-                        >
-                          &#128465;
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            {
+                              label: 'Edit Purchase',
+                              icon: 'edit',
+                              onClick: () => {
+                                setModal({
+                                  isEdit: true,
+                                  rawRecord: record._raw,
+                                  values: { ...record }
+                                });
+                              }
+                            },
+                            {
+                              label: 'Delete Purchase',
+                              icon: 'delete',
+                              danger: true,
+                              onClick: () => deleteRecord(record)
+                            }
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

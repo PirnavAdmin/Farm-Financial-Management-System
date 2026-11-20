@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react';
 import salesService, { formatCurrency, formatDate } from '../../services/salesService';
 import './sales.css';
@@ -505,30 +506,13 @@ export default function Sales({ onNavigate }) {
                       </td>
                       <td>
                         <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
-                          <button
-                            type="button"
-                            className="sales-btn-action"
-                            title="View Details"
-                            onClick={() => setViewDetails(sale)}
-                          >
-                            👁️
-                          </button>
-                          <button
-                            type="button"
-                            className="sales-btn-action"
-                            title="Edit Sale"
-                            onClick={() => openEditModal(sale)}
-                          >
-                            ✎
-                          </button>
-                          <button
-                            type="button"
-                            className="sales-btn-action sales-btn-danger"
-                            title="Delete Sale"
-                            onClick={() => setDeleteConfirm(sale)}
-                          >
-                            🗑️
-                          </button>
+                          <TableActionMenu
+                            items={[
+                              { label: 'View Details', icon: 'view', onClick: () => setViewDetails(sale) },
+                              { label: 'Edit Sale', icon: 'edit', onClick: () => openEditModal(sale) },
+                              { label: 'Delete Sale', icon: 'delete', danger: true, onClick: () => setDeleteConfirm(sale) },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>

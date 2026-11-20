@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useMemo, useState } from 'react'
 import { useInventoryContext } from '../InventoryContext'
 import '../inventory.css'
@@ -303,30 +304,13 @@ export default function ProductMaster() {
                     </td>
                     <td>
                       <div className="inv-actions-cell" style={{ justifyContent: 'center' }}>
-                        <button
-                          className="inv-action-btn"
-                          type="button"
-                          title="View Details"
-                          onClick={() => setViewProduct(product)}
-                        >
-                          👁
-                        </button>
-                        <button
-                          className="inv-action-btn"
-                          type="button"
-                          title="Edit Product"
-                          onClick={() => setEditModalProduct(product)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="inv-action-btn btn-delete"
-                          type="button"
-                          title="Delete Product"
-                          onClick={() => setDeleteConfirmProduct(product)}
-                        >
-                          🗑
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Details', icon: 'view', onClick: () => setViewProduct(product) },
+                            { label: 'Edit Product', icon: 'edit', onClick: () => setEditModalProduct(product) },
+                            { label: 'Delete Product', icon: 'delete', danger: true, onClick: () => setDeleteConfirmProduct(product) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

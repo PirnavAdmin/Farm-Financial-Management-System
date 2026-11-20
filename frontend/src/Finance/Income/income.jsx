@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createIncome, deleteIncome, getIncomeById, listIncome, listIncomeCategories, listIncomeFarmers, updateIncome } from './incomeService.js'
 import './income.css'
@@ -771,33 +772,13 @@ export default function Income() {
                         </td>
                         <td>
                           <div className="income-row-actions">
-                            <button
-                              type="button"
-                              className="action-view"
-                              aria-label={`View ${record.incomeNo}`}
-                              title="View transaction details"
-                              onClick={() => openDetails(record)}
-                            >
-                              <Icon name="view" />
-                            </button>
-                            <button
-                              type="button"
-                              className="action-edit"
-                              aria-label={`Edit ${record.incomeNo}`}
-                              title="Edit record"
-                              onClick={() => openEdit(record)}
-                            >
-                              <Icon name="edit" />
-                            </button>
-                            <button
-                              type="button"
-                              className="action-delete"
-                              aria-label={`Delete ${record.incomeNo}`}
-                              title="Delete record"
-                              onClick={() => setPendingDelete(record)}
-                            >
-                              <Icon name="delete" />
-                            </button>
+                            <TableActionMenu
+                              items={[
+                                { label: 'View Details', icon: 'view', onClick: () => openDetails(record) },
+                                { label: 'Edit Income', icon: 'edit', onClick: () => openEdit(record) },
+                                { label: 'Delete Income', icon: 'delete', danger: true, onClick: () => setPendingDelete(record) },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>

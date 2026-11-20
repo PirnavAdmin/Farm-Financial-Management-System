@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { labourService } from '../../services/labourService';
 import './labour.css';
@@ -1049,30 +1050,13 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                     </td>
                     <td>
                       <div className="lb-actions" style={{ justifyContent: 'center' }}>
-                        <button
-                          className="lb-action-btn lb-view"
-                          type="button"
-                          title="View Details"
-                          onClick={() => setViewItem({ type: 'labour', data: l })}
-                        >
-                          👁
-                        </button>
-                        <button
-                          className="lb-action-btn lb-edit"
-                          type="button"
-                          title="Edit"
-                          onClick={() => openEdit('labour', l)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="lb-action-btn lb-delete"
-                          type="button"
-                          title="Delete"
-                          onClick={() => setDeleteTarget({ type: 'labour', item: l })}
-                        >
-                          ⛌
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Details', icon: 'view', onClick: () => setViewItem({ type: 'labour', data: l }) },
+                            { label: 'Edit Labour', icon: 'edit', onClick: () => openEdit('labour', l) },
+                            { label: 'Delete Labour', icon: 'delete', danger: true, onClick: () => setDeleteTarget({ type: 'labour', item: l }) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -1157,30 +1141,13 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                     </td>
                     <td>
                       <div className="lb-actions" style={{ justifyContent: 'center' }}>
-                        <button
-                          className="lb-action-btn lb-view"
-                          type="button"
-                          title="View Details"
-                          onClick={() => setViewItem({ type: 'attendance', data: a })}
-                        >
-                          👁
-                        </button>
-                        <button
-                          className="lb-action-btn lb-edit"
-                          type="button"
-                          title="Edit"
-                          onClick={() => openEdit('attendance', a)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="lb-action-btn lb-delete"
-                          type="button"
-                          title="Delete"
-                          onClick={() => setDeleteTarget({ type: 'attendance', item: a })}
-                        >
-                          ⛌
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Attendance', icon: 'view', onClick: () => setViewItem({ type: 'attendance', data: a }) },
+                            { label: 'Edit Attendance', icon: 'edit', onClick: () => openEdit('attendance', a) },
+                            { label: 'Delete Record', icon: 'delete', danger: true, onClick: () => setDeleteTarget({ type: 'attendance', item: a }) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -1255,22 +1222,12 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                     </td>
                     <td>
                       <div className="lb-actions" style={{ justifyContent: 'center' }}>
-                        <button
-                          className="lb-action-btn lb-edit"
-                          type="button"
-                          title="Edit"
-                          onClick={() => openEdit('workType', w)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="lb-action-btn lb-delete"
-                          type="button"
-                          title="Delete"
-                          onClick={() => setDeleteTarget({ type: 'workType', item: w })}
-                        >
-                          ⛌
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'Edit Work Type', icon: 'edit', onClick: () => openEdit('workType', w) },
+                            { label: 'Delete Work Type', icon: 'delete', danger: true, onClick: () => setDeleteTarget({ type: 'workType', item: w }) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -1347,30 +1304,13 @@ export default function Labour({ initialTab = 'labourers', onNavigate }) {
                     <td style={{ color: '#64748b' }}>{p.notes || '—'}</td>
                     <td>
                       <div className="lb-actions" style={{ justifyContent: 'center' }}>
-                        <button
-                          className="lb-action-btn lb-view"
-                          type="button"
-                          title="View"
-                          onClick={() => setViewItem({ type: 'payment', data: p })}
-                        >
-                          👁
-                        </button>
-                        <button
-                          className="lb-action-btn lb-edit"
-                          type="button"
-                          title="Edit"
-                          onClick={() => openEdit('payment', p)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="lb-action-btn lb-delete"
-                          type="button"
-                          title="Delete"
-                          onClick={() => setDeleteTarget({ type: 'payment', item: p })}
-                        >
-                          ⛌
-                        </button>
+                        <TableActionMenu
+                          items={[
+                            { label: 'View Receipt', icon: 'view', onClick: () => setViewItem({ type: 'payment', data: p }) },
+                            { label: 'Edit Payment', icon: 'edit', onClick: () => openEdit('payment', p) },
+                            { label: 'Delete Payment', icon: 'delete', danger: true, onClick: () => setDeleteTarget({ type: 'payment', item: p }) },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

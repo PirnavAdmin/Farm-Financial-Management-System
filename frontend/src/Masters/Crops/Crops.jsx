@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cropService } from '../../services/cropService';
 import './crops.css';
 
@@ -95,6 +96,45 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Action Menu Dropdown (Three Dots)
+  const [activeActionMenu, setActiveActionMenu] = useState(null); // { id, type, item }
+  const [actionMenuPos, setActionMenuPos] = useState(null);
+
+  useEffect(() => {
+    if (!activeActionMenu) return undefined;
+    const handleClose = () => {
+      setActiveActionMenu(null);
+      setActionMenuPos(null);
+    };
+    window.addEventListener('click', handleClose);
+    window.addEventListener('resize', handleClose);
+    window.addEventListener('scroll', handleClose, true);
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('resize', handleClose);
+      window.removeEventListener('scroll', handleClose, true);
+    };
+  }, [activeActionMenu]);
+
+  const toggleActionMenu = (event, id, type, item) => {
+    event.stopPropagation();
+    if (activeActionMenu?.id === id) {
+      setActiveActionMenu(null);
+      setActionMenuPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 145;
+    const menuHeight = 125;
+    const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+    const top = rect.bottom + 4 + menuHeight > window.innerHeight
+      ? Math.max(8, rect.top - 4 - menuHeight)
+      : rect.bottom + 4;
+
+    setActionMenuPos({ top, left });
+    setActiveActionMenu({ id, type, item });
+  };
 
   // Modals & Forms
   const [modalType, setModalType] = useState(null); // 'crop' | 'season' | 'variety' | 'category' | 'activity' | null
@@ -1597,27 +1637,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className="cr-action-btn view"
-                          onClick={() => handleOpenView(c, 'crop')}
-                          title="View Crop Details"
+                          className={`cr-action-menu-btn ${activeActionMenu?.id === c.id ? 'active' : ''}`}
+                          title="Actions"
+                          aria-label="Actions"
+                          aria-haspopup="menu"
+                          aria-expanded={activeActionMenu?.id === c.id}
+                          onClick={(e) => toggleActionMenu(e, c.id, 'crop', c)}
                         >
-                          👁️
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn edit"
-                          onClick={() => handleOpenEdit(c)}
-                          title="Edit Crop"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn delete"
-                          onClick={() => setDeleteTarget({ type: 'crop', item: c })}
-                          title="Delete Crop"
-                        >
-                          🗑
+                          ⋮
                         </button>
                       </div>
                     </td>
@@ -1728,27 +1755,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                         <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                           <button
                             type="button"
-                            className="cr-action-btn view"
-                            onClick={() => handleOpenView(s, 'season')}
-                            title="View Season Details"
+                            className={`cr-action-menu-btn ${activeActionMenu?.id === s.id ? 'active' : ''}`}
+                            title="Actions"
+                            aria-label="Actions"
+                            aria-haspopup="menu"
+                            aria-expanded={activeActionMenu?.id === s.id}
+                            onClick={(e) => toggleActionMenu(e, s.id, 'season', s)}
                           >
-                            👁️
-                          </button>
-                          <button
-                            type="button"
-                            className="cr-action-btn edit"
-                            onClick={() => handleOpenEdit(s)}
-                            title="Edit Season Cycle"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            type="button"
-                            className="cr-action-btn delete"
-                            onClick={() => setDeleteTarget({ type: 'season', item: s })}
-                            title="Delete Season"
-                          >
-                            🗑
+                            ⋮
                           </button>
                         </div>
                       </td>
@@ -1821,27 +1835,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className="cr-action-btn view"
-                          onClick={() => handleOpenView(v, 'variety')}
-                          title="View Variety Details"
+                          className={`cr-action-menu-btn ${activeActionMenu?.id === v.id ? 'active' : ''}`}
+                          title="Actions"
+                          aria-label="Actions"
+                          aria-haspopup="menu"
+                          aria-expanded={activeActionMenu?.id === v.id}
+                          onClick={(e) => toggleActionMenu(e, v.id, 'variety', v)}
                         >
-                          👁️
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn edit"
-                          onClick={() => handleOpenEdit(v)}
-                          title="Edit Variety"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn delete"
-                          onClick={() => setDeleteTarget({ type: 'variety', item: v })}
-                          title="Delete Variety"
-                        >
-                          🗑
+                          ⋮
                         </button>
                       </div>
                     </td>
@@ -1907,27 +1908,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className="cr-action-btn view"
-                          onClick={() => handleOpenView(cat, 'category')}
-                          title="View Category Details"
+                          className={`cr-action-menu-btn ${activeActionMenu?.id === cat.id ? 'active' : ''}`}
+                          title="Actions"
+                          aria-label="Actions"
+                          aria-haspopup="menu"
+                          aria-expanded={activeActionMenu?.id === cat.id}
+                          onClick={(e) => toggleActionMenu(e, cat.id, 'category', cat)}
                         >
-                          👁️
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn edit"
-                          onClick={() => handleOpenEdit(cat)}
-                          title="Edit Category"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn delete"
-                          onClick={() => setDeleteTarget({ type: 'category', item: cat })}
-                          title="Delete Category"
-                        >
-                          🗑
+                          ⋮
                         </button>
                       </div>
                     </td>
@@ -2023,27 +2011,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className="cr-action-btn view"
-                          onClick={() => handleOpenView(act, 'activity')}
-                          title="View Activity Details"
+                          className={`cr-action-menu-btn ${activeActionMenu?.id === act.id ? 'active' : ''}`}
+                          title="Actions"
+                          aria-label="Actions"
+                          aria-haspopup="menu"
+                          aria-expanded={activeActionMenu?.id === act.id}
+                          onClick={(e) => toggleActionMenu(e, act.id, 'activity', act)}
                         >
-                          👁️
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn edit"
-                          onClick={() => handleOpenEdit(act)}
-                          title="Edit Activity"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          className="cr-action-btn delete"
-                          onClick={() => setDeleteTarget({ type: 'activity', item: act })}
-                          title="Delete Activity"
-                        >
-                          🗑
+                          ⋮
                         </button>
                       </div>
                     </td>
@@ -3435,6 +3410,76 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Action Dropdown Menu (Three Dots) ── */}
+      {activeActionMenu && actionMenuPos && createPortal(
+        <div
+          className="cr-action-dropdown"
+          style={{ top: actionMenuPos.top, left: actionMenuPos.left }}
+          role="menu"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="cr-action-menu-item view"
+            role="menuitem"
+            onClick={() => {
+              const { type, item } = activeActionMenu;
+              setActiveActionMenu(null);
+              setActionMenuPos(null);
+              handleOpenView(item, type);
+            }}
+          >
+            <span className="cr-menu-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </span>
+            View Details
+          </button>
+
+          <button
+            type="button"
+            className="cr-action-menu-item edit"
+            role="menuitem"
+            onClick={() => {
+              const { item } = activeActionMenu;
+              setActiveActionMenu(null);
+              setActionMenuPos(null);
+              handleOpenEdit(item);
+            }}
+          >
+            <span className="cr-menu-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </span>
+            Edit
+          </button>
+
+          <button
+            type="button"
+            className="cr-action-menu-item delete"
+            role="menuitem"
+            onClick={() => {
+              const { type, item } = activeActionMenu;
+              setActiveActionMenu(null);
+              setActionMenuPos(null);
+              setDeleteTarget({ type, item });
+            }}
+          >
+            <span className="cr-menu-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+              </svg>
+            </span>
+            Delete
+          </button>
+        </div>,
+        document.body
       )}
 
       {toast && (

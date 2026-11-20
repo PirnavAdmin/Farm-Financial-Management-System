@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react';
 import salesService, { formatCurrency, formatDate } from '../../services/salesService';
 import './receivables.css';
@@ -568,22 +569,12 @@ export default function Receivables({ onNavigate }) {
                         </td>
                         <td>
                           <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
-                            <button
-                              type="button"
-                              className="sales-btn-action sales-btn-pay"
-                              title="Update payment / receivable for this sale"
-                              onClick={() => openRecordPaymentModal(item)}
-                            >
-                              ₹ Pay
-                            </button>
-                            <button
-                              type="button"
-                              className="sales-btn-action"
-                              title="View Sale Details"
-                              onClick={() => setViewSale(item)}
-                            >
-                              👁️
-                            </button>
+                            <TableActionMenu
+                              items={[
+                                { label: 'Record Payment', icon: 'pay', onClick: () => openRecordPaymentModal(item) },
+                                { label: 'View Sale Details', icon: 'view', onClick: () => setViewSale(item) },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -685,22 +676,12 @@ export default function Receivables({ onNavigate }) {
                       </td>
                       <td>
                         <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
-                          <button
-                            type="button"
-                            className="sales-btn-action"
-                            title="View Voucher Slip"
-                            onClick={() => setViewPayment(payment)}
-                          >
-                            👁️
-                          </button>
-                          <button
-                            type="button"
-                            className="sales-btn-action sales-btn-danger"
-                            title="Delete Payment Voucher"
-                            onClick={() => setDeleteConfirm(payment)}
-                          >
-                            🗑️
-                          </button>
+                          <TableActionMenu
+                            items={[
+                              { label: 'View Voucher Slip', icon: 'view', onClick: () => setViewPayment(payment) },
+                              { label: 'Delete Voucher', icon: 'delete', danger: true, onClick: () => setDeleteConfirm(payment) },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>

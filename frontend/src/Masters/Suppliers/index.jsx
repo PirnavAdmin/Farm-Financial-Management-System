@@ -1,3 +1,4 @@
+import TableActionMenu from '../../TableActionMenu';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   supplierService,
@@ -1022,14 +1023,16 @@ export default function Suppliers({ initialTab = 'suppliers', onNavigate }) {
                       </td>
                       <td>
                         <div className="sup-actions">
-                          <button
-                            className="sup-action-btn delete"
-                            type="button"
-                            title="Delete Transaction"
-                            onClick={() => setDeleteConfirm({ type: 'transaction', item: tx })}
-                          >
-                            ⛌
-                          </button>
+                          <TableActionMenu
+                            items={[
+                              {
+                                label: 'Delete Transaction',
+                                icon: 'delete',
+                                danger: true,
+                                onClick: () => setDeleteConfirm({ type: 'transaction', item: tx })
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>

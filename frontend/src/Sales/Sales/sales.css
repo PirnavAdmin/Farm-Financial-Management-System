@@ -376,20 +376,162 @@
   background: #fef2f2;
 }
 
-/* ── Form Layout & Calculations Box ── */
+/* ==========================================================================
+   ENTERPRISE SAAS MODAL & FORM STYLING (SALES MODULE)
+   ========================================================================== */
+
+/* ── Top Primary Action Button ── */
+.sales-page-container .users-add {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 7px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 650;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.28);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sales-page-container .users-add:hover {
+  background: #15803d;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.38);
+  transform: translateY(-1px);
+}
+
+.sales-page-container .users-add:active {
+  transform: translateY(0);
+}
+
+.sales-page-container .users-add span {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Modal Dialog Container ── */
 .sales-modal-large {
-  max-width: 720px;
-  width: 95%;
+  width: min(780px, 94vw);
+  max-width: 780px;
+  max-height: min(92vh, 880px);
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 1px rgba(15, 23, 42, 0.1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: salesModalZoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes salesModalZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Modal Header ── */
+.sales-modal-large .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #eef2ed;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.sales-modal-large .modal-header .modal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.sales-modal-large .modal-header h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.sales-modal-large .modal-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sales-modal-large .modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sales-modal-large .modal-close:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* ── Modal Body & Scrollbar ── */
+.sales-modal-large .modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.sales-modal-large .modal-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.sales-modal-large .modal-body::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.sales-modal-large .modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.sales-modal-large .modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Form Section & Section Titles ── */
 .sales-form-section {
-  padding: 14px 18px;
+  padding: 13px 24px;
   border-bottom: 1px solid #f1f5f9;
 }
 
@@ -401,24 +543,125 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 750;
   color: #166534;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  letter-spacing: 0.6px;
+  margin-bottom: 11px;
 }
 
+.sales-section-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Form Labels & Fields ── */
+.sales-form-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #334155;
+  line-height: 1.2;
+}
+
+.sales-form-section label .req-star {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+.sales-form-section input[type='text'],
+.sales-form-section input[type='number'],
+.sales-form-section input[type='date'],
+.sales-form-section input[type='tel'],
+.sales-form-section select,
+.sales-form-section textarea {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.sales-form-section textarea {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+.sales-form-section input:focus,
+.sales-form-section select:focus,
+.sales-form-section textarea:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  outline: none;
+  background: #ffffff;
+}
+
+.sales-form-section select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 15px 15px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.sales-form-section input:disabled,
+.sales-form-section input[readonly],
+.sales-input-readonly {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+  font-weight: 600 !important;
+}
+
+.sales-form-section input::placeholder,
+.sales-form-section textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.sales-form-section .field-error {
+  color: #dc2626;
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-top: 3px;
+}
+
+/* ── Grids & Layouts ── */
 .sales-form-grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
 }
 
 .sales-form-grid-2 {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
 }
 
 @media (max-width: 640px) {
@@ -428,38 +671,138 @@
   }
 }
 
+/* ── Calculation Summary Cards ── */
 .sales-calc-display-box {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1.5px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 9px 14px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
-  min-height: 52px;
+  min-height: 56px;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.05);
+}
+
+.sales-calc-display-box.net-box {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .sales-calc-display-box small {
   color: #166534;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 750;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sales-calc-display-box.net-box small {
+  color: #475569;
 }
 
 .sales-calc-display-box strong {
   color: #15803d;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
+  line-height: 1.25;
+  margin-top: 2px;
 }
 
-/* ── View Sale Details Modal ── */
+.sales-calc-display-box.net-box strong {
+  color: #0f172a;
+}
+
+/* ── Modal Footer ── */
+.sales-modal-large .modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-top: 1px solid #eef2ed;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.sales-modal-large .modal-footer > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sales-modal-large .modal-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sales-modal-large .modal-footer button,
+.sales-btn-cancel,
+.sales-btn-submit {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sales-btn-cancel {
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+}
+
+.sales-btn-cancel:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+.sales-btn-submit {
+  border: none !important;
+  background: #16a34a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25) !important;
+  padding: 0 20px !important;
+}
+
+.sales-btn-submit:hover {
+  background: #15803d !important;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.sales-btn-submit:active {
+  transform: translateY(0);
+}
+
+.sales-btn-submit:disabled {
+  background: #94a3b8 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── View Details Modal Styling ── */
 .sales-detail-card {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 20px;
+  padding: 18px 24px;
 }
 
 .sales-detail-row {
@@ -470,17 +813,23 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
+.sales-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 .sales-detail-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .sales-detail-item small {
   color: #64748b;
-  font-size: 10.5px;
-  font-weight: 650;
+  font-size: 10px;
+  font-weight: 750;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sales-detail-item span {
@@ -491,7 +840,7 @@
 
 .sales-detail-item strong {
   color: #0f172a;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 750;
 }
 
@@ -505,43 +854,57 @@
 
 .sales-mini-table th {
   background: #f8fafc;
-  padding: 6px 10px;
+  padding: 8px 10px;
   color: #475569;
   border-bottom: 1px solid #e2e8f0;
   text-align: left;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.5px;
 }
 
 .sales-mini-table td {
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
 }
 
 /* ── Delete Confirmation Dialog ── */
 .sales-delete-modal {
+  width: min(440px, 94vw);
   max-width: 440px;
-  padding: 22px;
+  padding: 24px;
   text-align: center;
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 }
 
-.sales-delete-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
-  display: inline-block;
+.sales-delete-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #dc2626;
+  font-size: 22px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
 }
 
 .sales-delete-modal h3 {
   margin: 0 0 8px;
   color: #0f172a;
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 750;
 }
 
 .sales-delete-modal p {
   color: #64748b;
   font-size: 12.5px;
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   line-height: 1.5;
 }
 
@@ -552,29 +915,35 @@
 }
 
 .sales-delete-actions button {
-  padding: 8px 16px;
+  height: 38px;
+  padding: 0 18px;
   border-radius: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .sales-delete-confirm {
   background: #dc2626;
   color: #ffffff;
-  border: 1px solid #b91c1c;
+  border: none;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
 }
 
 .sales-delete-confirm:hover {
   background: #b91c1c;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
 }
 
 .sales-delete-cancel {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #475569;
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid #cbd5e1;
 }
 
 .sales-delete-cancel:hover {
-  background: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
