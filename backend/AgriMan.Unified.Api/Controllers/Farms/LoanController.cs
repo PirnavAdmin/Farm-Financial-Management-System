@@ -1021,10 +1021,14 @@ namespace FarmManagementApi.Controllers
 
         // POST: api/Loan/{loanId}/documents
         [HttpPost("{loanId}/documents")]
-        public async Task<IActionResult> UploadDocument(int loanId, [FromForm] IFormFile file, [FromForm] string documentType)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadDocument(int loanId, [FromForm] LoanDocumentUploadDto dto)
         {
             var loan = await _context.Loans.FindAsync(loanId);
             if (loan == null) return NotFound(new { message = $"Loan with ID {loanId} was not found." });
+
+            var file = dto.File;
+            var documentType = string.IsNullOrWhiteSpace(dto.DocumentType) ? "Other" : dto.DocumentType.Trim();
 
             if (file == null || file.Length == 0)
             {
