@@ -5,6 +5,7 @@ namespace Agriman.Machinery.Api.DTOs;
 public class MachineryDto
 {
     public int Id { get; set; }
+    public string MachineCode => $"MCH-{Id:D3}";
     public string MachineName { get; set; } = string.Empty;
     public string MachineType { get; set; } = string.Empty;
     public string? RegistrationNo { get; set; }
@@ -13,6 +14,9 @@ public class MachineryDto
     public decimal CurrentValue { get; set; }
     public string? FuelType { get; set; }
     public string Status { get; set; } = "Active";
+    public string? ModelNumber { get; set; }
+    public string? Manufacturer { get; set; }
+    public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int ExpenseCount { get; set; }
@@ -24,6 +28,8 @@ public class CreateMachineryRequest
     [Required(ErrorMessage = "Machine name is required.")]
     [MaxLength(150)]
     public string MachineName { get; set; } = string.Empty;
+
+    public string? MachineCode { get; set; }
 
     [Required(ErrorMessage = "Machine type is required.")]
     [MaxLength(100)]
@@ -45,6 +51,15 @@ public class CreateMachineryRequest
 
     [MaxLength(50)]
     public string? Status { get; set; }
+
+    [MaxLength(100)]
+    public string? ModelNumber { get; set; }
+
+    [MaxLength(100)]
+    public string? Manufacturer { get; set; }
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
 }
 
 public class UpdateMachineryRequest : CreateMachineryRequest
@@ -57,6 +72,7 @@ public class MachineryListResponse
     public int RowsShown { get; set; }
     public int ExpenseTypesCount { get; set; }
     public List<MachineryDto> Items { get; set; } = new();
+    public List<MachineryDto> Data => Items;
 }
 
 public class MachinerySummaryDto

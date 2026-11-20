@@ -27,6 +27,8 @@ namespace FarmManagementApi.Data
 
         // 3. Purchase Management & Supplier DbSets
         public DbSet<Supplier> Suppliers => Set<Supplier>();
+        public DbSet<SupplierTransaction> SupplierTransactions => Set<SupplierTransaction>();
+        public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
         public DbSet<Purchase> Purchases => Set<Purchase>();
         public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
         public DbSet<PurchasePayment> PurchasePayments => Set<PurchasePayment>();
@@ -49,6 +51,13 @@ namespace FarmManagementApi.Data
         public DbSet<Crop> Crops => Set<Crop>();
         public DbSet<CropCategory> CropCategories => Set<CropCategory>();
         public DbSet<CropSeason> CropSeasons => Set<CropSeason>();
+
+        // 7. Loans & Finance DbSets
+        public DbSet<Loan> Loans => Set<Loan>();
+        public DbSet<LoanDisbursement> LoanDisbursements => Set<LoanDisbursement>();
+        public DbSet<LoanInstallment> LoanInstallments => Set<LoanInstallment>();
+        public DbSet<LoanPayment> LoanPayments => Set<LoanPayment>();
+        public DbSet<LoanDocument> LoanDocuments => Set<LoanDocument>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -326,17 +335,85 @@ namespace FarmManagementApi.Data
             {
                 entity.ToTable("suppliers");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).HasMaxLength(150).IsRequired();
-                entity.Property(e => e.ContactPerson).HasMaxLength(100);
-                entity.Property(e => e.Phone).HasMaxLength(20);
-                entity.Property(e => e.Email).HasMaxLength(100);
-                entity.Property(e => e.Address).HasMaxLength(255);
-                entity.Property(e => e.GstNumber).HasMaxLength(50);
+                entity.Property(e => e.SupplierCode).HasColumnName("supplier_code").HasMaxLength(50);
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150);
+                entity.Property(e => e.SupplierType).HasColumnName("supplier_type").HasMaxLength(100);
+                entity.Property(e => e.Mobile).HasColumnName("mobile").HasMaxLength(15);
+                entity.Property(e => e.Name).HasColumnName("Name").HasMaxLength(150);
+                entity.Property(e => e.ContactPerson).HasColumnName("ContactPerson").HasMaxLength(100);
+                entity.Property(e => e.Phone).HasColumnName("Phone").HasMaxLength(20);
+                entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(120);
+                entity.Property(e => e.Address).HasColumnName("address");
+                entity.Property(e => e.GstNumber).HasColumnName("GstNumber").HasMaxLength(50);
+                entity.Property(e => e.City).HasColumnName("city").HasMaxLength(100);
+                entity.Property(e => e.District).HasColumnName("district").HasMaxLength(100);
+                entity.Property(e => e.State).HasColumnName("state").HasMaxLength(100);
+                entity.Property(e => e.PinCode).HasColumnName("pin_code").HasMaxLength(10);
+                entity.Property(e => e.Gstin).HasColumnName("gstin").HasMaxLength(20);
+                entity.Property(e => e.BankName).HasColumnName("bank_name").HasMaxLength(120);
+                entity.Property(e => e.AccountNumber).HasColumnName("account_number").HasMaxLength(50);
+                entity.Property(e => e.IfscCode).HasColumnName("ifsc_code").HasMaxLength(20);
+                entity.Property(e => e.BranchName).HasColumnName("branch_name").HasMaxLength(100);
+                entity.Property(e => e.OpeningBalance).HasColumnName("opening_balance").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("Active");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.HasOne(s => s.Farmer)
                       .WithMany(f => f.Suppliers)
                       .HasForeignKey(s => s.FarmerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(s => s.Transactions)
+                      .WithOne(t => t.Supplier)
+                      .HasForeignKey(t => t.SupplierId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(s => s.Payments)
+                      .WithOne(p => p.Supplier)
+                      .HasForeignKey(p => p.SupplierId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==========================================
+            // Supplier Transactions table
+            // ==========================================
+            modelBuilder.Entity<SupplierTransaction>(entity =>
+            {
+                entity.ToTable("supplier_transactions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TransactionCode).HasColumnName("transaction_code").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.TransactionDate).HasColumnName("transaction_date").IsRequired();
+                entity.Property(e => e.SupplierId).HasColumnName("supplier_id").IsRequired();
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150).IsRequired();
+                entity.Property(e => e.TransactionType).HasColumnName("transaction_type").HasMaxLength(50).HasDefaultValue("Purchase");
+                entity.Property(e => e.ReferenceNo).HasColumnName("reference_no").HasMaxLength(100);
+                entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(100);
+                entity.Property(e => e.ItemsSummary).HasColumnName("items_summary");
+                entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.PaidAmount).HasColumnName("paid_amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.BalanceAmount).HasColumnName("balance_amount").HasColumnType("decimal(12,2)").HasDefaultValue(0m);
+                entity.Property(e => e.PaymentStatus).HasColumnName("payment_status").HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // ==========================================
+            // Supplier Payments table
+            // ==========================================
+            modelBuilder.Entity<SupplierPayment>(entity =>
+            {
+                entity.ToTable("supplier_payments");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PaymentCode).HasColumnName("payment_code").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.PaymentDate).HasColumnName("payment_date").IsRequired();
+                entity.Property(e => e.SupplierId).HasColumnName("supplier_id").IsRequired();
+                entity.Property(e => e.SupplierName).HasColumnName("supplier_name").HasMaxLength(150).IsRequired();
+                entity.Property(e => e.AmountPaid).HasColumnName("amount_paid").HasColumnType("decimal(12,2)").IsRequired();
+                entity.Property(e => e.PaymentMode).HasColumnName("payment_mode").HasMaxLength(50).HasDefaultValue("Bank Transfer");
+                entity.Property(e => e.ReferenceNo).HasColumnName("reference_no").HasMaxLength(100);
+                entity.Property(e => e.BankAccount).HasColumnName("bank_account").HasMaxLength(120);
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
             // ==========================================
@@ -550,6 +627,199 @@ namespace FarmManagementApi.Data
                       .HasForeignKey(a => a.ProductId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+
+            // ==========================================
+            // Loans table
+            // ==========================================
+            modelBuilder.Entity<Loan>(entity =>
+            {
+                entity.ToTable("loans");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LoanNo).IsUnique();
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.BankLender);
+
+                entity.HasMany(l => l.Disbursements)
+                      .WithOne(d => d.Loan)
+                      .HasForeignKey(d => d.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(l => l.Installments)
+                      .WithOne(i => i.Loan)
+                      .HasForeignKey(i => i.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(l => l.Payments)
+                      .WithOne(p => p.Loan)
+                      .HasForeignKey(p => p.LoanId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(l => l.Documents)
+                      .WithOne(doc => doc.Loan)
+                      .HasForeignKey(doc => doc.LoanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==========================================
+            // Loan Disbursements table
+            // ==========================================
+            modelBuilder.Entity<LoanDisbursement>(entity =>
+            {
+                entity.ToTable("loan_disbursements");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.DisbursementNo).IsUnique();
+                entity.HasIndex(e => e.LoanId);
+            });
+
+            // ==========================================
+            // Loan Installments table
+            // ==========================================
+            modelBuilder.Entity<LoanInstallment>(entity =>
+            {
+                entity.ToTable("loan_installments");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.LoanId, e.InstallmentNumber });
+                entity.HasIndex(e => e.DueDate);
+                entity.HasIndex(e => e.Status);
+            });
+
+            // ==========================================
+            // Loan Payments table
+            // ==========================================
+            modelBuilder.Entity<LoanPayment>(entity =>
+            {
+                entity.ToTable("loan_payments");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.VoucherNo).IsUnique();
+                entity.HasIndex(e => e.LoanId);
+                entity.HasIndex(e => e.PaymentDate);
+            });
+
+            // ==========================================
+            // Loan Documents table
+            // ==========================================
+            modelBuilder.Entity<LoanDocument>(entity =>
+            {
+                entity.ToTable("loan_documents");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LoanId);
+            });
+        }
+
+        public static async Task EnsureLoanTablesCreatedAsync(FarmDbContext context)
+        {
+            try
+            {
+                var sql = @"
+CREATE TABLE IF NOT EXISTS `loans` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanNo` VARCHAR(50) NOT NULL,
+    `LoanAccountNo` VARCHAR(100) NULL,
+    `BankLender` VARCHAR(150) NOT NULL,
+    `LoanType` VARCHAR(100) NOT NULL,
+    `LoanPurpose` VARCHAR(500) NULL,
+    `SanctionAmount` DECIMAL(18,2) NOT NULL,
+    `DisbursedAmount` DECIMAL(18,2) NOT NULL,
+    `OutstandingPrincipal` DECIMAL(18,2) NOT NULL,
+    `InterestRate` DECIMAL(5,2) NOT NULL,
+    `InterestType` VARCHAR(20) NOT NULL DEFAULT 'Fixed',
+    `TenureMonths` INT NOT NULL DEFAULT 12,
+    `RepaymentFrequency` VARCHAR(30) NOT NULL DEFAULT 'Monthly',
+    `EmiAmount` DECIMAL(18,2) NOT NULL,
+    `StartDate` DATETIME NOT NULL,
+    `EndDate` DATETIME NOT NULL,
+    `NextEmiDueDate` DATETIME NULL,
+    `ProcessingFees` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `Status` VARCHAR(30) NOT NULL DEFAULT 'Active',
+    `Remarks` VARCHAR(500) NULL,
+    `ClosedDate` DATETIME NULL,
+    `ClosureCertificateUrl` VARCHAR(500) NULL,
+    `ClosureRemarks` VARCHAR(500) NULL,
+    `FarmerId` INT NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt` DATETIME NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loans_LoanNo` (`LoanNo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_disbursements` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `DisbursementNo` VARCHAR(50) NOT NULL,
+    `DisbursementDate` DATETIME NOT NULL,
+    `DisbursedAmount` DECIMAL(18,2) NOT NULL,
+    `BankAccount` VARCHAR(150) NULL,
+    `ReferenceNo` VARCHAR(100) NULL,
+    `Remarks` VARCHAR(500) NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loan_disbursements_DisbursementNo` (`DisbursementNo`),
+    KEY `IX_loan_disbursements_LoanId` (`LoanId`),
+    CONSTRAINT `FK_loan_disbursements_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_installments` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `InstallmentNumber` INT NOT NULL,
+    `DueDate` DATETIME NOT NULL,
+    `OpeningPrincipal` DECIMAL(18,2) NOT NULL,
+    `PrincipalAmount` DECIMAL(18,2) NOT NULL,
+    `InterestAmount` DECIMAL(18,2) NOT NULL,
+    `EmiAmount` DECIMAL(18,2) NOT NULL,
+    `PaidAmount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `RemainingAmount` DECIMAL(18,2) NOT NULL,
+    `ClosingPrincipal` DECIMAL(18,2) NOT NULL,
+    `Status` VARCHAR(30) NOT NULL DEFAULT 'Pending',
+    `PaidDate` DATETIME NULL,
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    KEY `IX_loan_installments_LoanId` (`LoanId`),
+    KEY `IX_loan_installments_DueDate` (`DueDate`),
+    KEY `IX_loan_installments_Status` (`Status`),
+    CONSTRAINT `FK_loan_installments_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_payments` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `VoucherNo` VARCHAR(50) NOT NULL,
+    `PaymentDate` DATETIME NOT NULL,
+    `InstallmentNumber` INT NULL,
+    `Principal` DECIMAL(18,2) NOT NULL,
+    `Interest` DECIMAL(18,2) NOT NULL,
+    `Penalty` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `TotalPayment` DECIMAL(18,2) NOT NULL,
+    `PaymentMode` VARCHAR(50) NOT NULL,
+    `ReferenceNo` VARCHAR(100) NULL,
+    `Remarks` VARCHAR(500) NULL,
+    `PaymentType` VARCHAR(50) NOT NULL DEFAULT 'Regular EMI',
+    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_loan_payments_VoucherNo` (`VoucherNo`),
+    KEY `IX_loan_payments_LoanId` (`LoanId`),
+    KEY `IX_loan_payments_PaymentDate` (`PaymentDate`),
+    CONSTRAINT `FK_loan_payments_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `loan_documents` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `LoanId` INT NOT NULL,
+    `DocumentName` VARCHAR(200) NOT NULL,
+    `DocumentType` VARCHAR(100) NOT NULL,
+    `FileUrl` VARCHAR(500) NOT NULL,
+    `UploadedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    KEY `IX_loan_documents_LoanId` (`LoanId`),
+    CONSTRAINT `FK_loan_documents_loans` FOREIGN KEY (`LoanId`) REFERENCES `loans` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+                await context.Database.ExecuteSqlRawAsync(sql);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Loan Table Ensure Note]: {ex.Message}");
+            }
         }
     }
 }

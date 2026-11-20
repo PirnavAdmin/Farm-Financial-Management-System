@@ -20,6 +20,12 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Ensure server binds to port 5147 & 5200 by default across all execution modes
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    builder.WebHost.UseUrls("http://0.0.0.0:5147", "http://0.0.0.0:5200");
+}
+
 // Ensure wwwroot directory exists for file uploads (e.g. Farm documents, frontend UI)
 var webRootDir = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
 if (!Directory.Exists(webRootDir))
@@ -208,11 +214,11 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Farm income categories, crop revenue transactions, line items, and payment receipts in `Farmersdb`."
     });
 
-    c.SwaggerDoc("purchases", new OpenApiInfo
+    c.SwaggerDoc("crops", new OpenApiInfo
     {
-        Title = "5. Purchases & Suppliers API - Farmersdb",
+        Title = "5. Crop & Season Management API - Farmersdb",
         Version = "v1",
-        Description = "Agricultural suppliers directory, purchase orders, line items, and payments in `Farmersdb`."
+        Description = "Crop varieties, growth cycles, categories, and seasonal farming schedules in `Farmersdb`."
     });
 
     c.SwaggerDoc("inventory", new OpenApiInfo
@@ -236,11 +242,39 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Crop produce sales transactions, revenue summary metrics, and analytics in `Farmersdb`."
     });
 
+    c.SwaggerDoc("labour", new OpenApiInfo
+    {
+        Title = "10. Labour Management API - Farmersdb",
+        Version = "v1",
+        Description = "Farm workers registry, daily attendance rosters, piece-rate and daily wage payments in `Farmersdb`."
+    });
+
     c.SwaggerDoc("machinery", new OpenApiInfo
     {
-        Title = "9. Machinery & Equipment API - Farmersdb",
+        Title = "13. Machinery & Equipment API - Farmersdb",
         Version = "v1",
-        Description = "Farm machinery fleet registry, lookups, summary analytics, and operating expenses in `Farmersdb`."
+        Description = "Module 13: Farm machinery fleet registry, lookups, operating expenses, and fleet ROI analytics in `Farmersdb`."
+    });
+
+    c.SwaggerDoc("purchases", new OpenApiInfo
+    {
+        Title = "14. Purchase Orders & Inward Bills API - Farmersdb",
+        Version = "v1",
+        Description = "Agricultural purchase orders, vendor invoices, line items, and payment tracking in `Farmersdb`."
+    });
+
+    c.SwaggerDoc("suppliers", new OpenApiInfo
+    {
+        Title = "15. Supplier Management API - Farmersdb",
+        Version = "v1",
+        Description = "Module 15: Agricultural suppliers directory, supplier transactions, supplier payments, and ledger statement in `Farmersdb`."
+    });
+
+    c.SwaggerDoc("buyers", new OpenApiInfo
+    {
+        Title = "16. Buyer & Customer Management API - Farmersdb",
+        Version = "v1",
+        Description = "Wholesale buyers, commission agents, trader directories, and receivable accounts in `Farmersdb`."
     });
 
     // Filter endpoints into dropdown views
@@ -260,19 +294,19 @@ builder.Services.AddSwaggerGen(c =>
         }
         if (docName == "farmers")
         {
-            return name.StartsWith("Farmer");
+            return name.StartsWith("Farmer") || name.StartsWith("RentalLand");
         }
         if (docName == "farms")
         {
-            return name.StartsWith("Farm") || name.StartsWith("Master");
+            return name.StartsWith("Farm") || name.StartsWith("RentalLand") || name.StartsWith("Master") || name.StartsWith("Dashboard") || name.StartsWith("TotalData") || name.StartsWith("Health");
         }
         if (docName == "income")
         {
             return name.StartsWith("Income");
         }
-        if (docName == "purchases")
+        if (docName == "crops")
         {
-            return name.StartsWith("Purchase") || name.StartsWith("Supplier");
+            return name.StartsWith("Crop");
         }
         if (docName == "inventory")
         {
@@ -286,9 +320,25 @@ builder.Services.AddSwaggerGen(c =>
         {
             return ns.Contains("Sales") || name.StartsWith("Sale");
         }
+        if (docName == "labour")
+        {
+            return name.StartsWith("Labour");
+        }
         if (docName == "machinery")
         {
             return ns.Contains("Agriman.Machinery") || name.StartsWith("Machinery");
+        }
+        if (docName == "purchases")
+        {
+            return name.StartsWith("Purchase");
+        }
+        if (docName == "suppliers")
+        {
+            return name.StartsWith("Supplier");
+        }
+        if (docName == "buyers")
+        {
+            return name.StartsWith("Buyer");
         }
 
         return false;
@@ -301,15 +351,10 @@ builder.Services.AddSwaggerGen(c =>
         var controllerName = descriptor?.ControllerName ?? "General";
         var ns = descriptor?.ControllerTypeInfo.Namespace ?? "";
 
-        // 0. Unified Overview & Health
-        if (controllerName.Equals("TotalData", StringComparison.OrdinalIgnoreCase))
-        {
-            return new[] { "0. Unified Overview - Total Data (Farmersdb)" };
-        }
-        if (controllerName.Equals("Health", StringComparison.OrdinalIgnoreCase))
-        {
-            return new[] { "0. Unified Overview - Health & Migrations" };
-        }
+        // 0. Unified Dashboard, Overview & Health
+        if (controllerName.Equals("Dashboard", StringComparison.OrdinalIgnoreCase)) return new[] { "0. Dashboard - Multi-Farm Performance & Analytics" };
+        if (controllerName.Equals("TotalData", StringComparison.OrdinalIgnoreCase)) return new[] { "0. Overview - Cross-Module System Data" };
+        if (controllerName.Equals("Health", StringComparison.OrdinalIgnoreCase)) return new[] { "0. Overview - Health & Migrations" };
 
         // 1. Auth & Users
         if (ns.Contains("AgriMan.Api") || controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase))
@@ -330,18 +375,18 @@ builder.Services.AddSwaggerGen(c =>
         // 3. Farms & Land Management
         if (controllerName.Equals("Farms", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Farm Profiles" };
         if (controllerName.Equals("FarmLandDetails", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Land & Soil Details" };
+        if (controllerName.Equals("RentalLands", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Rental Land Details" };
         if (controllerName.Equals("FarmDocuments", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Farm Documents Vault" };
         if (controllerName.Equals("Masters", StringComparison.OrdinalIgnoreCase)) return new[] { "3. Farms - Master Lookups (Soil & Irrigation)" };
 
         // 4. Income Management
-        if (controllerName.Equals("Income", StringComparison.OrdinalIgnoreCase)) return new[] { "4. Income - Income Categories, Transactions & Payments" };
+        if (controllerName.Equals("Income", StringComparison.OrdinalIgnoreCase)) return new[] { "4. Income - Categories, Inward Transactions & Payments" };
 
-        // 5. Purchases & Suppliers
-        if (controllerName.Equals("Suppliers", StringComparison.OrdinalIgnoreCase)) return new[] { "5. Purchases - Suppliers Directory" };
-        if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "5. Purchases - Purchase Orders & Payments" };
+        // 5. Crop Management
+        if (controllerName.StartsWith("Crop", StringComparison.OrdinalIgnoreCase)) return new[] { "5. Crops - Crop Profiles, Categories & Seasons" };
 
         // 6. Inventory & Agricultural Inputs
-        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "6. Inventory - Products & Categories" };
+        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "6. Inventory - Agricultural Products & Categories" };
         if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "6. Inventory - Stock In, Stock Out & Adjustments" };
 
         // 7. Expenses API
@@ -352,22 +397,38 @@ builder.Services.AddSwaggerGen(c =>
             return new[] { "7. Expenses API" };
         }
 
-        // 8. Sales API (Module 10: Sales, SalesItems, Buyers, SalesPayments)
-        if (ns.Contains("Sales") || controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase))
-        {
-            if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Buyers / Customers" };
-            if (controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Payments & Receivables" };
-            return new[] { "8. Sales - Crop Sales & Line Items" };
-        }
+        // 8. Sales API (Module 10: Sales, SalesItems, SalesPayments)
+        if (controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Crop Sales & Line Items" };
+        if (controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase)) return new[] { "8. Sales - Payments & Receivables" };
 
-        // 9. Machinery & Equipment API
+        // 10. Labour Management
+        if (controllerName.StartsWith("Labour", StringComparison.OrdinalIgnoreCase)) return new[] { "10. Labour - Workers, Attendance & Daily Wages" };
+
+        // 13. Machinery & Equipment (Matching Word Document Module 13)
         if (ns.Contains("Agriman.Machinery") || controllerName.Equals("Machinery", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("MachineryExpenses", StringComparison.OrdinalIgnoreCase))
         {
-            if (controllerName.Equals("Machinery", StringComparison.OrdinalIgnoreCase)) return new[] { "9. Machinery - Equipment & Fleet" };
-            if (controllerName.Equals("MachineryExpenses", StringComparison.OrdinalIgnoreCase)) return new[] { "9. Machinery - Operating Expenses" };
-            return new[] { "9. Machinery & Equipment API" };
+            return new[] { "13. Machinery & Equipment" };
         }
 
+        // 10. Loans & Finance API
+        if (controllerName.Equals("Loan", StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { "10. Finance - Loans & Liabilities API" };
+        }
+
+        // 14. Purchase Orders
+        if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "14. Purchases - Purchase Orders & Inward Deliveries" };
+
+        // 15. Supplier Management (Matching Word Document Module 15)
+        if (controllerName.Equals("Suppliers", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("SupplierTransactions", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("SupplierPayments", StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { "15. Supplier Management" };
+        }
+
+        // 16. Buyer & Customer Management
+        if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "16. Buyers - Customers, Wholesalers & Traders" };
         return new[] { controllerName };
     });
 
@@ -432,7 +493,8 @@ using (var scope = app.Services.CreateScope())
     {
         var farmDb = services.GetRequiredService<FarmDbContext>();
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
-        logger.LogInformation("[Farmersdb] 2. Farm Management module ready.");
+        await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
+        logger.LogInformation("[Farmersdb] 2. Farm Management module & Loans ready.");
     }
     catch (Exception ex)
     {
@@ -501,22 +563,27 @@ app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "🌾 All Modules (Unified Platform - Farmersdb)");
-    c.SwaggerEndpoint("/swagger/auth/swagger.json", "1. Auth & User API Only");
-    c.SwaggerEndpoint("/swagger/farmers/swagger.json", "2. Farmers, Addresses & Bank API Only");
-    c.SwaggerEndpoint("/swagger/farms/swagger.json", "3. Farms & Land Holdings API Only");
-    c.SwaggerEndpoint("/swagger/income/swagger.json", "4. Income Management API Only");
-    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "5. Purchases & Suppliers API Only");
-    c.SwaggerEndpoint("/swagger/inventory/swagger.json", "6. Inventory & Products API Only");
-    c.SwaggerEndpoint("/swagger/expenses/swagger.json", "7. Expenses API Only");
-    c.SwaggerEndpoint("/swagger/sales/swagger.json", "8. Sales API Only");
-    c.SwaggerEndpoint("/swagger/machinery/swagger.json", "9. Machinery & Equipment API Only");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "🌾 [SHOW ALL] All 15+ Modules (Unified Platform)");
+    c.SwaggerEndpoint("/swagger/auth/swagger.json", "1. Auth & User Management");
+    c.SwaggerEndpoint("/swagger/farmers/swagger.json", "2. Farmers Registry & Profiles");
+    c.SwaggerEndpoint("/swagger/farms/swagger.json", "3. Farms & Land Holdings");
+    c.SwaggerEndpoint("/swagger/income/swagger.json", "4. Income Management");
+    c.SwaggerEndpoint("/swagger/crops/swagger.json", "5. Crop & Season Management");
+    c.SwaggerEndpoint("/swagger/inventory/swagger.json", "6. Inventory & Products");
+    c.SwaggerEndpoint("/swagger/expenses/swagger.json", "7. Expenses API");
+    c.SwaggerEndpoint("/swagger/sales/swagger.json", "8. Sales & Produce Receipts");
+    c.SwaggerEndpoint("/swagger/labour/swagger.json", "10. Labour & Wage Management");
+    c.SwaggerEndpoint("/swagger/machinery/swagger.json", "13. Machinery & Equipment (Module 13)");
+    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "14. Purchases & Inward Orders");
+    c.SwaggerEndpoint("/swagger/suppliers/swagger.json", "15. Supplier Management (Module 15)");
+    c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";
     c.DefaultModelsExpandDepth(1);
     c.DisplayRequestDuration();
-    c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+    c.EnableFilter();
+    c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
 
     c.HeadContent = @"
         <script>

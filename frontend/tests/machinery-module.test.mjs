@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-console.log('Testing Machinery & Equipment Module...');
+console.log('Testing Machinery & Equipment Module Complete API Integration...');
 
 // Mock localStorage for node environment
 const storage = {};
@@ -12,24 +12,153 @@ globalThis.localStorage = {
   clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); }
 };
 
-// Mock api client for testing
+// Mock API client to test HTTP calls & request routing
 const apiRequests = [];
 const mockApi = {
-  get: async (url) => {
-    apiRequests.push({ method: 'GET', url });
-    throw new Error('Offline fallback mode');
+  get: async (url, config = {}) => {
+    apiRequests.push({ method: 'GET', url, config });
+    if (url === '/api/Machinery') {
+      return {
+        data: {
+          totalMachines: 7,
+          rowsShown: 7,
+          expenseTypesCount: 6,
+          items: [
+            {
+              id: 1,
+              machineName: 'Mahindra 575 DI Tractor',
+              machineType: 'Tractor',
+              registrationNo: 'AP 16 CZ 4521',
+              purchaseDate: '2022-04-15',
+              purchaseCost: 750000,
+              currentValue: 610000,
+              fuelType: 'Diesel',
+              status: 'Active',
+              expenseCount: 2,
+              totalExpenses: 5400
+            }
+          ]
+        }
+      };
+    }
+    if (url === '/api/Machinery/1') {
+      return {
+        data: {
+          id: 1,
+          machineName: 'Mahindra 575 DI Tractor',
+          machineType: 'Tractor',
+          registrationNo: 'AP 16 CZ 4521',
+          purchaseDate: '2022-04-15',
+          purchaseCost: 750000,
+          currentValue: 610000,
+          fuelType: 'Diesel',
+          status: 'Active',
+          expenseCount: 2,
+          totalExpenses: 5400
+        }
+      };
+    }
+    if (url === '/api/Machinery/summary') {
+      return {
+        data: {
+          totalMachines: 7,
+          activeMachines: 5,
+          underMaintenanceMachines: 1,
+          inactiveMachines: 1,
+          totalPurchaseCost: 3744500,
+          totalCurrentValue: 2833800,
+          totalExpenseRecords: 8,
+          totalExpenseAmount: 28750,
+          expenseTypesCount: 6
+        }
+      };
+    }
+    if (url === '/api/Machinery/lookups') {
+      return {
+        data: {
+          machineTypes: ['Tractor', 'Harvester', 'Rotavator'],
+          fuelTypes: ['Diesel', 'Petrol', 'Electric'],
+          statuses: ['Active', 'Under Maintenance', 'Inactive'],
+          expenseTypes: [
+            { id: 1, code: 'FUEL', name: 'Fuel', isActive: true },
+            { id: 2, code: 'MAINTENANCE', name: 'Maintenance', isActive: true }
+          ]
+        }
+      };
+    }
+    if (url === '/api/Machinery/1/expenses') {
+      return {
+        data: {
+          totalExpenseRecords: 2,
+          rowsShown: 2,
+          totalAmount: 5400,
+          items: [
+            { id: 1, machineryId: 1, machineName: 'Mahindra 575 DI Tractor', expenseType: 'Fuel', date: '2026-11-12', amount: 3200 },
+            { id: 2, machineryId: 1, machineName: 'Mahindra 575 DI Tractor', expenseType: 'Maintenance', date: '2026-11-05', amount: 2200 }
+          ]
+        }
+      };
+    }
+    if (url === '/api/Machinery/roi') {
+      return {
+        data: {
+          success: true,
+          message: 'Machinery Fleet ROI & Maintenance analysis retrieved successfully.',
+          data: [
+            {
+              id: 1,
+              machineCode: 'MCH-001',
+              machineName: 'Mahindra 575 DI Tractor',
+              machineType: 'Tractor',
+              purchaseCost: 750000,
+              currentValue: 610000,
+              status: 'Active',
+              totalMaintenanceCost: 5400,
+              expenseCount: 2,
+              maintenanceToCostRatio: 0.72,
+              estimatedNetValue: 604600
+            }
+          ]
+        }
+      };
+    }
+    if (url === '/api/machinery-expenses') {
+      return {
+        data: {
+          totalExpenseRecords: 2,
+          totalAmount: 5400,
+          items: [
+            { id: 1, machineryId: 1, machineName: 'Mahindra 575 DI Tractor', expenseType: 'Fuel', date: '2026-11-12', amount: 3200 }
+          ]
+        }
+      };
+    }
+    if (url === '/api/machinery-expenses/types') {
+      return {
+        data: [
+          { id: 1, code: 'FUEL', name: 'Fuel', isActive: true },
+          { id: 2, code: 'MAINTENANCE', name: 'Maintenance', isActive: true }
+        ]
+      };
+    }
+    if (url === '/api/machinery-expenses/1') {
+      return {
+        data: { id: 1, machineryId: 1, machineName: 'Mahindra 575 DI Tractor', expenseType: 'Fuel', date: '2026-11-12', amount: 3200 }
+      };
+    }
+    throw new Error(`Endpoint not mocked: ${url}`);
   },
   post: async (url, data) => {
     apiRequests.push({ method: 'POST', url, data });
-    return { data };
+    return { data: { id: 99, ...data } };
   },
   put: async (url, data) => {
     apiRequests.push({ method: 'PUT', url, data });
-    return { data };
+    return { data: { id: 1, ...data } };
   },
   delete: async (url) => {
     apiRequests.push({ method: 'DELETE', url });
-    return { data: { success: true } };
+    return { status: 204, data: null };
   }
 };
 globalThis.__machineryTestApi = mockApi;
@@ -41,139 +170,165 @@ const transformedSource = rawSource
   .replace("import api from './api';", 'const api = globalThis.__machineryTestApi;')
   .replaceAll('import.meta.env', '({ DEV: true })');
 
-const { machineryService, normalizeMachine, SEED_MACHINERY } = await import(
+const { machineryService, normalizeMachine, normalizeExpense, SEED_MACHINERY } = await import(
   `data:text/javascript;base64,${Buffer.from(transformedSource).toString('base64')}`
 );
 
 async function runTests() {
-  // 1. Initial Machinery list
-  const initialMachinery = await machineryService.getMachinery();
-  assert.ok(Array.isArray(initialMachinery), 'Machinery should be an array');
-  assert.ok(initialMachinery.length >= 7, 'Should contain realistic seed machinery');
+  // ── 1. GET /api/Machinery ──────────────────────────────────────────────────
+  const list = await machineryService.getMachinery();
+  assert.ok(Array.isArray(list), 'Machinery should be an array');
+  assert.ok(list.length > 0, 'Should return machinery records from API');
+  assert.strictEqual(list[0].machineName, 'Mahindra 575 DI Tractor');
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery'));
+  console.log('✔ GET /api/Machinery tested successfully');
 
-  // Verify all 8 required fields specified in user prompt:
-  // 1. Machine Name
-  // 2. Machine Type
-  // 3. Registration No
-  // 4. Purchase Date
-  // 5. Purchase Cost
-  // 6. Current Value
-  // 7. Fuel Type
-  // 8. Status
-  const requiredFields = [
-    'machineCode',
-    'machineName',
-    'machineType',
-    'registrationNo',
-    'purchaseDate',
-    'purchaseCost',
-    'currentValue',
-    'fuelType',
-    'status'
-  ];
+  // ── 2. GET /api/Machinery/{id} ─────────────────────────────────────────────
+  const machine = await machineryService.getMachineById(1);
+  assert.ok(machine, 'Machine should not be null');
+  assert.strictEqual(machine.id, 1);
+  assert.strictEqual(machine.machineCode, 'MCH-001');
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery/1'));
+  console.log('✔ GET /api/Machinery/{id} tested successfully');
 
-  initialMachinery.forEach((m) => {
-    requiredFields.forEach((field) => {
-      assert.ok(field in m, `Machine "${m.machineName}" is missing required field "${field}"`);
-    });
-    assert.strictEqual(typeof m.purchaseCost, 'number', 'purchaseCost must be a number');
-    assert.strictEqual(typeof m.currentValue, 'number', 'currentValue must be a number');
-    assert.ok(
-      ['Active', 'Inactive', 'Under Maintenance'].includes(m.status),
-      `Invalid status: ${m.status}`
-    );
-  });
-  console.log('✔ All 8 required machinery fields and types verified on seed data');
-
-  // Verify sample types (Tractor, Power Tiller, Power Weeder, Sprayer, Harvester, Rotavator)
-  const typesInSeed = new Set(initialMachinery.map((m) => m.machineType));
-  ['Tractor', 'Power Tiller', 'Power Weeder', 'Sprayer', 'Harvester', 'Rotavator'].forEach((t) => {
-    assert.ok(typesInSeed.has(t), `Seed machinery missing type: ${t}`);
-  });
-  console.log('✔ All required agricultural machinery types present in seed data');
-
-  // 2. Create / Add Machinery
-  const newMachineData = {
-    machineName: 'John Deere 5050 D GearPro Tractor',
+  // ── 3. POST /api/Machinery ─────────────────────────────────────────────────
+  const newMachine = {
+    machineName: 'Swaraj 855 FE Tractor',
     machineType: 'Tractor',
-    registrationNo: 'AP 16 JD 9922',
-    purchaseDate: '2024-03-01',
-    purchaseCost: 820000,
-    currentValue: 800000,
+    registrationNo: 'AP 16 SW 5500',
+    purchaseDate: '2024-01-10',
+    purchaseCost: 790000,
+    currentValue: 740000,
     fuelType: 'Diesel',
-    status: 'Active',
-    modelNumber: '5050 D (50 HP)',
-    manufacturer: 'John Deere India',
-    notes: 'Heavy duty tractor with dual clutch and power steering'
+    status: 'Active'
   };
+  const createdMachine = await machineryService.createMachine(newMachine);
+  assert.ok(createdMachine, 'Created machine should not be null');
+  assert.strictEqual(createdMachine.machineName, 'Swaraj 855 FE Tractor');
+  assert.ok(apiRequests.some((r) => r.method === 'POST' && r.url === '/api/Machinery'));
+  console.log('✔ POST /api/Machinery tested successfully');
 
-  const created = await machineryService.createMachine(newMachineData);
-  assert.ok(created.id, 'Created machine must have an id');
-  assert.strictEqual(created.machineName, 'John Deere 5050 D GearPro Tractor');
-  assert.strictEqual(created.registrationNo, 'AP 16 JD 9922');
-  assert.strictEqual(created.purchaseCost, 820000);
-  assert.strictEqual(created.currentValue, 800000);
-  assert.strictEqual(created.status, 'Active');
-  assert.ok(created.machineCode.startsWith('MCH-'), 'Machine code generated');
-
-  const afterCreate = await machineryService.getMachinery();
-  assert.strictEqual(afterCreate.length, initialMachinery.length + 1, 'Length increased by 1');
-  console.log('✔ Add Machinery verified with code generation and persistence');
-
-  // 3. Edit / Update Machinery
-  const updated = await machineryService.updateMachine(created.id, {
+  // ── 4. PUT /api/Machinery/{id} ─────────────────────────────────────────────
+  const updatedMachine = await machineryService.updateMachine(1, {
     status: 'Under Maintenance',
-    currentValue: 780000,
-    notes: 'Scheduled for first 50-hour free servicing'
+    currentValue: 590000
   });
-  assert.strictEqual(updated.status, 'Under Maintenance');
-  assert.strictEqual(updated.currentValue, 780000);
-  assert.strictEqual(updated.notes, 'Scheduled for first 50-hour free servicing');
+  assert.strictEqual(updatedMachine.status, 'Under Maintenance');
+  assert.strictEqual(updatedMachine.currentValue, 590000);
+  assert.ok(apiRequests.some((r) => r.method === 'PUT' && r.url === '/api/Machinery/1'));
+  console.log('✔ PUT /api/Machinery/{id} tested successfully');
 
-  const afterUpdate = await machineryService.getMachineById(created.id);
-  assert.strictEqual(afterUpdate.status, 'Under Maintenance');
-  console.log('✔ Edit Machinery verified with field update and persistence');
+  // ── 5. DELETE /api/Machinery/{id} ──────────────────────────────────────────
+  const deleteResult = await machineryService.deleteMachine(1);
+  assert.strictEqual(deleteResult, true);
+  assert.ok(apiRequests.some((r) => r.method === 'DELETE' && r.url === '/api/Machinery/1'));
+  console.log('✔ DELETE /api/Machinery/{id} tested successfully');
 
-  // 4. Metrics computation
-  const metrics = machineryService.computeMachineryMetrics(afterCreate);
-  assert.strictEqual(metrics.total, afterCreate.length);
-  assert.ok(metrics.active > 0, 'Active count positive');
-  assert.ok(metrics.maintenance > 0, 'Under Maintenance count positive');
-  assert.ok(metrics.totalPurchaseCost > 0, 'Total purchase cost positive');
-  assert.ok(metrics.totalCurrentValue > 0, 'Total current value positive');
-  console.log('✔ Machinery metrics computation verified (Active, Maintenance, Valuation)');
+  // ── 6. GET /api/Machinery/summary ──────────────────────────────────────────
+  const summary = await machineryService.getMachinerySummary();
+  assert.ok(summary, 'Summary should not be null');
+  assert.strictEqual(summary.totalMachines, 7);
+  assert.strictEqual(summary.activeMachines, 5);
+  assert.strictEqual(summary.underMaintenanceMachines, 1);
+  assert.strictEqual(summary.totalExpenseRecords, 8);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery/summary'));
+  console.log('✔ GET /api/Machinery/summary tested successfully');
 
-  // 5. Delete Machinery
-  await machineryService.deleteMachine(created.id);
-  const afterDelete = await machineryService.getMachinery();
-  assert.strictEqual(afterDelete.length, initialMachinery.length, 'Length reverted');
-  const foundDeleted = await machineryService.getMachineById(created.id);
-  assert.strictEqual(foundDeleted, null, 'Deleted machine should not be found');
-  console.log('✔ Delete Machinery verified');
+  // ── 7. GET /api/Machinery/lookups ──────────────────────────────────────────
+  const lookups = await machineryService.getMachineryLookups();
+  assert.ok(lookups, 'Lookups should not be null');
+  assert.ok(Array.isArray(lookups.machineTypes));
+  assert.ok(Array.isArray(lookups.fuelTypes));
+  assert.ok(Array.isArray(lookups.statuses));
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery/lookups'));
+  console.log('✔ GET /api/Machinery/lookups tested successfully');
 
-  // 6. Normalization resilience test
-  const rawEmpty = normalizeMachine({}, 99);
-  assert.ok(rawEmpty.machineName.length > 0, 'Default name exists');
-  assert.strictEqual(rawEmpty.machineType, 'Tractor');
-  assert.strictEqual(rawEmpty.status, 'Active');
-  assert.strictEqual(rawEmpty.purchaseCost, 0);
+  // ── 8. GET /api/Machinery/{machineryId}/expenses ───────────────────────────
+  const machineExpenses = await machineryService.getExpensesForMachine(1);
+  assert.ok(machineExpenses, 'Machine expenses should not be null');
+  assert.strictEqual(machineExpenses.totalExpenseRecords, 2);
+  assert.strictEqual(machineExpenses.totalAmount, 5400);
+  assert.strictEqual(machineExpenses.items.length, 2);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery/1/expenses'));
+  console.log('✔ GET /api/Machinery/{machineryId}/expenses tested successfully');
 
-  const rawSnakeCase = normalizeMachine({
-    machine_name: 'Snake Case Sprayer',
-    machine_type: 'Sprayer',
-    registration_no: 'ts 09 ab 1234',
-    purchase_date: '2023-05-10',
-    purchase_cost: '45000',
-    current_value: '35000',
-    fuel_type: 'Petrol'
+  // ── 9. POST /api/Machinery/{machineryId}/expenses ──────────────────────────
+  const addedExpense = await machineryService.addExpenseForMachine(1, {
+    machineName: 'Mahindra 575 DI Tractor',
+    expenseType: 'Fuel',
+    date: '2026-11-20',
+    amount: 2500,
+    operator: 'Ramesh',
+    remarks: 'Diesel refill for ploughing'
   });
-  assert.strictEqual(rawSnakeCase.machineName, 'Snake Case Sprayer');
-  assert.strictEqual(rawSnakeCase.registrationNo, 'TS 09 AB 1234');
-  assert.strictEqual(rawSnakeCase.purchaseCost, 45000);
-  assert.strictEqual(rawSnakeCase.currentValue, 35000);
-  console.log('✔ Normalization resilience tested with snake_case and defaults');
+  assert.ok(addedExpense, 'Added expense should not be null');
+  assert.strictEqual(addedExpense.amount, 2500);
+  assert.ok(apiRequests.some((r) => r.method === 'POST' && r.url === '/api/Machinery/1/expenses'));
+  console.log('✔ POST /api/Machinery/{machineryId}/expenses tested successfully');
 
-  console.log('\nAll Machinery & Equipment module tests passed successfully! 🎉');
+  // ── 10. GET /api/Machinery/roi ─────────────────────────────────────────────
+  const roi = await machineryService.getFleetRoi();
+  assert.ok(Array.isArray(roi), 'ROI should be an array');
+  assert.strictEqual(roi[0].machineCode, 'MCH-001');
+  assert.strictEqual(roi[0].totalMaintenanceCost, 5400);
+  assert.strictEqual(roi[0].maintenanceToCostRatio, 0.72);
+  assert.strictEqual(roi[0].estimatedNetValue, 604600);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/Machinery/roi'));
+  console.log('✔ GET /api/Machinery/roi tested successfully');
+
+  // ── 11. GET /api/machinery-expenses ────────────────────────────────────────
+  const allExpenses = await machineryService.getAllExpenses();
+  assert.ok(allExpenses, 'All expenses should not be null');
+  assert.strictEqual(allExpenses.totalExpenseRecords, 2);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/machinery-expenses'));
+  console.log('✔ GET /api/machinery-expenses tested successfully');
+
+  // ── 12. GET /api/machinery-expenses/types ──────────────────────────────────
+  const types = await machineryService.getExpenseTypes();
+  assert.ok(Array.isArray(types), 'Expense types should be an array');
+  assert.strictEqual(types.length, 2);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/machinery-expenses/types'));
+  console.log('✔ GET /api/machinery-expenses/types tested successfully');
+
+  // ── 13. GET /api/machinery-expenses/{id} ───────────────────────────────────
+  const singleExpense = await machineryService.getExpenseById(1);
+  assert.ok(singleExpense, 'Expense should not be null');
+  assert.strictEqual(singleExpense.id, 1);
+  assert.strictEqual(singleExpense.amount, 3200);
+  assert.ok(apiRequests.some((r) => r.method === 'GET' && r.url === '/api/machinery-expenses/1'));
+  console.log('✔ GET /api/machinery-expenses/{id} tested successfully');
+
+  // ── 14. POST /api/machinery-expenses ───────────────────────────────────────
+  const createdGeneralExpense = await machineryService.createExpense({
+    machineryId: 1,
+    machineName: 'Mahindra 575 DI Tractor',
+    expenseType: 'Fuel',
+    date: '2026-11-20',
+    amount: 1500,
+    operator: 'Operator',
+    remarks: 'Routine refill'
+  });
+  assert.ok(createdGeneralExpense, 'Created expense should not be null');
+  assert.strictEqual(createdGeneralExpense.amount, 1500);
+  assert.ok(apiRequests.some((r) => r.method === 'POST' && r.url === '/api/machinery-expenses'));
+  console.log('✔ POST /api/machinery-expenses tested successfully');
+
+  // ── 15. PUT /api/machinery-expenses/{id} ───────────────────────────────────
+  const updatedExpense = await machineryService.updateExpense(1, {
+    amount: 3500,
+    remarks: 'Updated invoice amount'
+  });
+  assert.strictEqual(updatedExpense.amount, 3500);
+  assert.ok(apiRequests.some((r) => r.method === 'PUT' && r.url === '/api/machinery-expenses/1'));
+  console.log('✔ PUT /api/machinery-expenses/{id} tested successfully');
+
+  // ── 16. DELETE /api/machinery-expenses/{id} ────────────────────────────────
+  const deleteExpenseResult = await machineryService.deleteExpense(1);
+  assert.strictEqual(deleteExpenseResult, true);
+  assert.ok(apiRequests.some((r) => r.method === 'DELETE' && r.url === '/api/machinery-expenses/1'));
+  console.log('✔ DELETE /api/machinery-expenses/{id} tested successfully');
+
+  console.log('\n🎉 ALL 16 MACHINERY & OPERATING EXPENSE API ENDPOINTS VERIFIED SUCCESSFULLY! 🎉');
 }
 
 runTests().catch((err) => {

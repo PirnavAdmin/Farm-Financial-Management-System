@@ -43,13 +43,15 @@ import AuditLog from './Settings/Audit Log/audit log.jsx'
 import Company from './Settings/Company/company.jsx'
 import Roles from './Settings/Roles/roles.jsx'
 import Labour from './Agriculture/Labour Attendance/Labour.jsx'
+import Sidebar from './Sidebar/Sidebar.jsx'
+import Navbar from './Navbar/Navbar.jsx'
 
 
 const menuGroups = [
   { label: 'Dashboard', icon: '▦' },
   { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products', 'Suppliers', 'Machinery'] },
   { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
-  { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans', 'Bank Accounts'] },
+  { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans & Finance', 'Bank Accounts'] },
   { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
   { label: 'Sales', icon: '▱', children: ['Sales Transactions', 'Customers', 'Payments & Receivables'] },
   { label: 'Reports', icon: '▥', children: ['Income Report', 'Expense Report', 'Crop Profit', 'Farm Profit', 'Cash Flow', 'P&L', 'Dashboard Reports'] },
@@ -163,6 +165,9 @@ function App() {
   const [userEmail, setUserEmail] = useState(() => {
     return localStorage.getItem('agriman_user_email') || sessionStorage.getItem('agriman_user_email') || 'User'
   })
+  const [accountEmail, setAccountEmail] = useState(() => {
+    return localStorage.getItem('agriman_account_email') || sessionStorage.getItem('agriman_account_email') || ''
+  })
   const [userRole, setUserRole] = useState(() => {
     return localStorage.getItem('agriman_user_role') || sessionStorage.getItem('agriman_user_role') || 'User'
   })
@@ -174,8 +179,9 @@ function App() {
       || 'User'
   })
   const [active, setActive] = useState('Dashboard')
-  const [expanded, setExpanded] = useState({ Masters: true })
+  const [expanded, setExpanded] = useState({ Finance: true })
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showNotifMenu, setShowNotifMenu] = useState(false)
   const [publicRoute, setPublicRoute] = useState(() => {
     return window.location.hash === '#login' ? 'login' : 'landing'
   })
@@ -250,6 +256,15 @@ function App() {
   }, [publicRoute, handleNavigateToLogin, handleBackToHome])
 
   useEffect(() => {
+    const handleDocumentClick = () => {
+      setShowUserMenu(false)
+      setShowNotifMenu(false)
+    }
+    document.addEventListener('click', handleDocumentClick)
+    return () => document.removeEventListener('click', handleDocumentClick)
+  }, [])
+
+  useEffect(() => {
     const storage = localStorage.getItem('agriman_access_token') ? localStorage : sessionStorage
     const initialAccessToken = storage.getItem('agriman_access_token')
     if (!initialAccessToken) return undefined
@@ -262,11 +277,14 @@ function App() {
 
         if (!mounted) return
         const displayName = user.fullName || user.name || user.email || user.phoneNumber || storage.getItem('agriman_user_email') || 'User'
+        const email = user.email || user.Email || storage.getItem('agriman_account_email') || ''
         const role = user.role || storage.getItem('agriman_user_role') || 'User'
         storage.setItem('agriman_user_email', displayName)
         storage.setItem('agriman_user_name', displayName)
+        if (email) storage.setItem('agriman_account_email', email)
         storage.setItem('agriman_user_role', role)
         setUserEmail(displayName)
+        setAccountEmail(email)
         setUserName(displayName)
         setUserRole(role)
         setLoggedIn(true)
@@ -278,10 +296,12 @@ function App() {
             currentStorage.removeItem('agriman_refresh_token')
             currentStorage.removeItem('agriman_user_email')
             currentStorage.removeItem('agriman_user_name')
+            currentStorage.removeItem('agriman_account_email')
             currentStorage.removeItem('agriman_user_role')
           }
           setLoggedIn(false)
           setUserEmail('User')
+          setAccountEmail('')
           setUserName('User')
           setUserRole('User')
         }
@@ -295,20 +315,24 @@ function App() {
   function handleLogin(user, token, rememberMe, identifier, refreshToken) {
     const storage = rememberMe ? localStorage : sessionStorage
     const displayName = user.fullName || user.name || user.email || user.phoneNumber || identifier || 'User'
+    const email = user.email || user.Email || identifier || ''
     const role = user.role || 'User'
     for (const currentStorage of [localStorage, sessionStorage]) {
       currentStorage.removeItem('agriman_access_token')
       currentStorage.removeItem('agriman_refresh_token')
       currentStorage.removeItem('agriman_user_email')
       currentStorage.removeItem('agriman_user_name')
+      currentStorage.removeItem('agriman_account_email')
       currentStorage.removeItem('agriman_user_role')
     }
     storage.setItem('agriman_access_token', token)
     if (refreshToken) storage.setItem('agriman_refresh_token', refreshToken)
     storage.setItem('agriman_user_email', displayName)
     storage.setItem('agriman_user_name', user.fullName || user.name || displayName)
+    if (email) storage.setItem('agriman_account_email', email)
     storage.setItem('agriman_user_role', role)
     setUserEmail(displayName)
+    setAccountEmail(email)
     setUserName(user.fullName || user.name || displayName)
     setUserRole(role)
     setLoggedIn(true)
@@ -322,9 +346,11 @@ function App() {
       storage.removeItem('agriman_refresh_token')
       storage.removeItem('agriman_user_email')
       storage.removeItem('agriman_user_name')
+      storage.removeItem('agriman_account_email')
       storage.removeItem('agriman_user_role')
     }
     setUserEmail('User')
+    setAccountEmail('')
     setUserName('User')
     setUserRole('User')
   }
@@ -361,113 +387,31 @@ function App() {
   return (
     <InventoryProvider>
       <div className={`app-shell${active === 'Dashboard' ? ' dashboard-shell' : ''}`}>
-      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        <a className="brand" href="#dashboard" onClick={() => selectItem('Dashboard')}>
-          <img className="brand-mark" src="/agriman-logo.png" alt="AGRIMAN Farm Management" />
-        </a>
-        <div className="menu-caption">WORKSPACE</div>
-        <nav aria-label="Main navigation">
-          {menuGroups.map((group) => {
-            const isOpen = Boolean(expanded[group.label])
-            const isActive = active === group.label || group.children?.includes(active)
-            return (
-              <div className="menu-group" key={group.label}>
-                <button
-                  className={`menu-item${isActive ? ' selected' : ''}`}
-                  type="button"
-                  aria-expanded={group.children ? isOpen : undefined}
-                  onClick={() => group.children ? setExpanded((current) => ({ ...current, [group.label]: !current[group.label] })) : selectItem(group.label)}
-                >
-                  <span className="menu-icon" aria-hidden="true">{group.icon}</span>
-                  <span>{group.label}</span>
-                  {group.children && <span className={`chevron${isOpen ? ' open' : ''}`} aria-hidden="true">⌄</span>}
-                </button>
-                {group.children && isOpen && (
-                  <div className="submenu">
-                    {group.children.map((item) => (
-                      <button
-                        className={`submenu-item${active === item ? ' selected' : ''}`}
-                        key={item}
-                        type="button"
-                        onClick={() => selectItem(item)}
-                      >
-                        <span className="submenu-dot" aria-hidden="true" />
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </nav>
-      </aside>
+      <Sidebar
+        active={active}
+        selectItem={selectItem}
+        expanded={expanded}
+        setExpanded={setExpanded}
+        sidebarCollapsed={sidebarCollapsed}
+      />
 
       <main className="main-content">
-        <header className="topbar">
-          <div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div>
-          <div className="topbar-actions">
-            <div
-              className="topbar-user-area"
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => setShowUserMenu((prev) => !prev)}
-            >
-              <div className="top-avatar">{userInitials}</div>
-              <div className="top-user" style={{ marginLeft: '8px' }}>
-                <strong title={userEmail}>{userEmail}</strong>
-                <span>{userRole}</span>
-              </div>
-              <span className="top-chevron" style={{ marginLeft: '6px' }}>⌄</span>
-
-                {showUserMenu && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '42px',
-                      right: 0,
-                      background: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
-                      padding: '8px 0',
-                      minWidth: '180px',
-                      zIndex: 100
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#1f2937' }}>{userEmail}</div>
-                      <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px' }}>● Active Session</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      style={{
-                        width: '100%',
-                        padding: '8px 16px',
-                        border: 'none',
-                        background: 'transparent',
-                        textAlign: 'left',
-                        fontSize: '12px',
-                        color: '#dc2626',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <span>↪</span> Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-          </div>
-        </header>
+        <Navbar
+          active={active}
+          selectItem={selectItem}
+          userName={formatDisplayName(userEmail, userName)}
+          userEmail={userEmail}
+          userRole={userRole}
+          userInitials={userInitials}
+          handleLogout={handleLogout}
+          unreadNotificationsCount={3}
+          sidebarNavModules={sidebarNavModules}
+        />
 
         <ModuleErrorBoundary active={active}>
         {active === 'Farmers' ? (
           <section className="page-content">
-            <Farmers />
+            <Farmers profileEmail={accountEmail} profileName={userName} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : active === 'Users' ? (
@@ -517,7 +461,7 @@ function App() {
               <Payments />
             ) : active === 'Receipts' ? (
               <Receipts />
-            ) : active === 'Loans' ? (
+            ) : (active === 'Loans' || active === 'Loans & Finance') ? (
               <Loans />
             ) : active === 'Bank Accounts' ? (
               <BankAccounts />
