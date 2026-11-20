@@ -1276,23 +1276,31 @@ export default function Machinery({ onNavigate }) {
           </div>
 
           <div className="mch-table-wrap">
-            <table className="mch-table">
+            <table className="mch-table mch-expenses-table">
+              <colgroup>
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '260px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '220px' }} />
+                <col style={{ width: '310px' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: '80px' }}>ID</th>
-                  <th>EXPENSE DATE</th>
-                  <th>MACHINE NAME</th>
-                  <th>EXPENSE TYPE</th>
-                  <th>AMOUNT</th>
-                  <th>OPERATOR / WORKSHOP</th>
-                  <th>REMARKS</th>
-                  <th style={{ textAlign: 'center', width: '80px' }}>ACTIONS</th>
+                  <th className="mch-exp-th-id">ID</th>
+                  <th className="mch-exp-th-date">EXPENSE DATE</th>
+                  <th className="mch-exp-th-name">MACHINE NAME</th>
+                  <th className="mch-exp-th-type">EXPENSE TYPE</th>
+                  <th className="mch-exp-th-amount">AMOUNT</th>
+                  <th className="mch-exp-th-operator">OPERATOR / WORKSHOP</th>
+                  <th className="mch-exp-th-remarks">REMARKS</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingExpenses ? (
                   <tr>
-                    <td colSpan="8" className="mch-empty-state">
+                    <td colSpan="7" className="mch-empty-state">
                       <div className="mch-empty-icon">⏳</div>
                       <strong>Loading operating expenses...</strong>
                       <p>Fetching from /api/machinery-expenses...</p>
@@ -1300,7 +1308,7 @@ export default function Machinery({ onNavigate }) {
                   </tr>
                 ) : currentExpensePageItems.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="mch-empty-state">
+                    <td colSpan="7" className="mch-empty-state">
                       <div className="mch-empty-icon">⛽</div>
                       <strong>No operating expenses found</strong>
                       <p>Record fuel, servicing, repairs, or operator wages for your machinery.</p>
@@ -1311,64 +1319,50 @@ export default function Machinery({ onNavigate }) {
                   </tr>
                 ) : (
                   currentExpensePageItems.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        <span className="mch-code-badge" style={{ color: '#0369a1', background: '#e0f2fe' }}>
+                    <tr
+                      key={e.id}
+                      className="mch-exp-row"
+                      onClick={() => handleOpenEditExpense(e)}
+                      title="Click to view/edit expense"
+                    >
+                      <td className="mch-exp-td-id">
+                        <span className="mch-code-badge mch-expense-id-badge">
                           EXP-{e.id}
                         </span>
                       </td>
 
-                      <td>
-                        <span style={{ fontWeight: 500, color: '#1e293b' }}>{formatDate(e.date)}</span>
+                      <td className="mch-exp-td-date">
+                        <span className="mch-exp-date-text">{formatDate(e.date)}</span>
                       </td>
 
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '15px' }}>🚜</span>
-                          <strong style={{ fontSize: '12px', color: '#1e293b' }}>{e.machineName}</strong>
-                        </div>
+                      <td className="mch-exp-td-name">
+                        <span className="mch-exp-machine-name" title={e.machineName}>
+                          {e.machineName}
+                        </span>
                       </td>
 
-                      <td>
-                        <span className="mch-type-tag" style={{ background: '#eef2ff', color: '#4338ca', fontWeight: 600 }}>
+                      <td className="mch-exp-td-type">
+                        <span className="mch-type-tag mch-exp-type-tag">
                           {e.expenseType}
                         </span>
                       </td>
 
-                      <td>
-                        <span className="mch-amount" style={{ color: '#b91c1c' }}>
+                      <td className="mch-exp-td-amount">
+                        <span className="mch-exp-amount">
                           {formatINR(e.amount)}
                         </span>
                       </td>
 
-                      <td>
-                        <span>{e.operator || '—'}</span>
+                      <td className="mch-exp-td-operator">
+                        <span className="mch-exp-operator" title={e.operator || ''}>
+                          {e.operator || '—'}
+                        </span>
                       </td>
 
-                      <td>
-                        <span style={{ color: '#64748b', fontSize: '10.5px' }}>{e.remarks || '—'}</span>
-                      </td>
-
-                      <td>
-                        <div className="mch-actions" style={{ justifyContent: 'center' }}>
-                          <button
-                            className="mch-action-btn"
-                            type="button"
-                            title="Edit Expense"
-                            onClick={() => handleOpenEditExpense(e)}
-                          >
-                            ✎
-                          </button>
-                          <button
-                            className="mch-action-btn"
-                            type="button"
-                            title="Delete Expense"
-                            style={{ color: '#dc2626' }}
-                            onClick={() => setDeleteConfirm({ type: 'expense', item: e })}
-                          >
-                            ⛌
-                          </button>
-                        </div>
+                      <td className="mch-exp-td-remarks">
+                        <span className="mch-exp-remarks" title={e.remarks || ''}>
+                          {e.remarks || '—'}
+                        </span>
                       </td>
                     </tr>
                   ))
@@ -2197,6 +2191,35 @@ export default function Machinery({ onNavigate }) {
               </div>
 
               <div className="mch-modal-footer">
+                {editingExpense && (
+                  <button
+                    type="button"
+                    className="mch-btn-danger"
+                    style={{
+                      marginRight: 'auto',
+                      background: '#fee2e2',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      padding: '0 16px',
+                      height: '42px',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    onClick={() => {
+                      const itemToDelete = editingExpense;
+                      setIsExpenseModalOpen(false);
+                      setEditingExpense(null);
+                      setDeleteConfirm({ type: 'expense', item: itemToDelete });
+                    }}
+                  >
+                    Delete Expense
+                  </button>
+                )}
                 <button type="button" className="mch-btn-secondary" onClick={() => setIsExpenseModalOpen(false)}>
                   Cancel
                 </button>
