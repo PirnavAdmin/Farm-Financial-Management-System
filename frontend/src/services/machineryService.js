@@ -161,6 +161,40 @@ export function normalizeExpense(raw, index = 0) {
   };
 }
 
+// ─── Machine Code Parsing & Natural Sorting Helpers ─────────────────────────
+export function extractMachineCodeNumber(code, fallbackId = 0) {
+  if (typeof code === 'number') return code;
+  if (!code && fallbackId) return Number(fallbackId) || 0;
+  const str = String(code || '').trim();
+  const match = str.match(/\d+/g);
+  if (match && match.length > 0) {
+    const num = parseInt(match[match.length - 1], 10);
+    if (!isNaN(num)) return num;
+  }
+  return Number(fallbackId) || 0;
+}
+
+export function compareMachineCodes(a, b, direction = 'asc') {
+  const codeA = a?.machineCode || (a?.id ? `MCH-${String(a.id).padStart(3, '0')}` : '');
+  const codeB = b?.machineCode || (b?.id ? `MCH-${String(b.id).padStart(3, '0')}` : '');
+
+  const numA = extractMachineCodeNumber(codeA, a?.id);
+  const numB = extractMachineCodeNumber(codeB, b?.id);
+
+  let diff = 0;
+  if (numA !== numB) {
+    diff = numA - numB;
+  } else {
+    diff = codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  if (diff === 0) {
+    diff = (Number(a?.id) || 0) - (Number(b?.id) || 0);
+  }
+
+  return direction === 'desc' ? -diff : diff;
+}
+
 // ─── Default Realistic Seed Data ─────────────────────────────────────────────
 export const SEED_MACHINERY = [
   {
@@ -470,6 +504,8 @@ export const machineryService = {
 
       if (Array.isArray(rawData) && rawData.length > 0) {
         const normalized = rawData.map((item, idx) => normalizeMachine(item, idx));
+        // Sort in ascending order by numeric Machine Code (MCH-001 -> MCH-002 -> ...)
+        normalized.sort((a, b) => compareMachineCodes(a, b, 'asc'));
         // Cache full list if no filters applied
         if (!params.search && !params.machineType && !params.fuelType && !params.status) {
           writeStorage(STORAGE_KEY_MACHINERY, normalized);
@@ -482,6 +518,7 @@ export const machineryService = {
 
     // Local persistent storage fallback
     let list = readStorage(STORAGE_KEY_MACHINERY, SEED_MACHINERY).map((item, idx) => normalizeMachine(item, idx));
+    list.sort((a, b) => compareMachineCodes(a, b, 'asc'));
     if (params.search) {
       const term = params.search.toLowerCase();
       list = list.filter((m) =>
@@ -1022,6 +1059,9 @@ export const machineryService = {
   // ─────────────────────────────────────────────────────────────────────────
   // 6. UTILITY FUNCTIONS
   // ─────────────────────────────────────────────────────────────────────────
+
+  extractMachineCodeNumber,
+  compareMachineCodes,
 
   generateMachineCode: (existingList = []) => {
     let maxNum = 0;

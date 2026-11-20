@@ -1,18 +1,36 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
+  Tractor,
+  CircleCheck,
+  Wrench,
+  IndianRupee,
+  Receipt,
+  SprayCan,
+  Cog,
+  BatteryCharging,
+  Fuel,
+  Settings,
+  EllipsisVertical,
+  X,
+  ChevronDown,
+  Search
+} from 'lucide-react';
+import {
   machineryService,
   normalizeMachine,
   normalizeExpense,
   SEED_MACHINERY,
   SEED_EXPENSES,
-  SEED_LOOKUPS
+  SEED_LOOKUPS,
+  compareMachineCodes,
+  extractMachineCodeNumber
 } from '../../services/machineryService.js';
 import './machinery.css';
 
 // Currency formatter for Indian Rupees (₹)
 const formatINR = (val) => {
   const num = Number(val) || 0;
-  return '₹ ' + num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  return '₹\u00A0' + num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 };
 
 // Safe date formatter (e.g. "15 Apr 2026")
@@ -67,6 +85,20 @@ export default function Machinery({ onNavigate }) {
   const [statusFilter, setStatusFilter] = useState('All');
   const [machineryPage, setMachineryPage] = useState(1);
   const machineryPageSize = 7;
+
+  // Sorting state: default is ascending by numeric Machine Code (MCH-001 -> MCH-002 -> ...)
+  const [sortColumn, setSortColumn] = useState('code');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  const handleSort = (col) => {
+    if (sortColumn === col) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(col);
+      setSortDirection('asc');
+    }
+    setMachineryPage(1);
+  };
 
   // Summary state from GET /api/Machinery/summary
   const [summaryData, setSummaryData] = useState(null);
@@ -135,11 +167,13 @@ export default function Machinery({ onNavigate }) {
     setLoadingMachinery(true);
     try {
       const data = await machineryService.getMachinery();
-      setMachineryList(data);
+      const sorted = (Array.isArray(data) ? data : []).slice().sort((a, b) => compareMachineCodes(a, b, 'asc'));
+      setMachineryList(sorted);
     } catch (err) {
       console.error('[Machinery] Error fetching machinery list:', err);
       showToast('Offline or fallback mode: Loaded local machinery records.', 'error');
-      setMachineryList(SEED_MACHINERY.map(normalizeMachine));
+      const sorted = SEED_MACHINERY.map(normalizeMachine).sort((a, b) => compareMachineCodes(a, b, 'asc'));
+      setMachineryList(sorted);
     } finally {
       setLoadingMachinery(false);
     }
@@ -208,7 +242,7 @@ export default function Machinery({ onNavigate }) {
   // Filtered Machinery Directory List
   // ─────────────────────────────────────────────────────────────────────────
   const filteredMachinery = useMemo(() => {
-    return machineryList.filter((m) => {
+    const list = machineryList.filter((m) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const nameMatch = (m.machineName || '').toLowerCase().includes(q);
@@ -228,7 +262,15 @@ export default function Machinery({ onNavigate }) {
 
       return true;
     });
-  }, [machineryList, searchQuery, typeFilter, statusFilter]);
+
+    // Default sorting: Ascending order by numeric Machine Code (MCH-001 -> MCH-002 -> ...)
+    return list.slice().sort((a, b) => {
+      if (sortColumn === 'code') {
+        return compareMachineCodes(a, b, sortDirection);
+      }
+      return compareMachineCodes(a, b, 'asc');
+    });
+  }, [machineryList, searchQuery, typeFilter, statusFilter, sortColumn, sortDirection]);
 
   const totalMachineryPages = Math.max(1, Math.ceil(filteredMachinery.length / machineryPageSize));
   const currentMachineryPageItems = useMemo(() => {
@@ -405,12 +447,12 @@ export default function Machinery({ onNavigate }) {
       if (editingMachine) {
         const updated = await machineryService.updateMachine(editingMachine.id, machineFormData);
         setMachineryList((prev) =>
-          prev.map((m) => (String(m.id) === String(editingMachine.id) ? updated : m))
+          prev.map((m) => (String(m.id) === String(editingMachine.id) ? updated : m)).sort((a, b) => compareMachineCodes(a, b, 'asc'))
         );
         showToast(`Machinery "${updated.machineName}" updated successfully.`);
       } else {
         const created = await machineryService.createMachine(machineFormData);
-        setMachineryList((prev) => [created, ...prev]);
+        setMachineryList((prev) => [...prev, created].sort((a, b) => compareMachineCodes(a, b, 'asc')));
         showToast(`Machinery "${created.machineName}" registered successfully.`);
       }
       setIsMachineFormOpen(false);
@@ -586,7 +628,8 @@ export default function Machinery({ onNavigate }) {
       return;
     }
     const headers = ['Code', 'Machine Name', 'Type', 'Reg No', 'Purchase Date', 'Purchase Cost (INR)', 'Current Value (INR)', 'Fuel', 'Status', 'Model', 'Manufacturer', 'Notes'];
-    const rows = machineryList.map((m) => [
+    const sorted = machineryList.slice().sort((a, b) => compareMachineCodes(a, b, 'asc'));
+    const rows = sorted.map((m) => [
       `"${m.machineCode || ''}"`,
       `"${(m.machineName || '').replace(/"/g, '""')}"`,
       `"${m.machineType || ''}"`,
@@ -635,17 +678,36 @@ export default function Machinery({ onNavigate }) {
     showToast('Operating expenses exported to CSV.');
   };
 
-  const getMachineIcon = (type) => {
+  const getMachineIcon = (type, size = 20) => {
     switch (type) {
-      case 'Tractor': return '🚜';
-      case 'Power Tiller': return '🚜';
-      case 'Power Weeder': return '⚙';
-      case 'Sprayer': return '🚿';
-      case 'Harvester': return '🌾';
-      case 'Rotavator': return '🔄';
-      case 'Cultivator': return '🌱';
-      default: return '🚜';
+      case 'Tractor':
+      case 'Power Tiller':
+        return <Tractor size={size} strokeWidth={1.8} />;
+      case 'Sprayer':
+        return <SprayCan size={size} strokeWidth={1.8} />;
+      case 'Rotavator':
+      case 'Cultivator':
+      case 'Power Weeder':
+      case 'Harvester':
+      case 'Baler':
+      case 'Digger':
+      case 'Thresher':
+        return <Cog size={size} strokeWidth={1.8} />;
+      default:
+        return <Wrench size={size} strokeWidth={1.8} />;
     }
+  };
+
+  const getFuelIcon = (fuel) => {
+    if (!fuel) return <Fuel size={14} strokeWidth={1.8} className="mch-fuel-lucide" />;
+    const lower = fuel.toLowerCase();
+    if (lower.includes('electric') || lower.includes('battery')) {
+      return <BatteryCharging size={14} strokeWidth={1.8} className="mch-fuel-lucide" />;
+    }
+    if (lower.includes('pto')) {
+      return <Settings size={14} strokeWidth={1.8} className="mch-fuel-lucide" />;
+    }
+    return <Fuel size={14} strokeWidth={1.8} className="mch-fuel-lucide" />;
   };
 
   return (
@@ -737,47 +799,61 @@ export default function Machinery({ onNavigate }) {
       {/* ── Summary KPI Cards ─────────────────────────────────────────────── */}
       <div className="mch-stats-grid">
         <div className="mch-stat-card">
-          <div className="mch-stat-icon active">🚜</div>
+          <div className="mch-stat-icon total">
+            <Tractor size={24} strokeWidth={1.8} />
+          </div>
           <div className="mch-stat-info">
-            <span className="mch-stat-label">Total Machinery</span>
+            <span className="mch-stat-label" title="Total Machinery">Total Machinery</span>
             <span className="mch-stat-val">{metrics.total}</span>
-            <span className="mch-stat-hint">Registered farm assets</span>
+            <span className="mch-stat-hint" title="Registered farm assets">Registered farm assets</span>
           </div>
         </div>
 
         <div className="mch-stat-card">
-          <div className="mch-stat-icon active">✓</div>
+          <div className="mch-stat-icon active">
+            <CircleCheck size={24} strokeWidth={1.8} />
+          </div>
           <div className="mch-stat-info">
-            <span className="mch-stat-label">Active / Operational</span>
+            <span className="mch-stat-label" title="Active / Operational">Active / Operational</span>
             <span className="mch-stat-val">{metrics.active}</span>
-            <span className="mch-stat-hint">Available for field work</span>
+            <span className="mch-stat-hint" title="Available for field work">Available for field work</span>
           </div>
         </div>
 
         <div className="mch-stat-card">
-          <div className="mch-stat-icon warning">🔧</div>
+          <div className="mch-stat-icon warning">
+            <Wrench size={24} strokeWidth={1.8} />
+          </div>
           <div className="mch-stat-info">
-            <span className="mch-stat-label">Under Maintenance</span>
+            <span className="mch-stat-label" title="Under Maintenance">Under Maintenance</span>
             <span className="mch-stat-val">{metrics.maintenance}</span>
-            <span className="mch-stat-hint">Service & repair work</span>
+            <span className="mch-stat-hint" title="Service & repair work">Service & repair work</span>
           </div>
         </div>
 
         <div className="mch-stat-card">
-          <div className="mch-stat-icon info">₹</div>
+          <div className="mch-stat-icon info">
+            <IndianRupee size={24} strokeWidth={1.8} />
+          </div>
           <div className="mch-stat-info">
-            <span className="mch-stat-label">Total Asset Value</span>
+            <span className="mch-stat-label" title="Total Asset Value">Total Asset Value</span>
             <span className="mch-stat-val">{formatINR(metrics.totalCurrentValue)}</span>
-            <span className="mch-stat-hint">Cost: {formatINR(metrics.totalPurchaseCost)}</span>
+            <span className="mch-stat-hint" title={`Cost: ${formatINR(metrics.totalPurchaseCost)}`}>
+              Cost: {formatINR(metrics.totalPurchaseCost)}
+            </span>
           </div>
         </div>
 
         <div className="mch-stat-card">
-          <div className="mch-stat-icon purple">⛽</div>
+          <div className="mch-stat-icon expense">
+            <Receipt size={24} strokeWidth={1.8} />
+          </div>
           <div className="mch-stat-info">
-            <span className="mch-stat-label">Operating Expenses</span>
+            <span className="mch-stat-label" title="Operating Expenses">Operating Expenses</span>
             <span className="mch-stat-val">{formatINR(metrics.totalExpenseAmount)}</span>
-            <span className="mch-stat-hint">{metrics.totalExpenseRecords} recorded vouchers</span>
+            <span className="mch-stat-hint" title={`${metrics.totalExpenseRecords} recorded vouchers`}>
+              {metrics.totalExpenseRecords} recorded vouchers
+            </span>
           </div>
         </div>
       </div>
@@ -787,7 +863,9 @@ export default function Machinery({ onNavigate }) {
         <section className="mch-panel">
           <div className="mch-toolbar">
             <div className="mch-search-box">
-              <span>⌕</span>
+              <span className="mch-search-icon">
+                <Search size={18} strokeWidth={2} />
+              </span>
               <input
                 className="mch-search-input"
                 placeholder="Search by Machine Name, Registration No, or Code..."
@@ -797,70 +875,105 @@ export default function Machinery({ onNavigate }) {
                   setMachineryPage(1);
                 }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="mch-search-clear"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setMachineryPage(1);
+                  }}
+                  title="Clear search"
+                  aria-label="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
 
-            <select
-              className="mch-select-filter"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setMachineryPage(1);
-              }}
-            >
-              <option value="All">All Machine Types</option>
-              {lookups.machineTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="mch-select-filter"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setMachineryPage(1);
-              }}
-            >
-              <option value="All">All Statuses</option>
-              {lookups.statuses.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-
-            {(searchQuery || typeFilter !== 'All' || statusFilter !== 'All') && (
-              <button
-                className="mch-reset-btn"
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setTypeFilter('All');
-                  setStatusFilter('All');
+            <div className="mch-toolbar-filters">
+              <select
+                className="mch-select-filter mch-filter-type"
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value);
                   setMachineryPage(1);
                 }}
               >
-                ↻ Clear Filters
-              </button>
-            )}
+                <option value="All">All Machine Types</option>
+                {lookups.machineTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="mch-select-filter mch-filter-status"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setMachineryPage(1);
+                }}
+              >
+                <option value="All">All Statuses</option>
+                {lookups.statuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              {(searchQuery || typeFilter !== 'All' || statusFilter !== 'All') && (
+                <button
+                  className="mch-reset-btn"
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setTypeFilter('All');
+                    setStatusFilter('All');
+                    setMachineryPage(1);
+                  }}
+                >
+                  ↻ Clear Filters
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mch-table-wrap">
-            <table className="mch-table">
+            <table className="mch-table mch-fleet-table">
+              <colgroup>
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '280px' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '90px' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: '100px' }}>CODE</th>
-                  <th>MACHINE NAME</th>
-                  <th>MACHINE TYPE</th>
-                  <th>REGISTRATION NO</th>
-                  <th>PURCHASE DATE</th>
-                  <th>PURCHASE COST</th>
-                  <th>CURRENT VALUE</th>
-                  <th>FUEL / POWER</th>
-                  <th>STATUS</th>
-                  <th style={{ textAlign: 'center', width: '80px' }}>ACTIONS</th>
+                  <th
+                    className="mch-th-code"
+                    onClick={() => handleSort('code')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    title={`Sorted by Machine Code (${sortDirection === 'asc' ? 'Ascending' : 'Descending'}). Click to toggle.`}
+                  >
+                    CODE
+                  </th>
+                  <th className="mch-th-name">MACHINE NAME</th>
+                  <th className="mch-th-type">MACHINE TYPE</th>
+                  <th className="mch-th-reg">REGISTRATION NO</th>
+                  <th className="mch-th-date">PURCHASE DATE</th>
+                  <th className="mch-th-cost">PURCHASE COST</th>
+                  <th className="mch-th-val">CURRENT VALUE</th>
+                  <th className="mch-th-fuel">FUEL / POWER</th>
+                  <th className="mch-th-status">STATUS</th>
+                  <th className="mch-th-actions">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -890,55 +1003,65 @@ export default function Machinery({ onNavigate }) {
 
                     return (
                       <tr key={m.id}>
-                        <td>
+                        {/* 1. CODE - Left aligned */}
+                        <td className="mch-td-code">
                           <span className="mch-code-badge">{m.machineCode || `MCH-${m.id}`}</span>
                         </td>
 
-                        <td>
+                        {/* 2. MACHINE NAME - Left aligned with 44x44px icon */}
+                        <td className="mch-td-name">
                           <div className="mch-name-cell">
                             <div className="mch-avatar">{icon}</div>
                             <div className="mch-name-info">
                               <strong title={m.machineName}>{m.machineName}</strong>
                               {m.modelNumber ? (
-                                <span style={{ fontSize: '10px', color: '#64748b' }}>{m.modelNumber}</span>
+                                <span className="mch-name-sub">{m.modelNumber}</span>
                               ) : m.manufacturer ? (
-                                <span style={{ fontSize: '10px', color: '#64748b' }}>{m.manufacturer}</span>
+                                <span className="mch-name-sub">{m.manufacturer}</span>
                               ) : null}
                             </div>
                           </div>
                         </td>
 
-                        <td>
+                        {/* 3. MACHINE TYPE - Centered */}
+                        <td className="mch-td-type">
                           <span className="mch-type-tag">{m.machineType || 'Tractor'}</span>
                         </td>
 
-                        <td>
+                        {/* 4. REGISTRATION NO - Left aligned, clean plain text */}
+                        <td className="mch-td-reg">
                           {m.registrationNo ? (
-                            <span className="mch-reg-badge">{m.registrationNo}</span>
+                            <span className="mch-reg-text">{m.registrationNo}</span>
                           ) : (
-                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Unregistered</span>
+                            <span className="mch-unregistered">Unregistered</span>
                           )}
                         </td>
 
-                        <td>
+                        {/* 5. PURCHASE DATE - Centered */}
+                        <td className="mch-td-date">
                           <span>{formatDate(m.purchaseDate)}</span>
                         </td>
 
-                        <td>
+                        {/* 6. PURCHASE COST - Right aligned */}
+                        <td className="mch-td-cost">
                           <span className="mch-amount">{formatINR(m.purchaseCost)}</span>
                         </td>
 
-                        <td>
+                        {/* 7. CURRENT VALUE - Right aligned */}
+                        <td className="mch-td-val">
                           <span className="mch-amount depreciated">{formatINR(m.currentValue)}</span>
                         </td>
 
-                        <td>
+                        {/* 8. FUEL / POWER - Centered */}
+                        <td className="mch-td-fuel">
                           <span className="mch-fuel-tag">
-                            <span>⛽</span> {m.fuelType || 'Diesel'}
+                            {getFuelIcon(m.fuelType)}
+                            <span>{m.fuelType || 'Diesel'}</span>
                           </span>
                         </td>
 
-                        <td>
+                        {/* 9. STATUS - Centered */}
+                        <td className="mch-td-status">
                           <button
                             className={`mch-status-pill ${
                               m.status === 'Active'
@@ -956,8 +1079,9 @@ export default function Machinery({ onNavigate }) {
                           </button>
                         </td>
 
-                        <td>
-                          <div className="mch-actions" style={{ justifyContent: 'center' }}>
+                        {/* 10. ACTIONS - Centered with Lucide EllipsisVertical */}
+                        <td className="mch-td-actions">
+                          <div className="mch-actions">
                             <button
                               className={`mch-action-btn mch-menu-trigger ${openActionMenuId === m.id ? 'active' : ''}`}
                               type="button"
@@ -968,7 +1092,7 @@ export default function Machinery({ onNavigate }) {
                                 setOpenActionMenuId(openActionMenuId === m.id ? null : m.id);
                               }}
                             >
-                              ⋮
+                              <EllipsisVertical size={16} strokeWidth={2} />
                             </button>
 
                             {openActionMenuId === m.id && (
@@ -1073,7 +1197,9 @@ export default function Machinery({ onNavigate }) {
         <section className="mch-panel">
           <div className="mch-toolbar">
             <div className="mch-search-box">
-              <span>⌕</span>
+              <span className="mch-search-icon">
+                <Search size={18} strokeWidth={2} />
+              </span>
               <input
                 className="mch-search-input"
                 placeholder="Search expenses by Machine, Expense Type, Operator, Remarks..."
@@ -1083,54 +1209,70 @@ export default function Machinery({ onNavigate }) {
                   setExpensePage(1);
                 }}
               />
+              {expenseSearchQuery && (
+                <button
+                  type="button"
+                  className="mch-search-clear"
+                  onClick={() => {
+                    setExpenseSearchQuery('');
+                    setExpensePage(1);
+                  }}
+                  title="Clear search"
+                  aria-label="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
 
-            <select
-              className="mch-select-filter"
-              value={expenseTypeFilter}
-              onChange={(e) => {
-                setExpenseTypeFilter(e.target.value);
-                setExpensePage(1);
-              }}
-            >
-              <option value="All">All Expense Types</option>
-              {lookups.expenseTypes.map((t) => (
-                <option key={t.id || t.code || t.name} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="mch-select-filter"
-              value={expenseMachineFilter}
-              onChange={(e) => {
-                setExpenseMachineFilter(e.target.value);
-                setExpensePage(1);
-              }}
-            >
-              <option value="All">All Machines</option>
-              {machineryList.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.machineName} ({m.machineCode})
-                </option>
-              ))}
-            </select>
-
-            {(expenseSearchQuery || expenseTypeFilter !== 'All' || expenseMachineFilter !== 'All') && (
-              <button
-                className="mch-reset-btn"
-                type="button"
-                onClick={() => {
-                  setExpenseSearchQuery('');
-                  setExpenseTypeFilter('All');
-                  setExpenseMachineFilter('All');
+            <div className="mch-toolbar-filters">
+              <select
+                className="mch-select-filter"
+                value={expenseTypeFilter}
+                onChange={(e) => {
+                  setExpenseTypeFilter(e.target.value);
                   setExpensePage(1);
                 }}
               >
-                ↻ Clear Filters
-              </button>
-            )}
+                <option value="All">All Expense Types</option>
+                {lookups.expenseTypes.map((t) => (
+                  <option key={t.id || t.code || t.name} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="mch-select-filter"
+                value={expenseMachineFilter}
+                onChange={(e) => {
+                  setExpenseMachineFilter(e.target.value);
+                  setExpensePage(1);
+                }}
+              >
+                <option value="All">All Machines</option>
+                {machineryList.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.machineName} ({m.machineCode})
+                  </option>
+                ))}
+              </select>
+
+              {(expenseSearchQuery || expenseTypeFilter !== 'All' || expenseMachineFilter !== 'All') && (
+                <button
+                  className="mch-reset-btn"
+                  type="button"
+                  onClick={() => {
+                    setExpenseSearchQuery('');
+                    setExpenseTypeFilter('All');
+                    setExpenseMachineFilter('All');
+                    setExpensePage(1);
+                  }}
+                >
+                  ↻ Clear Filters
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mch-table-wrap">
@@ -1279,7 +1421,7 @@ export default function Machinery({ onNavigate }) {
       {activeTab === 'roi' && (
         <section className="mch-panel">
           <div className="mch-toolbar" style={{ justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
+            <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 500 }}>
               Fleet ROI, Maintenance-to-Purchase cost ratio, and Net Asset Value analysis from <code>/api/Machinery/roi</code>
             </div>
             <button className="mch-btn-secondary" type="button" onClick={fetchRoi}>
@@ -1288,25 +1430,33 @@ export default function Machinery({ onNavigate }) {
           </div>
 
           <div className="mch-table-wrap">
-            <table className="mch-table">
+            <table className="mch-table mch-roi-table">
+              <colgroup>
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '280px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '170px' }} />
+                <col style={{ width: '190px' }} />
+                <col style={{ width: '180px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '170px' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: '90px' }}>CODE</th>
-                  <th>MACHINE NAME</th>
-                  <th>MACHINE TYPE</th>
-                  <th>PURCHASE COST</th>
-                  <th>CURRENT BOOK VALUE</th>
-                  <th>MAINTENANCE COST</th>
-                  <th>EXPENSE LOGS</th>
-                  <th>MAINT. COST RATIO</th>
-                  <th>ESTIMATED NET VALUE</th>
-                  <th>STATUS</th>
+                  <th className="mch-roi-th-code">CODE</th>
+                  <th className="mch-roi-th-name">MACHINE NAME</th>
+                  <th className="mch-roi-th-type">MACHINE TYPE</th>
+                  <th className="mch-roi-th-pcost">PURCHASE COST</th>
+                  <th className="mch-roi-th-cval">CURRENT BOOK VALUE</th>
+                  <th className="mch-roi-th-mcost">MAINTENANCE COST</th>
+                  <th className="mch-roi-th-logs">EXPENSE LOGS</th>
+                  <th className="mch-roi-th-ratio">MAINT. COST RATIO</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingRoi ? (
                   <tr>
-                    <td colSpan="10" className="mch-empty-state">
+                    <td colSpan="8" className="mch-empty-state">
                       <div className="mch-empty-icon">⏳</div>
                       <strong>Calculating fleet ROI analytics...</strong>
                       <p>Querying /api/Machinery/roi endpoint...</p>
@@ -1314,7 +1464,7 @@ export default function Machinery({ onNavigate }) {
                   </tr>
                 ) : roiList.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="mch-empty-state">
+                    <td colSpan="8" className="mch-empty-state">
                       <div className="mch-empty-icon">📊</div>
                       <strong>No ROI data available</strong>
                       <p>Register machinery and record operating expenses to generate health metrics.</p>
@@ -1328,61 +1478,40 @@ export default function Machinery({ onNavigate }) {
 
                     return (
                       <tr key={r.id}>
-                        <td>
+                        <td className="mch-roi-td-code">
                           <span className="mch-code-badge">{r.machineCode}</span>
                         </td>
-                        <td>
-                          <strong style={{ color: '#1e293b' }}>{r.machineName}</strong>
+                        <td className="mch-roi-td-name">
+                          <span className="mch-roi-machine-name" title={r.machineName}>
+                            {r.machineName}
+                          </span>
                         </td>
-                        <td>
+                        <td className="mch-roi-td-type">
                           <span className="mch-type-tag">{r.machineType}</span>
                         </td>
-                        <td>
-                          <span className="mch-amount">{formatINR(r.purchaseCost)}</span>
+                        <td className="mch-roi-td-pcost">
+                          <span className="mch-amount mch-amount-purchase">{formatINR(r.purchaseCost)}</span>
                         </td>
-                        <td>
-                          <span className="mch-amount depreciated">{formatINR(r.currentValue)}</span>
+                        <td className="mch-roi-td-cval">
+                          <span className="mch-amount mch-amount-depreciated">{formatINR(r.currentValue)}</span>
                         </td>
-                        <td>
-                          <span className="mch-amount" style={{ color: '#b45309' }}>
+                        <td className="mch-roi-td-mcost">
+                          <span className="mch-amount mch-amount-maint">
                             {formatINR(r.totalMaintenanceCost)}
                           </span>
                         </td>
-                        <td>
-                          <span style={{ fontWeight: 600, color: '#475569' }}>{r.expenseCount} vouchers</span>
+                        <td className="mch-roi-td-logs">
+                          <span className="mch-roi-logs-text">{r.expenseCount} vouchers</span>
                         </td>
-                        <td>
+                        <td className="mch-roi-td-ratio">
                           <span
+                            className="mch-roi-ratio-badge"
                             style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              fontWeight: 700,
                               color: ratioColor,
                               background: ratioBg
                             }}
                           >
                             {ratio}%
-                          </span>
-                        </td>
-                        <td>
-                          <span className="mch-amount" style={{ color: '#16a34a' }}>
-                            {formatINR(r.estimatedNetValue)}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`mch-status-pill ${
-                              r.status === 'Active'
-                                ? 'active'
-                                : r.status === 'Under Maintenance'
-                                ? 'maintenance'
-                                : 'inactive'
-                            }`}
-                          >
-                            <span className="mch-status-dot" />
-                            {r.status}
                           </span>
                         </td>
                       </tr>
@@ -1422,23 +1551,24 @@ export default function Machinery({ onNavigate }) {
                 onClick={() => setIsMachineFormOpen(false)}
                 aria-label="Close dialog"
               >
-                ×
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitMachineForm} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <form onSubmit={handleSubmitMachineForm} className="mch-form" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
               <div className="mch-modal-body">
-                <div>
-                  <h4 className="mch-section-title">1. Machine Identification</h4>
+                {/* Section 1: Machine Identification */}
+                <div className="mch-form-section">
+                  <h4 className="mch-section-title">1. MACHINE IDENTIFICATION</h4>
                   <div className="mch-form-grid">
                     <div className="mch-field">
                       <label className="mch-label">
-                        Machine Code <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Auto-generated)</span>
+                        Machine Code <span className="mch-auto-tag">(Auto-generated)</span>
                       </label>
                       <input
-                        className="mch-input"
+                        className="mch-input mch-readonly-field"
                         value={machineFormData.machineCode}
-                        onChange={(e) => setMachineFormData({ ...machineFormData, machineCode: e.target.value })}
+                        readOnly
                         placeholder="e.g. MCH-008"
                       />
                     </div>
@@ -1467,22 +1597,25 @@ export default function Machinery({ onNavigate }) {
                       <label className="mch-label">
                         Machine Type <em>*</em>
                       </label>
-                      <select
-                        className={`mch-select ${machineFormErrors.machineType ? 'error' : ''}`}
-                        value={machineFormData.machineType}
-                        onChange={(e) => {
-                          setMachineFormData({ ...machineFormData, machineType: e.target.value });
-                          if (machineFormErrors.machineType) {
-                            setMachineFormErrors({ ...machineFormErrors, machineType: null });
-                          }
-                        }}
-                      >
-                        {lookups.machineTypes.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="mch-select-wrap">
+                        <select
+                          className={`mch-select ${machineFormErrors.machineType ? 'error' : ''}`}
+                          value={machineFormData.machineType}
+                          onChange={(e) => {
+                            setMachineFormData({ ...machineFormData, machineType: e.target.value });
+                            if (machineFormErrors.machineType) {
+                              setMachineFormErrors({ ...machineFormErrors, machineType: null });
+                            }
+                          }}
+                        >
+                          {lookups.machineTypes.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="mch-select-arrow" size={16} strokeWidth={2} />
+                      </div>
                       {machineFormErrors.machineType && (
                         <span className="mch-field-error">{machineFormErrors.machineType}</span>
                       )}
@@ -1500,8 +1633,9 @@ export default function Machinery({ onNavigate }) {
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="mch-section-title">2. Purchase & Valuation</h4>
+                {/* Section 2: Purchase & Valuation */}
+                <div className="mch-form-section">
+                  <h4 className="mch-section-title">2. PURCHASE & VALUATION</h4>
                   <div className="mch-form-grid three-col">
                     <div className="mch-field">
                       <label className="mch-label">
@@ -1576,29 +1710,33 @@ export default function Machinery({ onNavigate }) {
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="mch-section-title">3. Specifications & Status</h4>
+                {/* Section 3: Specifications & Status */}
+                <div className="mch-form-section">
+                  <h4 className="mch-section-title">3. SPECIFICATIONS & STATUS</h4>
                   <div className="mch-form-grid">
                     <div className="mch-field">
                       <label className="mch-label">
                         Fuel / Power Type <em>*</em>
                       </label>
-                      <select
-                        className={`mch-select ${machineFormErrors.fuelType ? 'error' : ''}`}
-                        value={machineFormData.fuelType}
-                        onChange={(e) => {
-                          setMachineFormData({ ...machineFormData, fuelType: e.target.value });
-                          if (machineFormErrors.fuelType) {
-                            setMachineFormErrors({ ...machineFormErrors, fuelType: null });
-                          }
-                        }}
-                      >
-                        {lookups.fuelTypes.map((f) => (
-                          <option key={f} value={f}>
-                            {f}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="mch-select-wrap">
+                        <select
+                          className={`mch-select ${machineFormErrors.fuelType ? 'error' : ''}`}
+                          value={machineFormData.fuelType}
+                          onChange={(e) => {
+                            setMachineFormData({ ...machineFormData, fuelType: e.target.value });
+                            if (machineFormErrors.fuelType) {
+                              setMachineFormErrors({ ...machineFormErrors, fuelType: null });
+                            }
+                          }}
+                        >
+                          {lookups.fuelTypes.map((f) => (
+                            <option key={f} value={f}>
+                              {f}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="mch-select-arrow" size={16} strokeWidth={2} />
+                      </div>
                       {machineFormErrors.fuelType && (
                         <span className="mch-field-error">{machineFormErrors.fuelType}</span>
                       )}
@@ -1608,22 +1746,25 @@ export default function Machinery({ onNavigate }) {
                       <label className="mch-label">
                         Status <em>*</em>
                       </label>
-                      <select
-                        className={`mch-select ${machineFormErrors.status ? 'error' : ''}`}
-                        value={machineFormData.status}
-                        onChange={(e) => {
-                          setMachineFormData({ ...machineFormData, status: e.target.value });
-                          if (machineFormErrors.status) {
-                            setMachineFormErrors({ ...machineFormErrors, status: null });
-                          }
-                        }}
-                      >
-                        {lookups.statuses.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="mch-select-wrap">
+                        <select
+                          className={`mch-select ${machineFormErrors.status ? 'error' : ''}`}
+                          value={machineFormData.status}
+                          onChange={(e) => {
+                            setMachineFormData({ ...machineFormData, status: e.target.value });
+                            if (machineFormErrors.status) {
+                              setMachineFormErrors({ ...machineFormErrors, status: null });
+                            }
+                          }}
+                        >
+                          {lookups.statuses.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="mch-select-arrow" size={16} strokeWidth={2} />
+                      </div>
                       {machineFormErrors.status && (
                         <span className="mch-field-error">{machineFormErrors.status}</span>
                       )}
@@ -1696,7 +1837,7 @@ export default function Machinery({ onNavigate }) {
                 onClick={() => setViewingMachine(null)}
                 aria-label="Close dialog"
               >
-                ×
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
@@ -1894,7 +2035,7 @@ export default function Machinery({ onNavigate }) {
       {isExpenseModalOpen && (
         <div className="mch-modal-backdrop" onClick={() => setIsExpenseModalOpen(false)}>
           <div
-            className="mch-modal compact"
+            className="mch-modal mch-expense-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="expense-form-title"
@@ -1913,65 +2054,73 @@ export default function Machinery({ onNavigate }) {
                 onClick={() => setIsExpenseModalOpen(false)}
                 aria-label="Close dialog"
               >
-                ×
+                <X size={20} strokeWidth={2} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitExpenseForm} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-              <div className="mch-modal-body">
+            <form onSubmit={handleSubmitExpenseForm} className="mch-form">
+              <div className="mch-modal-body mch-expense-modal-body">
+                {/* Row 1: Select Machine (Full Width) */}
                 <div className="mch-field">
                   <label className="mch-label">
-                    Select Machine <em>*</em>
+                    Select Machine <span className="mch-req">*</span>
                   </label>
-                  <select
-                    className={`mch-select ${expenseFormErrors.machineryId ? 'error' : ''}`}
-                    value={expenseFormData.machineryId}
-                    onChange={(e) => {
-                      const selId = e.target.value;
-                      const matched = machineryList.find((m) => String(m.id) === String(selId));
-                      setExpenseFormData({
-                        ...expenseFormData,
-                        machineryId: selId,
-                        machineName: matched ? matched.machineName : ''
-                      });
-                      if (expenseFormErrors.machineryId) {
-                        setExpenseFormErrors({ ...expenseFormErrors, machineryId: null });
-                      }
-                    }}
-                  >
-                    <option value="">-- Choose Machine --</option>
-                    {machineryList.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.machineName} ({m.machineCode})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mch-select-wrap">
+                    <select
+                      className={`mch-select ${expenseFormErrors.machineryId ? 'error' : ''}`}
+                      value={expenseFormData.machineryId}
+                      onChange={(e) => {
+                        const selId = e.target.value;
+                        const matched = machineryList.find((m) => String(m.id) === String(selId));
+                        setExpenseFormData({
+                          ...expenseFormData,
+                          machineryId: selId,
+                          machineName: matched ? matched.machineName : ''
+                        });
+                        if (expenseFormErrors.machineryId) {
+                          setExpenseFormErrors({ ...expenseFormErrors, machineryId: null });
+                        }
+                      }}
+                    >
+                      <option value="">-- Choose Machine --</option>
+                      {machineryList.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.machineName} ({m.machineCode})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="mch-select-arrow" aria-hidden="true" />
+                  </div>
                   {expenseFormErrors.machineryId && (
                     <span className="mch-field-error">{expenseFormErrors.machineryId}</span>
                   )}
                 </div>
 
+                {/* Row 2: Expense Type | Expense Date (2-column grid) */}
                 <div className="mch-form-grid">
                   <div className="mch-field">
                     <label className="mch-label">
-                      Expense Type <em>*</em>
+                      Expense Type <span className="mch-req">*</span>
                     </label>
-                    <select
-                      className={`mch-select ${expenseFormErrors.expenseType ? 'error' : ''}`}
-                      value={expenseFormData.expenseType}
-                      onChange={(e) => {
-                        setExpenseFormData({ ...expenseFormData, expenseType: e.target.value });
-                        if (expenseFormErrors.expenseType) {
-                          setExpenseFormErrors({ ...expenseFormErrors, expenseType: null });
-                        }
-                      }}
-                    >
-                      {lookups.expenseTypes.map((t) => (
-                        <option key={t.id || t.code || t.name} value={t.name}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="mch-select-wrap">
+                      <select
+                        className={`mch-select ${expenseFormErrors.expenseType ? 'error' : ''}`}
+                        value={expenseFormData.expenseType}
+                        onChange={(e) => {
+                          setExpenseFormData({ ...expenseFormData, expenseType: e.target.value });
+                          if (expenseFormErrors.expenseType) {
+                            setExpenseFormErrors({ ...expenseFormErrors, expenseType: null });
+                          }
+                        }}
+                      >
+                        {lookups.expenseTypes.map((t) => (
+                          <option key={t.id || t.code || t.name} value={t.name}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="mch-select-arrow" aria-hidden="true" />
+                    </div>
                     {expenseFormErrors.expenseType && (
                       <span className="mch-field-error">{expenseFormErrors.expenseType}</span>
                     )}
@@ -1979,7 +2128,7 @@ export default function Machinery({ onNavigate }) {
 
                   <div className="mch-field">
                     <label className="mch-label">
-                      Expense Date <em>*</em>
+                      Expense Date <span className="mch-req">*</span>
                     </label>
                     <input
                       type="date"
@@ -1998,10 +2147,11 @@ export default function Machinery({ onNavigate }) {
                   </div>
                 </div>
 
+                {/* Row 3: Amount (₹) | Operator / Workshop (2-column grid) */}
                 <div className="mch-form-grid">
                   <div className="mch-field">
                     <label className="mch-label">
-                      Amount (₹) <em>*</em>
+                      Amount (₹) <span className="mch-req">*</span>
                     </label>
                     <input
                       type="number"
@@ -2033,6 +2183,7 @@ export default function Machinery({ onNavigate }) {
                   </div>
                 </div>
 
+                {/* Row 4: Remarks / Notes (Full Width) */}
                 <div className="mch-field">
                   <label className="mch-label">Remarks / Notes</label>
                   <textarea
@@ -2040,6 +2191,7 @@ export default function Machinery({ onNavigate }) {
                     value={expenseFormData.remarks}
                     onChange={(e) => setExpenseFormData({ ...expenseFormData, remarks: e.target.value })}
                     placeholder="Details: Fuel quantity, replacement spare parts, service description..."
+                    rows={3}
                   />
                 </div>
               </div>
@@ -2080,7 +2232,7 @@ export default function Machinery({ onNavigate }) {
                 onClick={() => setDeleteConfirm(null)}
                 aria-label="Close dialog"
               >
-                ×
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 

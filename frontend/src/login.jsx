@@ -157,14 +157,16 @@ export default function Login({ onLogin, onBackToHome }) {
 
   function handleSignInSubmit(event) {
     event.preventDefault()
-    const trimmedEmail = identifier.trim()
+    const trimmedEmail = (typeof identifier === 'string' ? identifier : '').trim()
     if (!trimmedEmail) {
-      setError('Please enter your email address.')
+      setError('Please enter your email address or mobile number.')
       return
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(trimmedEmail)) {
-      setError('Please enter a valid email address.')
+    const digitsOnly = trimmedEmail.replace(/\D/g, '')
+    const isMobile = digitsOnly.length >= 10
+    if (!emailRegex.test(trimmedEmail) && !isMobile) {
+      setError('Please enter a valid email address or 10-digit mobile number.')
       return
     }
     if (!password) {
@@ -349,9 +351,9 @@ export default function Login({ onLogin, onBackToHome }) {
                 <input
                   id="agriman-email-input"
                   className="pill-input"
-                  type="email"
+                  type="text"
                   autoComplete="username"
-                  placeholder="Enter your email address"
+                  placeholder="Enter your email or mobile"
                   value={identifier}
                   onChange={(e) => {
                     setIdentifier(e.target.value)

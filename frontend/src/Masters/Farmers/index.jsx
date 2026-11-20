@@ -1274,18 +1274,31 @@ export default function Farmers({ profileEmail, profileName }) {
 
       <div className="fm-table-wrap">
         <table className="fm-table fm-rental-table">
+          <colgroup>
+            <col style={{ width: '180px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '130px' }} />
+            <col style={{ width: '130px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '150px' }} />
+            <col style={{ width: '160px' }} />
+            <col style={{ width: '220px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '90px' }} />
+          </colgroup>
           <thead>
             <tr>
-              <th>Tenant / Receiver</th>
-              <th>Mobile</th>
-              <th>Survey No.</th>
-              <th className="fm-th-land fm-col-num">Land Area</th>
-              <th>Village</th>
-              <th>Mandal</th>
-              <th>District</th>
-              <th>Rent</th>
-              <th>Lease Period</th>
-              <th>Status</th>
+              <th className="fm-th-tenant">Tenant / Receiver</th>
+              <th className="fm-th-mobile">Mobile</th>
+              <th className="fm-th-survey">Survey No.</th>
+              <th className="fm-th-area">Land Area</th>
+              <th className="fm-th-village">Village</th>
+              <th className="fm-th-mandal">Mandal</th>
+              <th className="fm-th-district">District</th>
+              <th className="fm-th-rent">Rent</th>
+              <th className="fm-th-lease">Lease Period</th>
+              <th className="fm-th-status">Status</th>
               <th className="fm-th-actions">Actions</th>
             </tr>
           </thead>
@@ -1335,16 +1348,16 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : visibleRentalLands.map(record => (
                 <tr key={record.id}>
-                  <td><strong>{record.tenantName}</strong></td>
-                  <td>{record.tenantMobile}</td>
-                  <td>{record.surveyNumber}</td>
-                  <td className="fm-td-land fm-col-num">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
-                  <td>{record.village}</td>
-                  <td>{record.mandal}</td>
-                  <td>{record.district}</td>
-                  <td>₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
-                  <td>{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
-                  <td>
+                  <td className="fm-td-tenant"><strong>{record.tenantName}</strong></td>
+                  <td className="fm-td-mobile">{record.tenantMobile}</td>
+                  <td className="fm-td-survey">{record.surveyNumber}</td>
+                  <td className="fm-td-area">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
+                  <td className="fm-td-village">{record.village}</td>
+                  <td className="fm-td-mandal">{record.mandal}</td>
+                  <td className="fm-td-district">{record.district}</td>
+                  <td className="fm-td-rent">₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
+                  <td className="fm-td-lease">{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
+                  <td className="fm-td-status">
                     <span className={`fm-status-pill fm-status-${record.status.toLowerCase()} fm-rental-status`}>
                       <span className="fm-status-dot"></span>{record.status}
                     </span>
@@ -1381,7 +1394,11 @@ export default function Farmers({ profileEmail, profileName }) {
                           setOpenRentalMenuId(record.id)
                         }}
                       >
-                        ⋮
+                        <svg className="fm-action-dots-svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                          <circle cx="8" cy="3" r="1.5" />
+                          <circle cx="8" cy="8" r="1.5" />
+                          <circle cx="8" cy="13" r="1.5" />
+                        </svg>
                       </button>
                       {openRentalMenuId === record.id && rentalMenuPosition && createPortal(
                         <div
