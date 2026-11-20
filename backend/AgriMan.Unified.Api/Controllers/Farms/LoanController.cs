@@ -9,6 +9,8 @@ namespace FarmManagementApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/Loans")]
+    [Tags("14. Loan & Finance (Module 14)")]
     public class LoanController : ControllerBase
     {
         private readonly FarmDbContext _context;

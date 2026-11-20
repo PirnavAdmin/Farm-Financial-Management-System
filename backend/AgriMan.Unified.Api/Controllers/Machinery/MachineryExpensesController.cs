@@ -8,6 +8,7 @@ namespace Agriman.Machinery.Api.Controllers;
 
 [ApiController]
 [Route("api/machinery-expenses")]
+[Tags("13. Machinery & Equipment (Module 13)")]
 public class MachineryExpensesController : ControllerBase
 {
     private readonly MachineryDbContext _db;

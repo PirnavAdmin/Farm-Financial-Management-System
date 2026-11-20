@@ -12,6 +12,7 @@ namespace FarmManagementApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Tags("15. Supplier Management (Module 15)")]
     public class SupplierTransactionsController : ControllerBase
     {
         private readonly FarmDbContext _context;
