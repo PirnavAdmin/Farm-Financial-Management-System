@@ -54,7 +54,7 @@ export default function Customers({ onNavigate }) {
       setSales(salesList);
     } catch (err) {
       console.error('[Customers] Error loading data:', err);
-      setToast('Failed to load customers data.');
+      setToast(err.friendlyMessage || err.message || 'Failed to load customers data.');
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export default function Customers({ onNavigate }) {
       setBuyerModal(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to save buyer record.');
+      setToast(err.friendlyMessage || err.message || 'Failed to save buyer record.');
     } finally {
       setSaving(false);
     }
@@ -171,7 +171,7 @@ export default function Customers({ onNavigate }) {
       if (viewDetails?.id === deleteConfirm.id) setViewDetails(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to delete buyer.');
+      setToast(err.friendlyMessage || err.message || 'Failed to delete buyer.');
     }
   };
 

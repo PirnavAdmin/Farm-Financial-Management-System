@@ -233,35 +233,6 @@ export const FALLBACK_CROPS = [
   'Turmeric'
 ];
 
-// ─── 2. LOCAL PERSISTENT STORAGE MANAGEMENT ─────────────────────────────────
-const STORAGE_KEYS = {
-  SALES: 'agriman_sales_transactions',
-  ITEMS: 'agriman_sales_items',
-  PAYMENTS: 'agriman_sales_payments',
-  BUYERS: 'agriman_sales_buyers'
-};
-
-function readStorage(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn(`[salesService] Error reading storage ${key}:`, e);
-  }
-  return fallback;
-}
-
-function writeStorage(key, data) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.warn(`[salesService] Error writing storage ${key}:`, e);
-  }
-}
-
 // ─── 3. FORMATTING HELPERS ───────────────────────────────────────────────────
 export function formatCurrency(amount) {
   const num = Number(amount) || 0;
@@ -294,52 +265,26 @@ export function computePaymentStatus(netAmount, paidAmount) {
 export const salesService = {
   // ── A. SALES TRANSACTIONS (`sales` & `sales_items`) ────────────────────────
   getSales: async () => {
-    let sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-    try {
-      const res = await api.get('/api/Sales?pageSize=100');
-      const items = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : null);
-      if (Array.isArray(items) && items.length > 0) {
-        sales = items.map((s) => ({
-          id: s.id,
-          salesNo: s.salesNo,
-          salesDate: (s.salesDate || '').slice(0, 10),
-          buyer: s.buyer,
-          farm: s.farm,
-          crop: s.crop,
-          quantity: Number(s.quantity) || 0,
-          unit: s.unit || 'Quintals',
-          rate: Number(s.rate) || 0,
-          grossAmount: Number(s.grossAmount) || 0,
-          commission: Number(s.commission) || 0,
-          transport: Number(s.transport) || 0,
-          netAmount: Number(s.netAmount) || 0,
-          paymentStatus: s.paymentStatus || 'Pending',
-          createdAt: s.createdAt || new Date().toISOString()
-        }));
-        writeStorage(STORAGE_KEYS.SALES, sales);
-      }
-    } catch (e) {
-      console.warn('[salesService] Live /api/Sales unavailable, using synced local storage.');
-    }
-    return sales;
+    const res = await api.get('/api/Sales?page=1&pageSize=500');
+    const items = res.data?.items ?? res.data?.data ?? (Array.isArray(res.data) ? res.data : null);
+    if (!Array.isArray(items)) throw new Error('The Sales API returned an unsupported response.');
+    return items.map((sale) => ({
+      ...sale,
+      id: Number(sale.id),
+      salesDate: String(sale.salesDate || '').slice(0, 10),
+      quantity: Number(sale.quantity) || 0,
+      rate: Number(sale.rate) || 0,
+      grossAmount: Number(sale.grossAmount) || 0,
+      commission: Number(sale.commission) || 0,
+      transport: Number(sale.transport) || 0,
+      netAmount: Number(sale.netAmount) || 0,
+      paymentStatus: sale.paymentStatus || 'Pending',
+      paidAmount: Number(sale.paidAmount) || 0,
+      balanceAmount: Number(sale.balanceAmount) || 0,
+    }));
   },
 
   createSale: async (saleData) => {
-    const sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-    const items = readStorage(STORAGE_KEYS.ITEMS, SEED_SALES_ITEMS);
-
-    const year = new Date().getFullYear();
-    let salesNo = saleData.salesNo?.trim();
-    if (!salesNo) {
-      const existingNos = sales
-        .map((s) => s.salesNo)
-        .filter((no) => no && no.startsWith(`SAL-${year}-`))
-        .map((no) => parseInt(no.replace(`SAL-${year}-`, ''), 10))
-        .filter((n) => !isNaN(n));
-      const nextSeq = existingNos.length > 0 ? Math.max(...existingNos) + 1 : sales.length + 1;
-      salesNo = `SAL-${year}-${String(nextSeq).padStart(3, '0')}`;
-    }
-
     const quantity = Math.max(0, Number(saleData.quantity) || 0);
     const rate = Math.max(0, Number(saleData.rate) || 0);
     const grossAmount = Math.round(quantity * rate * 100) / 100;
@@ -347,10 +292,10 @@ export const salesService = {
     const transport = Math.max(0, Number(saleData.transport) || 0);
     const netAmount = Math.max(0, Math.round((grossAmount - commission - transport) * 100) / 100);
 
-    const newSale = {
-      id: Date.now(),
-      salesNo,
-      salesDate: saleData.salesDate || new Date().toISOString().slice(0, 10),
+    const response = await api.post('/api/Sales', {
+      salesNo: saleData.salesNo?.trim() || null,
+      salesDate: saleData.salesDate || null,
+      buyerId: saleData.buyerId ? Number(saleData.buyerId) : null,
       buyer: saleData.buyer?.trim() || '',
       farm: saleData.farm?.trim() || '',
       crop: saleData.crop?.trim() || '',
@@ -362,57 +307,11 @@ export const salesService = {
       transport,
       netAmount,
       paymentStatus: saleData.paymentStatus || 'Pending',
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      const res = await api.post('/api/Sales', {
-        salesNo: newSale.salesNo,
-        salesDate: newSale.salesDate,
-        buyer: newSale.buyer,
-        farm: newSale.farm,
-        crop: newSale.crop,
-        quantity: newSale.quantity,
-        unit: newSale.unit,
-        rate: newSale.rate,
-        grossAmount: newSale.grossAmount,
-        commission: newSale.commission,
-        transport: newSale.transport,
-        netAmount: newSale.netAmount,
-        paymentStatus: newSale.paymentStatus
-      });
-      if (res.data?.id) newSale.id = res.data.id;
-    } catch (e) {
-      console.warn('[salesService] Live /api/Sales POST failed, saving to local storage.');
-    }
-
-    sales.unshift(newSale);
-    writeStorage(STORAGE_KEYS.SALES, sales);
-
-    const newItem = {
-      id: Date.now(),
-      saleId: newSale.id,
-      salesNo: newSale.salesNo,
-      crop: newSale.crop,
-      quantity: newSale.quantity,
-      unit: newSale.unit,
-      rate: newSale.rate,
-      amount: newSale.grossAmount
-    };
-    items.unshift(newItem);
-    writeStorage(STORAGE_KEYS.ITEMS, items);
-
-    return newSale;
+    });
+    return response.data;
   },
 
   updateSale: async (id, saleData) => {
-    const sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-    const items = readStorage(STORAGE_KEYS.ITEMS, SEED_SALES_ITEMS);
-    const payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-
-    const index = sales.findIndex((s) => s.id === id || s.salesNo === saleData.salesNo);
-    if (index === -1) throw new Error('Sales record not found.');
-
     const quantity = Math.max(0, Number(saleData.quantity) || 0);
     const rate = Math.max(0, Number(saleData.rate) || 0);
     const grossAmount = Math.round(quantity * rate * 100) / 100;
@@ -420,124 +319,49 @@ export const salesService = {
     const transport = Math.max(0, Number(saleData.transport) || 0);
     const netAmount = Math.max(0, Math.round((grossAmount - commission - transport) * 100) / 100);
 
-    const totalPaid = payments
-      .filter((p) => p.salesNo === sales[index].salesNo)
-      .reduce((sum, p) => sum + (Number(p.paymentAmount) || 0), 0);
-
-    const paymentStatus = computePaymentStatus(netAmount, totalPaid);
-
-    const updatedSale = {
-      ...sales[index],
-      salesDate: saleData.salesDate || sales[index].salesDate,
-      buyer: saleData.buyer?.trim() || sales[index].buyer,
-      farm: saleData.farm?.trim() || sales[index].farm,
-      crop: saleData.crop?.trim() || sales[index].crop,
+    const response = await api.put(`/api/Sales/${Number(id)}`, {
+      salesNo: saleData.salesNo,
+      salesDate: saleData.salesDate,
+      buyerId: saleData.buyerId ? Number(saleData.buyerId) : null,
+      buyer: saleData.buyer?.trim() || '',
+      farm: saleData.farm?.trim() || '',
+      crop: saleData.crop?.trim() || '',
       quantity,
-      unit: saleData.unit || sales[index].unit,
+      unit: saleData.unit || 'Quintals',
       rate,
       grossAmount,
       commission,
       transport,
       netAmount,
-      paymentStatus: saleData.paymentStatus || paymentStatus,
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      await api.put(`/api/Sales/${id}`, updatedSale);
-    } catch (e) {
-      console.warn('[salesService] Live /api/Sales PUT failed, updating local storage.');
-    }
-
-    sales[index] = updatedSale;
-    writeStorage(STORAGE_KEYS.SALES, sales);
-
-    const itemIndex = items.findIndex((i) => i.salesNo === updatedSale.salesNo);
-    if (itemIndex !== -1) {
-      items[itemIndex] = {
-        ...items[itemIndex],
-        crop: updatedSale.crop,
-        quantity: updatedSale.quantity,
-        unit: updatedSale.unit,
-        rate: updatedSale.rate,
-        amount: updatedSale.grossAmount
-      };
-      writeStorage(STORAGE_KEYS.ITEMS, items);
-    }
-
-    return updatedSale;
+      paymentStatus: saleData.paymentStatus || 'Pending',
+    });
+    return response.data;
   },
 
-  deleteSale: async (id, salesNo) => {
-    let sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-    let items = readStorage(STORAGE_KEYS.ITEMS, SEED_SALES_ITEMS);
-    let payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-
-    try {
-      await api.delete(`/api/Sales/${id}`);
-    } catch (e) {
-      console.warn('[salesService] Live /api/Sales DELETE failed, deleting from local storage.');
-    }
-
-    sales = sales.filter((s) => s.id !== id && s.salesNo !== salesNo);
-    items = items.filter((i) => i.salesNo !== salesNo);
-    payments = payments.filter((p) => p.salesNo !== salesNo);
-
-    writeStorage(STORAGE_KEYS.SALES, sales);
-    writeStorage(STORAGE_KEYS.ITEMS, items);
-    writeStorage(STORAGE_KEYS.PAYMENTS, payments);
-
+  deleteSale: async (id) => {
+    await api.delete(`/api/Sales/${Number(id)}`);
     return true;
   },
 
   // ── B. BUYERS / CUSTOMERS (`buyers`) ───────────────────────────────────────
   getBuyers: async () => {
-    let buyers = readStorage(STORAGE_KEYS.BUYERS, SEED_BUYERS);
-    try {
-      const res = await api.get('/api/Buyers');
-      const data = Array.isArray(res.data) ? res.data : res.data?.data;
-      if (Array.isArray(data) && data.length > 0) {
-        buyers = data.map((b) => ({
-          id: b.id,
-          buyerCode: b.buyerCode || `BUY-${b.id}`,
-          buyerName: b.buyerName || b.name,
-          mobile: b.mobile || b.phone || '',
-          address: b.address || '',
-          businessName: b.businessName || '',
-          gstin: b.gstin || '',
-          openingBalance: Number(b.openingBalance) || 0,
-          status: b.status || 'Active',
-          createdAt: b.createdAt || new Date().toISOString()
-        }));
-        writeStorage(STORAGE_KEYS.BUYERS, buyers);
-      }
-    } catch (e) {
-      // Backend /api/Buyers not deployed on host yet
-    }
-    return buyers;
+    const response = await api.get('/api/Buyers');
+    const buyers = Array.isArray(response.data) ? response.data : response.data?.data;
+    if (!Array.isArray(buyers)) throw new Error('The Buyers API returned an unsupported response.');
+    return buyers.map((buyer) => ({
+      ...buyer,
+      id: Number(buyer.id),
+      buyerCode: buyer.buyerCode || `BUY-${buyer.id}`,
+      buyerName: buyer.buyerName || buyer.name || '',
+      mobile: buyer.mobile || buyer.phone || '',
+      openingBalance: Number(buyer.openingBalance) || 0,
+      status: buyer.status || 'Active',
+    }));
   },
 
   createBuyer: async (buyerData) => {
-    const buyers = readStorage(STORAGE_KEYS.BUYERS, SEED_BUYERS);
-
-    let buyerCode = buyerData.buyerCode?.trim();
-    if (!buyerCode) {
-      const codes = buyers
-        .map((b) => b.buyerCode)
-        .filter((c) => c && c.startsWith('BUY-'))
-        .map((c) => parseInt(c.replace('BUY-', ''), 10))
-        .filter((n) => !isNaN(n));
-      const nextSeq = codes.length > 0 ? Math.max(...codes) + 1 : buyers.length + 1;
-      buyerCode = `BUY-${String(nextSeq).padStart(3, '0')}`;
-    }
-
-    if (buyers.some((b) => b.buyerCode.toLowerCase() === buyerCode.toLowerCase())) {
-      throw new Error(`Buyer Code '${buyerCode}' already exists.`);
-    }
-
-    const newBuyer = {
-      id: Date.now(),
-      buyerCode,
+    const response = await api.post('/api/Buyers', {
+      buyerCode: buyerData.buyerCode?.trim() || null,
       buyerName: buyerData.buyerName?.trim() || '',
       mobile: buyerData.mobile?.trim() || '',
       address: buyerData.address?.trim() || '',
@@ -545,243 +369,78 @@ export const salesService = {
       gstin: buyerData.gstin?.trim() || '',
       openingBalance: Math.max(0, Number(buyerData.openingBalance) || 0),
       status: buyerData.status || 'Active',
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      const res = await api.post('/api/Buyers', newBuyer);
-      if (res.data?.id) newBuyer.id = res.data.id;
-    } catch (e) {
-      console.warn('[salesService] Live /api/Buyers POST failed, saving to local storage.');
-    }
-
-    buyers.unshift(newBuyer);
-    writeStorage(STORAGE_KEYS.BUYERS, buyers);
-    return newBuyer;
+    });
+    return response.data;
   },
 
   updateBuyer: async (id, buyerData) => {
-    const buyers = readStorage(STORAGE_KEYS.BUYERS, SEED_BUYERS);
-    const index = buyers.findIndex((b) => b.id === id || b.buyerCode === buyerData.buyerCode);
-    if (index === -1) throw new Error('Buyer record not found.');
-
-    const updated = {
-      ...buyers[index],
-      buyerName: buyerData.buyerName?.trim() || buyers[index].buyerName,
-      mobile: buyerData.mobile?.trim() || buyers[index].mobile,
-      address: buyerData.address !== undefined ? buyerData.address : buyers[index].address,
-      businessName: buyerData.businessName !== undefined ? buyerData.businessName : buyers[index].businessName,
-      gstin: buyerData.gstin !== undefined ? buyerData.gstin : buyers[index].gstin,
-      openingBalance: Number(buyerData.openingBalance) || 0,
-      status: buyerData.status || buyers[index].status,
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      await api.put(`/api/Buyers/${id}`, updated);
-    } catch (e) {
-      console.warn('[salesService] Live /api/Buyers PUT failed, updating local storage.');
-    }
-
-    buyers[index] = updated;
-    writeStorage(STORAGE_KEYS.BUYERS, buyers);
-    return updated;
+    const response = await api.put(`/api/Buyers/${Number(id)}`, {
+      buyerCode: buyerData.buyerCode?.trim() || null,
+      buyerName: buyerData.buyerName?.trim() || '',
+      mobile: buyerData.mobile?.trim() || '',
+      address: buyerData.address || '',
+      businessName: buyerData.businessName || '',
+      gstin: buyerData.gstin || '',
+      openingBalance: Math.max(0, Number(buyerData.openingBalance) || 0),
+      status: buyerData.status || 'Active',
+    });
+    return response.data;
   },
 
   deleteBuyer: async (id) => {
-    let buyers = readStorage(STORAGE_KEYS.BUYERS, SEED_BUYERS);
-    try {
-      await api.delete(`/api/Buyers/${id}`);
-    } catch (e) {
-      console.warn('[salesService] Live /api/Buyers DELETE failed, deleting from local storage.');
-    }
-    buyers = buyers.filter((b) => b.id !== id);
-    writeStorage(STORAGE_KEYS.BUYERS, buyers);
+    await api.delete(`/api/Buyers/${Number(id)}`);
     return true;
   },
 
   // ── C. SALES PAYMENTS & RECEIVABLES (`sales_payments`) ──────────────────────
   getPayments: async () => {
-    let payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-    try {
-      const res = await api.get('/api/SalesPayments');
-      const data = Array.isArray(res.data) ? res.data : res.data?.data;
-      if (Array.isArray(data) && data.length > 0) {
-        payments = data.map((p) => ({
-          id: p.id,
-          paymentNo: p.paymentNo,
-          paymentDate: (p.paymentDate || '').slice(0, 10),
-          buyer: p.buyer,
-          salesNo: p.salesNo,
-          paymentAmount: Number(p.paymentAmount) || 0,
-          paymentMode: p.paymentMode || 'Bank',
-          referenceNo: p.referenceNo || '',
-          remarks: p.remarks || '',
-          createdAt: p.createdAt || new Date().toISOString()
-        }));
-        writeStorage(STORAGE_KEYS.PAYMENTS, payments);
-      }
-    } catch (e) {
-      // Backend /api/SalesPayments not deployed on host yet
-    }
-    return payments;
+    const response = await api.get('/api/SalesPayments');
+    const payments = Array.isArray(response.data) ? response.data : response.data?.data;
+    if (!Array.isArray(payments)) throw new Error('The Sales Payments API returned an unsupported response.');
+    return payments.map((payment) => ({
+      ...payment,
+      id: Number(payment.id),
+      paymentDate: String(payment.paymentDate || '').slice(0, 10),
+      paymentAmount: Number(payment.paymentAmount) || 0,
+      paymentMode: payment.paymentMode || 'Bank',
+      referenceNo: payment.referenceNo || '',
+      remarks: payment.remarks || '',
+    }));
   },
 
   recordPayment: async (paymentData) => {
-    const payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-    const sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-
-    const sale = sales.find((s) => s.salesNo === paymentData.salesNo);
-    if (!sale) throw new Error(`Referenced sale #${paymentData.salesNo} does not exist.`);
-
-    const alreadyPaid = payments
-      .filter((p) => p.salesNo === sale.salesNo)
-      .reduce((sum, p) => sum + (Number(p.paymentAmount) || 0), 0);
-
-    const outstanding = Math.max(0, Math.round((sale.netAmount - alreadyPaid) * 100) / 100);
-    const amount = Number(paymentData.paymentAmount) || 0;
-
-    if (amount <= 0) {
-      throw new Error('Payment amount must be greater than zero.');
-    }
-
-    if (amount > outstanding + 0.01) {
-      throw new Error(`Payment amount (₹${amount.toLocaleString('en-IN')}) cannot exceed outstanding amount (₹${outstanding.toLocaleString('en-IN')}).`);
-    }
-
-    const year = new Date().getFullYear();
-    let paymentNo = paymentData.paymentNo?.trim();
-    if (!paymentNo) {
-      const existingNos = payments
-        .map((p) => p.paymentNo)
-        .filter((no) => no && no.startsWith(`SPAY-${year}-`))
-        .map((no) => parseInt(no.replace(`SPAY-${year}-`, ''), 10))
-        .filter((n) => !isNaN(n));
-      const nextSeq = existingNos.length > 0 ? Math.max(...existingNos) + 1 : payments.length + 1;
-      paymentNo = `SPAY-${year}-${String(nextSeq).padStart(3, '0')}`;
-    }
-
-    const newPayment = {
-      id: Date.now(),
-      paymentNo,
-      paymentDate: paymentData.paymentDate || new Date().toISOString().slice(0, 10),
-      buyer: sale.buyer,
-      salesNo: sale.salesNo,
-      paymentAmount: amount,
+    const response = await api.post('/api/SalesPayments', {
+      paymentNo: paymentData.paymentNo?.trim() || null,
+      paymentDate: paymentData.paymentDate || null,
+      saleId: paymentData.saleId ? Number(paymentData.saleId) : null,
+      buyerId: paymentData.buyerId ? Number(paymentData.buyerId) : null,
+      buyer: paymentData.buyer?.trim() || null,
+      salesNo: paymentData.salesNo?.trim() || null,
+      paymentAmount: Number(paymentData.paymentAmount),
       paymentMode: paymentData.paymentMode || 'Bank',
-      referenceNo: paymentData.referenceNo?.trim() || '',
-      remarks: paymentData.remarks?.trim() || '',
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      const res = await api.post('/api/SalesPayments', newPayment);
-      if (res.data?.id) newPayment.id = res.data.id;
-    } catch (e) {
-      console.warn('[salesService] Live /api/SalesPayments POST failed, saving to local storage.');
-    }
-
-    payments.unshift(newPayment);
-    writeStorage(STORAGE_KEYS.PAYMENTS, payments);
-
-    const newTotalPaid = alreadyPaid + amount;
-    const newStatus = computePaymentStatus(sale.netAmount, newTotalPaid);
-    sale.paymentStatus = newStatus;
-    writeStorage(STORAGE_KEYS.SALES, sales);
-
-    try {
-      await api.put(`/api/Sales/${sale.id}`, { ...sale, paymentStatus: newStatus });
-    } catch (e) {
-      // ignore
-    }
-
-    return { payment: newPayment, updatedSale: sale };
+      referenceNo: paymentData.referenceNo?.trim() || null,
+      remarks: paymentData.remarks?.trim() || null,
+    });
+    return response.data;
   },
 
   // Direct Update / Save from the Receivables & Payment Screen
   updateReceivable: async (data) => {
-    const sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-    const payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-
-    const saleIndex = sales.findIndex((s) => s.salesNo === data.salesNo);
-    const totalAmount = Number(data.totalSalesAmount) >= 0 ? Number(data.totalSalesAmount) : (sales[saleIndex]?.netAmount || 0);
-    const amountReceived = Math.max(0, Number(data.amountReceived) || 0);
-    const outstandingAmount = Math.max(0, Math.round((totalAmount - amountReceived) * 100) / 100);
-    const status = data.paymentStatus || computePaymentStatus(totalAmount, amountReceived);
-
-    if (saleIndex !== -1) {
-      sales[saleIndex] = {
-        ...sales[saleIndex],
-        buyer: data.buyer?.trim() || sales[saleIndex].buyer,
-        salesDate: data.salesDate || sales[saleIndex].salesDate,
-        netAmount: totalAmount,
-        grossAmount: Math.max(totalAmount, sales[saleIndex].grossAmount || totalAmount),
-        paymentStatus: status,
-        updatedAt: new Date().toISOString()
-      };
-      writeStorage(STORAGE_KEYS.SALES, sales);
-
-      try {
-        await api.put(`/api/Sales/${sales[saleIndex].id}`, sales[saleIndex]);
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // Update or insert matching payment voucher
-    const existingPay = payments.find((p) => p.salesNo === data.salesNo);
-    if (existingPay) {
-      existingPay.paymentAmount = amountReceived;
-      existingPay.paymentDate = data.salesDate || existingPay.paymentDate;
-      existingPay.buyer = data.buyer || existingPay.buyer;
-      if (data.paymentMode) existingPay.paymentMode = data.paymentMode;
-      if (data.referenceNo) existingPay.referenceNo = data.referenceNo;
-      if (data.remarks) existingPay.remarks = data.remarks;
-    } else if (amountReceived > 0) {
-      const year = new Date().getFullYear();
-      payments.unshift({
-        id: Date.now(),
-        paymentNo: `SPAY-${year}-${String(payments.length + 1).padStart(3, '0')}`,
-        paymentDate: data.salesDate || new Date().toISOString().slice(0, 10),
-        buyer: data.buyer || '',
-        salesNo: data.salesNo,
-        paymentAmount: amountReceived,
-        paymentMode: data.paymentMode || 'Bank',
-        referenceNo: data.referenceNo || '',
-        remarks: data.remarks || `Payment recorded for ${data.salesNo}`,
-        createdAt: new Date().toISOString()
-      });
-    }
-    writeStorage(STORAGE_KEYS.PAYMENTS, payments);
-
-    return { totalAmount, amountReceived, outstandingAmount, status };
+    const response = await api.put(`/api/Sales/receivables/${encodeURIComponent(data.salesNo)}`, {
+      buyer: data.buyer?.trim() || null,
+      salesDate: data.salesDate || null,
+      totalSalesAmount: Number(data.totalSalesAmount),
+      amountReceived: Number(data.amountReceived),
+      paymentStatus: data.paymentStatus || null,
+      paymentMode: data.paymentMode || null,
+      referenceNo: data.referenceNo?.trim() || null,
+      remarks: data.remarks?.trim() || null,
+    });
+    return response.data;
   },
 
   deletePayment: async (paymentId) => {
-    let payments = readStorage(STORAGE_KEYS.PAYMENTS, SEED_SALES_PAYMENTS);
-    const sales = readStorage(STORAGE_KEYS.SALES, SEED_SALES);
-
-    const payment = payments.find((p) => p.id === paymentId);
-    if (!payment) return false;
-
-    try {
-      await api.delete(`/api/SalesPayments/${paymentId}`);
-    } catch (e) {
-      console.warn('[salesService] Live /api/SalesPayments DELETE failed, deleting from local storage.');
-    }
-
-    payments = payments.filter((p) => p.id !== paymentId);
-    writeStorage(STORAGE_KEYS.PAYMENTS, payments);
-
-    const sale = sales.find((s) => s.salesNo === payment.salesNo);
-    if (sale) {
-      const remainingPaid = payments
-        .filter((p) => p.salesNo === sale.salesNo)
-        .reduce((sum, p) => sum + (Number(p.paymentAmount) || 0), 0);
-      sale.paymentStatus = computePaymentStatus(sale.netAmount, remainingPaid);
-      writeStorage(STORAGE_KEYS.SALES, sales);
-    }
-
+    await api.delete(`/api/SalesPayments/${Number(paymentId)}`);
     return true;
   },
 
@@ -817,31 +476,17 @@ export const salesService = {
 
   // ── D. LOOKUPS: FARMS & CROPS ──────────────────────────────────────────────
   getFarms: async () => {
-    try {
-      const res = await api.get('/api/Farms');
-      const list = Array.isArray(res.data) ? res.data : res.data?.data || res.data?.items;
-      if (Array.isArray(list) && list.length > 0) {
-        const names = list.map((f) => f.farmName || f.name).filter(Boolean);
-        if (names.length > 0) return [...new Set(names)];
-      }
-    } catch (e) {
-      // fallback
-    }
-    return FALLBACK_FARMS;
+    const response = await api.get('/api/Farms');
+    const farms = Array.isArray(response.data) ? response.data : response.data?.data || response.data?.items;
+    if (!Array.isArray(farms)) throw new Error('The Farms API returned an unsupported response.');
+    return [...new Set(farms.map((farm) => farm.farmName || farm.name).filter(Boolean))];
   },
 
   getCrops: async () => {
-    try {
-      const res = await api.get('/api/Crop');
-      const list = Array.isArray(res.data) ? res.data : res.data?.data || res.data?.items;
-      if (Array.isArray(list) && list.length > 0) {
-        const names = list.map((c) => c.cropName || c.name).filter(Boolean);
-        if (names.length > 0) return [...new Set(names)];
-      }
-    } catch (e) {
-      // fallback
-    }
-    return FALLBACK_CROPS;
+    const response = await api.get('/api/Crop');
+    const crops = Array.isArray(response.data) ? response.data : response.data?.data || response.data?.items;
+    if (!Array.isArray(crops)) throw new Error('The Crops API returned an unsupported response.');
+    return [...new Set(crops.map((crop) => crop.cropName || crop.name).filter(Boolean))];
   }
 };
 

@@ -75,7 +75,7 @@ export default function Sales({ onNavigate }) {
       setPayments(paymentsList);
     } catch (err) {
       console.error('[Sales] Error loading data:', err);
-      setToast('Failed to load sales data.');
+      setToast(err.friendlyMessage || err.message || 'Failed to load sales data.');
     } finally {
       setLoading(false);
     }
@@ -208,7 +208,7 @@ export default function Sales({ onNavigate }) {
       setSaleModal(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to save sales record.');
+      setToast(err.friendlyMessage || err.message || 'Failed to save sales record.');
     } finally {
       setSaving(false);
     }
@@ -224,7 +224,7 @@ export default function Sales({ onNavigate }) {
       if (viewDetails?.id === deleteConfirm.id) setViewDetails(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to delete sale.');
+      setToast(err.friendlyMessage || err.message || 'Failed to delete sale.');
     }
   };
 

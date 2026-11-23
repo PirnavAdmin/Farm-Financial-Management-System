@@ -801,6 +801,7 @@ export default function Farmers({ profileEmail, profileName }) {
   const [rentalLoading, setRentalLoading] = useState(false)
   const [rentalLoadError, setRentalLoadError] = useState('')
   const [rentalSearch, setRentalSearch]   = useState('')
+  const [rentalStatusFilter, setRentalStatusFilter] = useState('All')
   const [openRentalMenuId, setOpenRentalMenuId] = useState(null)
   const [rentalMenuPosition, setRentalMenuPosition] = useState(null)
   const [deletingRentalId, setDeletingRentalId] = useState(null)
@@ -930,19 +931,22 @@ export default function Farmers({ profileEmail, profileName }) {
   useEffect(() => { fetchRentalLands() }, [fetchRentalLands])
 
   const normalizedRentalSearch = rentalSearch.trim().toLowerCase()
-  const visibleRentalLands = rentalLands.filter(record => (
+  const searchedRentalLands = rentalLands.filter(record => (
     !normalizedRentalSearch || [
       record.tenantName, record.tenantMobile, record.surveyNumber, record.areaUnit,
       record.village, record.mandal, record.district, record.rentAmount,
-      record.rentFrequency, record.leaseStartDate, record.leaseEndDate, record.remarks,
+      record.rentFrequency, record.leaseStartDate, record.leaseEndDate, record.status, record.remarks,
     ].some(value => String(value ?? '').toLowerCase().includes(normalizedRentalSearch))
   ))
 
   const counts = {
-    All: 0,
-    Active: 0,
-    Inactive: 0,
+    All: rentalLands.length,
+    Active: rentalLands.filter(record => record.status === 'Active').length,
+    Inactive: rentalLands.filter(record => record.status === 'Inactive').length,
   }
+  const visibleRentalLands = searchedRentalLands.filter(record =>
+    rentalStatusFilter === 'All' || record.status === rentalStatusFilter
+  )
   const rentalReadOnly = rentalModal?.mode === 'view'
 
   // ── Open View drawer — re-fetch fresh data for the single farmer ─────────────
@@ -1235,8 +1239,9 @@ export default function Farmers({ profileEmail, profileName }) {
           {['All', 'Active', 'Inactive'].map(s => (
             <button
               key={s} type="button"
-              className={`fm-filter-btn${s === 'All' ? ' active' : ''}`}
-              disabled
+              className={`fm-filter-btn${rentalStatusFilter === s ? ' active' : ''}`}
+              onClick={() => setRentalStatusFilter(s)}
+              aria-pressed={rentalStatusFilter === s}
             >
               {s}
               <span className="fm-filter-count">
@@ -1579,6 +1584,13 @@ export default function Farmers({ profileEmail, profileName }) {
                   <div className="fm-field">
                     <label htmlFor="rental-lease-end">Lease End Date <span className="fm-req">*</span></label>
                     <input id="rental-lease-end" name="leaseEndDate" type="date" value={rentalForm.leaseEndDate} onChange={event => setRentalForm({ ...rentalForm, leaseEndDate: event.target.value })} required min={rentalForm.leaseStartDate || undefined} disabled={rentalReadOnly} />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-status">Status <span className="fm-req">*</span></label>
+                    <select id="rental-status" name="status" value={rentalForm.status || 'Active'} onChange={event => setRentalForm({ ...rentalForm, status: event.target.value })} required disabled={rentalReadOnly}>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-remarks">Remarks</label>

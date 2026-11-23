@@ -69,7 +69,7 @@ export default function Receivables({ onNavigate }) {
       setPayments(paymentsList);
     } catch (err) {
       console.error('[Receivables] Error loading data:', err);
-      setToast('Failed to load receivables data.');
+      setToast(err.friendlyMessage || err.message || 'Failed to load receivables data.');
     } finally {
       setLoading(false);
     }
@@ -317,7 +317,7 @@ export default function Receivables({ onNavigate }) {
       setPaymentModal(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to save payment & receivable details.');
+      setToast(err.friendlyMessage || err.message || 'Failed to save payment & receivable details.');
     } finally {
       setSaving(false);
     }
@@ -332,7 +332,7 @@ export default function Receivables({ onNavigate }) {
       if (viewPayment?.id === deleteConfirm.id) setViewPayment(null);
       await loadData();
     } catch (err) {
-      setToast(err.message || 'Failed to delete payment.');
+      setToast(err.friendlyMessage || err.message || 'Failed to delete payment.');
     }
   };
 
