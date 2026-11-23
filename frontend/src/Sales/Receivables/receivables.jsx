@@ -69,7 +69,7 @@ export default function Receivables({ onNavigate }) {
       setPayments(paymentsList);
     } catch (err) {
       console.error('[Receivables] Error loading data:', err);
-      setToast('Failed to load receivables data.');
+      setToast(err.message || 'Failed to load receivables data.');
     } finally {
       setLoading(false);
     }

@@ -54,7 +54,7 @@ export default function Customers({ onNavigate }) {
       setSales(salesList);
     } catch (err) {
       console.error('[Customers] Error loading data:', err);
-      setToast('Failed to load customers data.');
+      setToast(err.message || 'Failed to load customers data.');
     } finally {
       setLoading(false);
     }
