@@ -4,5 +4,8 @@
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build"
+  },
+  "dependencies": {
+    "lucide-react": "^1.78.0"
   }
 }
