@@ -517,7 +517,7 @@ function App() {
             <Farms />
           ) : active === 'Suppliers' ? (
             <Suppliers onNavigate={selectItem} />
-          ) : active === 'Agriculture Machinery' || active === 'Machinery' || active === 'Machinery & Equipment' || active === 'Machinery Usage' ? (
+          ) : active === 'Machinery and Equipments' || active === 'Machinery & Equipments' || active === 'Agriculture Machinery' || active === 'Machinery' || active === 'Machinery & Equipment' || active === 'Machinery Usage' ? (
             <Machinery onNavigate={selectItem} />
           ) : active === 'Dashboard' ? (
               <Dashboard onNavigate={selectItem} userName={userName} />

@@ -40,6 +40,7 @@ import {
 } from '../../services/machineryService.js';
 import { farmerService } from '../../services/farmerService.js';
 import { supplierService } from '../../services/supplierService.js';
+import TableActionMenu from '../../TableActionMenu.jsx';
 import './machinery.css';
 
 // ─── Formatters ─────────────────────────────────────────────────────────────
@@ -1035,7 +1036,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             WORKSPACE <span>/</span> AGRICULTURE <span>/</span> MACHINERY MODULE
           </div>
           <h1 className="mch-title">
-            {currentScreen === 'hub' && 'Agriculture Machinery'}
+            {currentScreen === 'hub' && 'Machinery and Equipments'}
             {currentScreen === 'rentals' && 'Farmer Machinery Rental'}
             {currentScreen === 'expenses' && 'Machinery Expenses'}
             {currentScreen === 'details' && 'Machinery Details'}
@@ -1197,13 +1198,13 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────── */}
-      {/* ── FIRST SCREEN: AGRICULTURE MACHINERY HUB (3 OPTIONS) ───────────── */}
+      {/* ── FIRST SCREEN: MACHINERY AND EQUIPMENTS HUB (3 OPTIONS) ───────── */}
       {/* ──────────────────────────────────────────────────────────────────── */}
       {currentScreen === 'hub' && (
         <div className="mch-hub-container">
           <div className="mch-hub-intro">
             <div className="mch-hub-intro-text">
-              <h2>Select an Agriculture Machinery Option</h2>
+              <h2>Select a Machinery and Equipments Option</h2>
               <p>
                 Choose one of the three core workflows below to manage farmer equipment rental bookings, track maintenance and operating costs, or update machinery master profiles and valuation.
               </p>
@@ -1218,7 +1219,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             <div className="mch-hub-card" onClick={() => navigateTo('rentals')}>
               <div className="mch-hub-card-header">
                 <div className="mch-hub-icon-wrap rentals">
-                  <Calendar size={26} />
+                  <Calendar size={20} />
                 </div>
                 <span className="mch-hub-badge">Option 1</span>
               </div>
@@ -1227,10 +1228,10 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Create and manage equipment assignments, rental schedules, land acreage, hourly or daily rates, and date overlap prevention.
               </p>
               <ul className="mch-hub-features">
-                <li><CheckCircle2 size={14} /> Farmer ID, Name & Contact linkage</li>
-                <li><CheckCircle2 size={14} /> Hourly, daily, acreage & fixed pricing</li>
-                <li><CheckCircle2 size={14} /> Automated duration & total charge calculation</li>
-                <li><CheckCircle2 size={14} /> Overlapping date conflict validation</li>
+                <li><CheckCircle2 size={13} /> Farmer ID, Name & Contact linkage</li>
+                <li><CheckCircle2 size={13} /> Hourly, daily, acreage & fixed pricing</li>
+                <li><CheckCircle2 size={13} /> Automated duration & total charge calculation</li>
+                <li><CheckCircle2 size={13} /> Overlapping date conflict validation</li>
               </ul>
               <div className="mch-hub-stats-row">
                 <div className="mch-hub-stat-item">
@@ -1248,7 +1249,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   className="mch-hub-btn-open"
                   onClick={() => navigateTo('rentals')}
                 >
-                  Open Rentals <ArrowRight size={14} />
+                  Open Rentals <ArrowRight size={13} />
                 </button>
                 <button
                   type="button"
@@ -1256,7 +1257,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   onClick={() => handleOpenAddRental()}
                   title="Book new rental immediately"
                 >
-                  <Plus size={14} /> Book
+                  <Plus size={13} /> Book
                 </button>
               </div>
             </div>
@@ -1265,7 +1266,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             <div className="mch-hub-card" onClick={() => navigateTo('expenses')}>
               <div className="mch-hub-card-header">
                 <div className="mch-hub-icon-wrap expenses">
-                  <Receipt size={26} />
+                  <Receipt size={20} />
                 </div>
                 <span className="mch-hub-badge">Option 2</span>
               </div>
@@ -1274,10 +1275,10 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Record and audit machine-specific operational costs, fuel refills, servicing, workshop repairs, and spare parts bills.
               </p>
               <ul className="mch-hub-features">
-                <li><CheckCircle2 size={14} /> Fuel, Repair, Service, Maintenance & Other</li>
-                <li><CheckCircle2 size={14} /> Quantity & unit tracking (e.g. litres, sets)</li>
-                <li><CheckCircle2 size={14} /> Supplier & service provider logs</li>
-                <li><CheckCircle2 size={14} /> Bill / receipt photo uploads & audit trail</li>
+                <li><CheckCircle2 size={13} /> Fuel, Repair, Service, Maintenance & Other</li>
+                <li><CheckCircle2 size={13} /> Quantity & unit tracking (e.g. litres, sets)</li>
+                <li><CheckCircle2 size={13} /> Supplier & service provider logs</li>
+                <li><CheckCircle2 size={13} /> Bill / receipt photo uploads & audit trail</li>
               </ul>
               <div className="mch-hub-stats-row">
                 <div className="mch-hub-stat-item">
@@ -1295,7 +1296,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   className="mch-hub-btn-open"
                   onClick={() => navigateTo('expenses')}
                 >
-                  Open Expenses <ArrowRight size={14} />
+                  Open Expenses <ArrowRight size={13} />
                 </button>
                 <button
                   type="button"
@@ -1303,7 +1304,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   onClick={() => handleOpenAddExpense()}
                   title="Record expense immediately"
                 >
-                  <Plus size={14} /> Record
+                  <Plus size={13} /> Record
                 </button>
               </div>
             </div>
@@ -1312,7 +1313,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             <div className="mch-hub-card" onClick={() => navigateTo('details')}>
               <div className="mch-hub-card-header">
                 <div className="mch-hub-icon-wrap details">
-                  <Tractor size={26} />
+                  <Tractor size={20} />
                 </div>
                 <span className="mch-hub-badge">Option 3</span>
               </div>
@@ -1321,10 +1322,10 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Add, view, and edit machinery master records with technical specs, fuel type, asset valuation, status, and photos.
               </p>
               <ul className="mch-hub-features">
-                <li><CheckCircle2 size={14} /> 20+ Agricultural equipment types + custom</li>
-                <li><CheckCircle2 size={14} /> Status: Available, Rented, Under Repair, Retired</li>
-                <li><CheckCircle2 size={14} /> Purchase cost & book valuation tracking</li>
-                <li><CheckCircle2 size={14} /> Multi-photo galleries and service history</li>
+                <li><CheckCircle2 size={13} /> 20+ Agricultural equipment types + custom</li>
+                <li><CheckCircle2 size={13} /> Status: Available, Rented, Under Repair, Retired</li>
+                <li><CheckCircle2 size={13} /> Purchase cost & book valuation tracking</li>
+                <li><CheckCircle2 size={13} /> Multi-photo galleries and service history</li>
               </ul>
               <div className="mch-hub-stats-row">
                 <div className="mch-hub-stat-item">
@@ -1342,7 +1343,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   className="mch-hub-btn-open"
                   onClick={() => navigateTo('details')}
                 >
-                  Open Details <ArrowRight size={14} />
+                  Open Details <ArrowRight size={13} />
                 </button>
                 <button
                   type="button"
@@ -1350,7 +1351,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   onClick={handleOpenAddMachine}
                   title="Add new machine immediately"
                 >
-                  <Plus size={14} /> Add
+                  <Plus size={13} /> Add
                 </button>
               </div>
             </div>
@@ -1368,6 +1369,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
               <Search size={16} className="mch-search-icon" />
               <input
                 type="text"
+                className="mch-search-input"
                 placeholder="Search rentals by farmer name, contact, machine, code, purpose..."
                 value={rentalSearchQuery}
                 onChange={(e) => {
@@ -1450,7 +1452,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   <th style={{ width: '170px', textAlign: 'center' }}>Usage Basis & Rate</th>
                   <th style={{ width: '130px', textAlign: 'right' }}>Total Charge</th>
                   <th style={{ width: '120px', textAlign: 'center' }}>Status</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>Actions</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1562,31 +1564,27 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
 
                       {/* 9. Actions */}
                       <td style={{ textAlign: 'center' }}>
-                        <div className="mch-actions-wrap">
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="View Agreement"
-                            onClick={() => setViewingRental(r)}
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="Edit Rental"
-                            onClick={() => handleOpenEditRental(r)}
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn danger"
-                            title="Delete Rental"
-                            onClick={() => setDeleteConfirm({ type: 'rental', item: r })}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          <TableActionMenu
+                            items={[
+                              {
+                                label: 'View Agreement',
+                                icon: 'view',
+                                onClick: () => setViewingRental(r)
+                              },
+                              {
+                                label: 'Edit Rental',
+                                icon: 'edit',
+                                onClick: () => handleOpenEditRental(r)
+                              },
+                              {
+                                label: 'Delete Rental',
+                                icon: 'delete',
+                                danger: true,
+                                onClick: () => setDeleteConfirm({ type: 'rental', item: r })
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -1599,8 +1597,9 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           {/* Rental Pagination */}
           <div className="mch-table-footer">
             <span className="mch-pagination-info">
-              Showing {filteredRentals.length === 0 ? 0 : (rentalPage - 1) * rentalPageSize + 1} to{' '}
-              {Math.min(rentalPage * rentalPageSize, filteredRentals.length)} of {filteredRentals.length} rentals
+              Showing <strong>{filteredRentals.length === 0 ? 0 : (rentalPage - 1) * rentalPageSize + 1}</strong> to{' '}
+              <strong>{Math.min(rentalPage * rentalPageSize, filteredRentals.length)}</strong> of{' '}
+              <strong>{filteredRentals.length}</strong> rentals
             </span>
             <div className="mch-pagination-btns">
               <button
@@ -1612,7 +1611,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Previous
               </button>
               <span className="mch-page-indicator">
-                {rentalPage} of {totalRentalPages}
+                Page {rentalPage} of {totalRentalPages}
               </span>
               <button
                 type="button"
@@ -1637,6 +1636,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
               <Search size={16} className="mch-search-icon" />
               <input
                 type="text"
+                className="mch-search-input"
                 placeholder="Search expenses by machine, supplier, expense type, description, voucher..."
                 value={expenseSearchQuery}
                 onChange={(e) => {
@@ -1704,7 +1704,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   <th style={{ width: '130px', textAlign: 'center' }}>Quantity & Unit</th>
                   <th style={{ width: '130px', textAlign: 'right' }}>Amount</th>
                   <th style={{ width: '90px', textAlign: 'center' }}>Receipt</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1793,31 +1793,27 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
 
                       {/* 9. Actions */}
                       <td style={{ textAlign: 'center' }}>
-                        <div className="mch-actions-wrap">
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="View Voucher"
-                            onClick={() => setViewingExpense(e)}
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="Edit Expense"
-                            onClick={() => handleOpenEditExpense(e)}
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn danger"
-                            title="Delete Expense"
-                            onClick={() => setDeleteConfirm({ type: 'expense', item: e })}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          <TableActionMenu
+                            items={[
+                              {
+                                label: 'View Voucher',
+                                icon: 'view',
+                                onClick: () => setViewingExpense(e)
+                              },
+                              {
+                                label: 'Edit Expense',
+                                icon: 'edit',
+                                onClick: () => handleOpenEditExpense(e)
+                              },
+                              {
+                                label: 'Delete Expense',
+                                icon: 'delete',
+                                danger: true,
+                                onClick: () => setDeleteConfirm({ type: 'expense', item: e })
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -1830,8 +1826,9 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           {/* Expense Pagination */}
           <div className="mch-table-footer">
             <span className="mch-pagination-info">
-              Showing {filteredExpenses.length === 0 ? 0 : (expensePage - 1) * expensePageSize + 1} to{' '}
-              {Math.min(expensePage * expensePageSize, filteredExpenses.length)} of {filteredExpenses.length} vouchers
+              Showing <strong>{filteredExpenses.length === 0 ? 0 : (expensePage - 1) * expensePageSize + 1}</strong> to{' '}
+              <strong>{Math.min(expensePage * expensePageSize, filteredExpenses.length)}</strong> of{' '}
+              <strong>{filteredExpenses.length}</strong> vouchers
             </span>
             <div className="mch-pagination-btns">
               <button
@@ -1843,7 +1840,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Previous
               </button>
               <span className="mch-page-indicator">
-                {expensePage} of {totalExpensePages}
+                Page {expensePage} of {totalExpensePages}
               </span>
               <button
                 type="button"
@@ -1868,6 +1865,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
               <Search size={16} className="mch-search-icon" />
               <input
                 type="text"
+                className="mch-search-input"
                 placeholder="Search machinery by name, registration number, type, model..."
                 value={searchQuery}
                 onChange={(e) => {
@@ -1942,7 +1940,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   <th style={{ width: '140px', textAlign: 'right' }}>Current Value</th>
                   <th style={{ width: '150px', textAlign: 'center' }}>Fuel Type</th>
                   <th style={{ width: '140px', textAlign: 'center' }}>Status</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -2026,31 +2024,27 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
 
                       {/* 10. Actions */}
                       <td style={{ textAlign: 'center' }}>
-                        <div className="mch-actions-wrap">
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="View Details"
-                            onClick={() => setViewingMachine(m)}
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn"
-                            title="Edit Record"
-                            onClick={() => handleOpenEditMachine(m)}
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="mch-action-btn danger"
-                            title="Delete Machinery"
-                            onClick={() => setDeleteConfirm({ type: 'machine', item: m })}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          <TableActionMenu
+                            items={[
+                              {
+                                label: 'View Details',
+                                icon: 'view',
+                                onClick: () => setViewingMachine(m)
+                              },
+                              {
+                                label: 'Edit Record',
+                                icon: 'edit',
+                                onClick: () => handleOpenEditMachine(m)
+                              },
+                              {
+                                label: 'Delete Machinery',
+                                icon: 'delete',
+                                danger: true,
+                                onClick: () => setDeleteConfirm({ type: 'machine', item: m })
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -2063,8 +2057,9 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           {/* Machinery Pagination */}
           <div className="mch-table-footer">
             <span className="mch-pagination-info">
-              Showing {filteredMachinery.length === 0 ? 0 : (machineryPage - 1) * machineryPageSize + 1} to{' '}
-              {Math.min(machineryPage * machineryPageSize, filteredMachinery.length)} of {filteredMachinery.length} machines
+              Showing <strong>{filteredMachinery.length === 0 ? 0 : (machineryPage - 1) * machineryPageSize + 1}</strong> to{' '}
+              <strong>{Math.min(machineryPage * machineryPageSize, filteredMachinery.length)}</strong> of{' '}
+              <strong>{filteredMachinery.length}</strong> machines
             </span>
             <div className="mch-pagination-btns">
               <button
@@ -2076,7 +2071,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 Previous
               </button>
               <span className="mch-page-indicator">
-                {machineryPage} of {totalMachineryPages}
+                Page {machineryPage} of {totalMachineryPages}
               </span>
               <button
                 type="button"
