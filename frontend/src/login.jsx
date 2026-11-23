@@ -1,5 +1,9 @@
-﻿import { useState } from 'react'
-function ArrowLeft({ size = 24, className = '', ...props }) {
+import { useState } from 'react'
+import './login.css'
+import farmBg from './assets/agriman-farm-bg.jpg'
+import { authRequest } from './auth.js'
+
+function ArrowLeft({ size = 22, className = '', ...props }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -19,9 +23,6 @@ function ArrowLeft({ size = 24, className = '', ...props }) {
     </svg>
   )
 }
-import './login.css'
-import farmBg from './assets/agriman-farm-bg.jpg'
-import { authRequest } from './auth.js'
 
 // Feature highlight icons - exact match to reference
 function SproutIcon() {
