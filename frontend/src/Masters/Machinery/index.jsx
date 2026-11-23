@@ -22,7 +22,7 @@ import {
   Layers,
   CheckCircle2,
   HelpCircle
-} from 'lucide-react';
+} from './MachineryIcons.jsx';
 import {
   machineryService,
   normalizeMachine,
