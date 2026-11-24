@@ -1034,5 +1034,98 @@ CREATE TABLE IF NOT EXISTS `finance_receipts` (
                 Console.WriteLine($"[Loan Table Ensure Note]: {ex.Message}");
             }
         }
+
+        public static async Task EnsureInventorySchemaAsync(FarmDbContext context)
+        {
+            try
+            {
+                var sql = @"
+CREATE TABLE IF NOT EXISTS `product_categories` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(100) NOT NULL,
+    `Description` VARCHAR(250) NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_product_categories_Name` (`Name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `units` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(50) NOT NULL,
+    `ShortCode` VARCHAR(20) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_units_ShortCode` (`ShortCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `products` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Code` VARCHAR(50) NOT NULL,
+    `Name` VARCHAR(150) NOT NULL,
+    `CategoryId` INT NOT NULL,
+    `UnitId` INT NOT NULL,
+    `ReorderLevel` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `StandardCost` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_products_Code` (`Code`),
+    KEY `IX_products_CategoryId` (`CategoryId`),
+    KEY `IX_products_UnitId` (`UnitId`),
+    CONSTRAINT `FK_products_product_categories` FOREIGN KEY (`CategoryId`) REFERENCES `product_categories` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_products_units` FOREIGN KEY (`UnitId`) REFERENCES `units` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `inventory` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `ProductId` INT NOT NULL,
+    `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
+    `CurrentStock` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `ReservedStock` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `LastUpdated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_inventory_Product_Location` (`ProductId`, `StorageLocation`),
+    CONSTRAINT `FK_inventory_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `inventory_transactions` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `ProductId` INT NOT NULL,
+    `TransactionDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `TransactionType` VARCHAR(50) NOT NULL,
+    `Quantity` DECIMAL(18,2) NOT NULL,
+    `UnitPrice` DECIMAL(18,2) NOT NULL DEFAULT 0,
+    `StorageLocation` VARCHAR(100) NOT NULL,
+    `ReferenceType` VARCHAR(50) NULL,
+    `ReferenceNumber` VARCHAR(100) NULL,
+    `Notes` VARCHAR(500) NULL,
+    `BalanceAfterTransaction` DECIMAL(18,2) NULL,
+    PRIMARY KEY (`Id`),
+    KEY `IX_inventory_transactions_ProductId` (`ProductId`),
+    CONSTRAINT `FK_inv_tx_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `stock_adjustments` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `AdjustmentNumber` VARCHAR(50) NOT NULL,
+    `AdjustmentDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `ProductId` INT NOT NULL,
+    `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
+    `BookStock` DECIMAL(18,2) NOT NULL,
+    `PhysicalStock` DECIMAL(18,2) NOT NULL,
+    `Reason` VARCHAR(100) NOT NULL,
+    `Remarks` VARCHAR(500) NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_stock_adjustments_Number` (`AdjustmentNumber`),
+    KEY `IX_stock_adjustments_ProductId` (`ProductId`),
+    CONSTRAINT `FK_stock_adjustments_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+                await context.Database.ExecuteSqlRawAsync(sql);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Inventory Schema Ensure Note]: {ex.Message}");
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using AgriMan.Api.Data;
@@ -93,6 +93,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
+builder.Services.AddScoped<FarmManagementApi.Services.IInventoryService, FarmManagementApi.Services.InventoryService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -170,7 +171,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "AGRIMAN Unified Platform - All Modules (Database: Farmersdb)",
         Version = "v1",
-        Description = "### 🌾 Comprehensive Unified Farm Financial & Operations Platform API\n" +
+        Description = "### ðŸŒ¾ Comprehensive Unified Farm Financial & Operations Platform API\n" +
                       "Unified ASP.NET Core (.NET 8) platform storing all data in **`Farmersdb`** on `NIRANJAN\\SQLEXPRESS`:\n\n" +
                       "- **1. Auth & User API**: JWT Login, Registration, OTP Password Reset, Roles, Permissions\n" +
                       "- **2. Farmer Registry**: Profiles, Aadhaar, Land Holding, Addresses, Bank Accounts\n" +
@@ -329,7 +330,7 @@ builder.Services.AddSwaggerGen(c =>
         }
         if (docName == "inventory")
         {
-            return name.StartsWith("Inventory") || name.StartsWith("Product");
+            return name.StartsWith("Inventory") || name.StartsWith("Product") || name.StartsWith("Unit");
         }
         if (docName == "expenses")
         {
@@ -413,6 +414,10 @@ builder.Services.AddSwaggerGen(c =>
         if (controllerName.StartsWith("Crop", StringComparison.OrdinalIgnoreCase)) return new[] { "05. Crops - Crop Profiles, Categories, Varieties & Seasons (Module 5)" };
 
         // 06. Inventory & Agricultural Inputs
+        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories (Module 6)" };
+        if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Stock In, Stock Out & Adjustments (Module 6)" };
+        if (controllerName.Equals("ProductCategories", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Product Categories (Module 6)" };
+        if (controllerName.Equals("Units", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Units of Measurement (Module 6)" };
         if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories (Module 6)" };
         if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Stock In, Stock Out & Adjustments (Module 6)" };
 
@@ -528,9 +533,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var farmDb = services.GetRequiredService<FarmDbContext>();
+        await FarmManagementApi.Data.FarmDbContext.EnsureInventorySchemaAsync(farmDb);
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
         await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
-        logger.LogInformation("[Farmersdb] 2. Farm Management module & Loans ready.");
+        logger.LogInformation("[agriman_db] 2. Farm Management, Inventory Master & Loans ready.");
     }
     catch (Exception ex)
     {
@@ -599,7 +605,7 @@ app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "🌾 [SHOW ALL] All 15+ Modules (Unified Platform)");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ðŸŒ¾ [SHOW ALL] All 15+ Modules (Unified Platform)");
     c.SwaggerEndpoint("/swagger/auth/swagger.json", "01. Auth & User Management (Module 1)");
     c.SwaggerEndpoint("/swagger/farmers/swagger.json", "02. Farmers Registry & Profiles (Module 2)");
     c.SwaggerEndpoint("/swagger/farms/swagger.json", "03. Farms & Land Holdings (Module 3)");
@@ -708,7 +714,7 @@ public class NgrokServerDocumentFilter : IDocumentFilter
                 servers.Add(new OpenApiServer
                 {
                     Url = $"{proto}://{forwardedHost}",
-                    Description = "🌐 Active ngrok Public Tunnel Endpoint"
+                    Description = "ðŸŒ Active ngrok Public Tunnel Endpoint"
                 });
             }
             else if (req.Host.HasValue)
@@ -716,7 +722,7 @@ public class NgrokServerDocumentFilter : IDocumentFilter
                 servers.Add(new OpenApiServer
                 {
                     Url = $"{req.Scheme}://{req.Host.Value}",
-                    Description = "🏠 Current Host Server"
+                    Description = "ðŸ  Current Host Server"
                 });
             }
         }
@@ -727,14 +733,14 @@ public class NgrokServerDocumentFilter : IDocumentFilter
             servers.Add(new OpenApiServer
             {
                 Url = configNgrokUrl.TrimEnd('/'),
-                Description = "🔗 Configured ngrok Tunnel URL"
+                Description = "ðŸ”— Configured ngrok Tunnel URL"
             });
         }
 
         servers.Add(new OpenApiServer
         {
             Url = "http://localhost:5200",
-            Description = "💻 Localhost (Port 5200)"
+            Description = "ðŸ’» Localhost (Port 5200)"
         });
 
         swaggerDoc.Servers = servers;
