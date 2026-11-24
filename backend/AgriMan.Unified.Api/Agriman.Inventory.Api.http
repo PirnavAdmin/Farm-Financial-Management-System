@@ -1,0 +1,128 @@
+### ==============================================================================
+### AGRIMAN INVENTORY MANAGEMENT HTTP TEST SUITE (Part 2 - Kalyan kumar vanumu)
+### Stock Movements Engine: Live Directory, Stock In, Stock Out, Stock Transfer
+### ==============================================================================
+
+@baseUrl = http://localhost:5147
+@contentType = application/json
+
+### ------------------------------------------------------------------------------
+### 1. LIVE STOCK DIRECTORY (Missing Read APIs)
+### ------------------------------------------------------------------------------
+
+### 1.1 GET Live Stock Directory with Pagination, Search & Filters
+GET {{baseUrl}}/api/Inventory?search=fertilizer&categoryId=1&location=Main%20Warehouse&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 1.2 GET Stock Breakdown across all Storage Locations for a Product
+GET {{baseUrl}}/api/Inventory/1/stock
+Accept: {{contentType}}
+
+
+### ------------------------------------------------------------------------------
+### 2. STOCK IN (GET & POST)
+### ------------------------------------------------------------------------------
+
+### 2.1 GET Stock In History (with date, product, location, and supplier filters)
+GET {{baseUrl}}/api/Inventory/stock-in?productId=1&location=Main%20Warehouse&supplierId=5&fromDate=2026-01-01&toDate=2026-12-31&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 2.2 POST Stock In - Valid Incoming Delivery (Auto-generates SIN-YYYY-NNN)
+POST {{baseUrl}}/api/Inventory/stock-in
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "quantity": 50.0,
+  "unitPrice": 1450.00,
+  "supplierId": 5,
+  "supplierName": "Sri Rama Agro Chemicals",
+  "referenceType": "Purchase",
+  "notes": "50 bags of Urea received in prime condition"
+}
+
+### 2.3 POST Stock In - Validation Test (Non-existent Product ID returns 404)
+POST {{baseUrl}}/api/Inventory/stock-in
+Content-Type: {{contentType}}
+
+{
+  "productId": 999999,
+  "storageLocation": "Main Warehouse",
+  "quantity": 10.0,
+  "unitPrice": 500.00,
+  "notes": "Should return 404 Not Found"
+}
+
+
+### ------------------------------------------------------------------------------
+### 3. STOCK OUT (GET & POST)
+### ------------------------------------------------------------------------------
+
+### 3.1 GET Stock Out History (with date, product, location, farm/crop filters)
+GET {{baseUrl}}/api/Inventory/stock-out?productId=1&location=Main%20Warehouse&farmId=2&cropId=1&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 3.2 POST Stock Out - Valid Issue to Field (Auto-generates SOUT-YYYY-NNN)
+POST {{baseUrl}}/api/Inventory/stock-out
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "quantity": 15.0,
+  "farmId": 2,
+  "cropId": 1,
+  "issuedTo": "Ramesh (Tractor Operator)",
+  "purpose": "First Basal Dressing for Cotton Season",
+  "referenceType": "FieldUsage",
+  "notes": "Applied across 5 acres"
+}
+
+### 3.3 POST Stock Out - Strict Insufficient Stock Test (Returns 400 Bad Request)
+POST {{baseUrl}}/api/Inventory/stock-out
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "quantity": 999999.0,
+  "farmId": 2,
+  "cropId": 1,
+  "issuedTo": "Test Operator",
+  "purpose": "Excessive request test",
+  "notes": "Should trigger strict insufficient-stock validation error"
+}
+
+
+### ------------------------------------------------------------------------------
+### 4. STOCK TRANSFER (GET & POST)
+### ------------------------------------------------------------------------------
+
+### 4.1 GET Stock Transfer History
+GET {{baseUrl}}/api/Inventory/stock-transfer?productId=1&fromLocation=Main%20Warehouse&toLocation=North%20Farm%20Shed&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 4.2 POST Stock Transfer - Valid Transfer (Generates Paired STR-OUT & STR-IN)
+POST {{baseUrl}}/api/Inventory/stock-transfer
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "fromLocation": "Main Warehouse",
+  "toLocation": "North Farm Shed",
+  "quantity": 10.0,
+  "notes": "Dispatched for urgent spraying in North Field"
+}
+
+### 4.3 POST Stock Transfer - Validation Test: Identical Locations (Returns 400)
+POST {{baseUrl}}/api/Inventory/stock-transfer
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "fromLocation": "Main Warehouse",
+  "toLocation": "Main Warehouse",
+  "quantity": 5.0,
+  "notes": "Should return 400 Bad Request: Locations cannot be identical"
+}
