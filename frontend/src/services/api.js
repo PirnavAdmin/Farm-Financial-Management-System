@@ -40,9 +40,11 @@ api.interceptors.response.use(
     let validationErrors = null;
 
     if (error.response) {
-      const { status, data } = error.response;
+      const { status, data, headers } = error.response;
 
-      if (data && data.errors && typeof data.errors === 'object') {
+      if (headers?.['ngrok-error-code'] === 'ERR_NGROK_3200' || (typeof data === 'string' && data.includes('ERR_NGROK_3200'))) {
+        friendlyMessage = 'The backend API tunnel (travel-daringly-tapering.ngrok-free.dev) is currently offline (ERR_NGROK_3200). Please start or restart the backend ngrok tunnel.';
+      } else if (data && data.errors && typeof data.errors === 'object') {
         validationErrors = data.errors;
         const messages = Object.values(data.errors).flat();
         friendlyMessage = messages.join(' ') || data.title || 'Validation error.';

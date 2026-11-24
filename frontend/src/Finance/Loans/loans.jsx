@@ -26,9 +26,12 @@ import {
 // Loan Types for Indian Agricultural & Farm Operations
 const LOAN_TYPES = [
   'Crop Loan (KCC)',
+  'Agricultural Equipment Loan',
+  'Tractor & Machinery Loan',
   'Tractor / Equipment Loan',
   'Drip Irrigation Loan',
-  'Dairy / Livestock Loan',
+  'Farm Development Loan',
+  'Dairy & Livestock Loan',
   'Land Purchase / Development',
   'Gold Loan (Agri)',
   'Working Capital Loan',
@@ -122,8 +125,8 @@ function todayDate() {
 function computeEmiClient(principal, ratePercent, tenureMonths, frequency = 'Monthly') {
   const P = parseAmount(principal)
   const R = parseRate(ratePercent)
-  const N = parseInt(tenureMonths, 10) || 12
-  if (P <= 0 || N <= 0) return 0
+  const N = tenureMonths !== undefined && tenureMonths !== null && tenureMonths !== '' ? parseInt(tenureMonths, 10) : 12
+  if (P <= 0 || !Number.isFinite(N) || N <= 0) return 0
   if (R <= 0) return Math.round(P / N)
 
   const periodsPerYear = frequency === 'Quarterly' ? 4 : frequency === 'Half-Yearly' ? 2 : frequency === 'Yearly' ? 1 : 12
@@ -136,8 +139,11 @@ function computeEmiClient(principal, ratePercent, tenureMonths, frequency = 'Mon
 }
 
 function normalizeLoan(raw) {
+  const id = raw.loanId ?? raw.id
   return {
     ...raw,
+    id,
+    loanId: id,
     bankName: raw.bankLender || raw.bankName || '',
     sanctionAmount: Number(raw.sanctionAmount) || 0,
     disbursedAmount: Number(raw.disbursedAmount) || Number(raw.sanctionAmount) || 0,
@@ -224,8 +230,8 @@ export default function Loans() {
       const [records, paid, totals, paidTotals] = await Promise.all([
         loanService.list(),
         loanService.payments(),
-        loanService.summary(),
-        loanService.paymentSummary(),
+        loanService.summary().catch(err => { console.warn('Loan summary notice:', err); return null; }),
+        loanService.paymentSummary().catch(err => { console.warn('Payment summary notice:', err); return null; }),
       ])
       setLoans((records || []).map(normalizeLoan))
       setPayments((paid || []).map(normalizePayment))
@@ -509,7 +515,7 @@ export default function Loans() {
     if (!deleteConfirm || deleteConfirm.type !== 'loan') return
     const target = deleteConfirm.item
     mutate(
-      () => loanService.remove(target.loanId),
+      () => loanService.remove(target.loanId ?? target.id),
       () => setDeleteConfirm(null),
       `Loan ${target.loanNo} deleted.`
     )
@@ -923,8 +929,8 @@ export default function Loans() {
               </div>
               <div className="loan-stat-info">
                 <small>Active Loans</small>
-                <strong>{activeLoansCount} of {totalLoansCount}</strong>
-                <span>Active debt facilities</span>
+                <strong>{activeLoansCount} Active</strong>
+                <span>{totalLoansCount} registered debt facilities</span>
               </div>
             </div>
 
@@ -933,9 +939,9 @@ export default function Loans() {
                 <CoinsIcon size={20} />
               </div>
               <div className="loan-stat-info">
-                <small>Total Disbursed</small>
-                <strong>{formatCurrency(totalDisbursed)}</strong>
-                <span>Sanctioned: {formatCurrency(totalSanctioned)}</span>
+                <small>Total Sanctioned Amount</small>
+                <strong>{formatCurrency(totalSanctioned)}</strong>
+                <span>Disbursed: {formatCurrency(totalDisbursed)}</span>
               </div>
             </div>
 
@@ -944,7 +950,7 @@ export default function Loans() {
                 <WalletIcon size={20} />
               </div>
               <div className="loan-stat-info">
-                <small>Total Outstanding</small>
+                <small>Total Outstanding Amount</small>
                 <strong>{formatCurrency(totalOutstanding)}</strong>
                 <span>Unpaid principal liability</span>
               </div>
@@ -955,9 +961,9 @@ export default function Loans() {
                 <CheckCircleIcon size={20} />
               </div>
               <div className="loan-stat-info">
-                <small>Principal Repaid</small>
-                <strong>{formatCurrency(totalPrincipalPaid)}</strong>
-                <span>{totalRepaidPct.toFixed(1)}% of sanctioned repaid</span>
+                <small>Total Amount Paid</small>
+                <strong>{formatCurrency(totalAmountPaid)}</strong>
+                <span>Principal: {formatCurrency(totalPrincipalPaid)} ({totalRepaidPct.toFixed(1)}%)</span>
               </div>
             </div>
           </>
