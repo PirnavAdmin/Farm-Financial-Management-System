@@ -291,9 +291,7 @@ export default function Customers({ onNavigate }) {
             <option value="Inactive">Inactive</option>
           </select>
 
-          <button className="sales-reset-btn" type="button" onClick={resetFilters}>
-            ↻ Reset Filters
-          </button>
+
         </div>
 
         {/* Data Table */}

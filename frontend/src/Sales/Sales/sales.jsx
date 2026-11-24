@@ -1,5 +1,5 @@
 import TableActionMenu from '../../TableActionMenu';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import salesService, { formatCurrency, formatDate } from '../../services/salesService';
 import './sales.css';
 
@@ -21,6 +21,34 @@ export default function Sales({ onNavigate }) {
   const [farmFilter, setFarmFilter] = useState('All');
   const [cropFilter, setCropFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Unified "Filters" dropdown state
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    if (!isFilterOpen) return undefined;
+    const handleOutsideClick = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isFilterOpen]);
+
+  // Active filters count (excluding search query)
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (fromDate) count++;
+    if (toDate) count++;
+    if (buyerFilter !== 'All') count++;
+    if (farmFilter !== 'All') count++;
+    if (cropFilter !== 'All') count++;
+    if (statusFilter !== 'All') count++;
+    return count;
+  }, [fromDate, toDate, buyerFilter, farmFilter, cropFilter, statusFilter]);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -352,76 +380,174 @@ export default function Sales({ onNavigate }) {
             />
           </div>
 
-          <div className="sales-date-filter-group">
-            <span>From:</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              title="Filter from sales date"
-            />
-            <span>To:</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              title="Filter to sales date"
-            />
+          {/* Unified "Filters" Dropdown */}
+          <div className="sales-filters-dropdown-wrap" ref={filterDropdownRef}>
+            <button
+              type="button"
+              className={`sales-filters-btn ${isFilterOpen ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-active' : ''}`}
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+              title="Filter by date, buyer, farm, crop, status"
+              aria-haspopup="true"
+              aria-expanded={isFilterOpen}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="sales-filters-count-badge">{activeFiltersCount}</span>
+              )}
+              <svg
+                className={`sales-filters-chevron ${isFilterOpen ? 'rotated' : ''}`}
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {isFilterOpen && (
+              <div className="sales-filters-dropdown-menu">
+                <div className="sales-filters-dropdown-header">
+                  <div className="sales-filters-header-title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                    </svg>
+                    <span>Filter Sales</span>
+                  </div>
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      className="sales-filters-clear-btn"
+                      onClick={() => {
+                        setFromDate('');
+                        setToDate('');
+                        setBuyerFilter('All');
+                        setFarmFilter('All');
+                        setCropFilter('All');
+                        setStatusFilter('All');
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="sales-filters-dropdown-body">
+                  {/* Sales Date Range: From & To */}
+                  <div className="sales-filter-group">
+                    <label className="sales-filter-group-label">Sales Date Range</label>
+                    <div className="sales-filter-dates-row">
+                      <div className="sales-filter-date-col">
+                        <span>From:</span>
+                        <input
+                          type="date"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          title="Filter from sales date"
+                        />
+                      </div>
+                      <div className="sales-filter-date-col">
+                        <span>To:</span>
+                        <input
+                          type="date"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          title="Filter to sales date"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sales-filter-dropdowns-grid">
+                    {/* Buyer */}
+                    <div className="sales-filter-group">
+                      <label className="sales-filter-group-label">Buyer</label>
+                      <select
+                        value={buyerFilter}
+                        onChange={(e) => setBuyerFilter(e.target.value)}
+                        title="Filter by Buyer"
+                      >
+                        <option value="All">All Buyers</option>
+                        {buyers.map((b) => (
+                          <option key={b.id || b.buyerCode} value={b.buyerName}>
+                            {b.buyerName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Farm */}
+                    <div className="sales-filter-group">
+                      <label className="sales-filter-group-label">Farm</label>
+                      <select
+                        value={farmFilter}
+                        onChange={(e) => setFarmFilter(e.target.value)}
+                        title="Filter by Farm"
+                      >
+                        <option value="All">All Farms</option>
+                        {farms.map((f) => (
+                          <option key={f} value={f}>
+                            {f}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Crop */}
+                    <div className="sales-filter-group">
+                      <label className="sales-filter-group-label">Crop</label>
+                      <select
+                        value={cropFilter}
+                        onChange={(e) => setCropFilter(e.target.value)}
+                        title="Filter by Crop"
+                      >
+                        <option value="All">All Crops</option>
+                        {crops.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Payment Status */}
+                    <div className="sales-filter-group">
+                      <label className="sales-filter-group-label">Payment Status</label>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        title="Filter by Payment Status"
+                      >
+                        <option value="All">All Payment Statuses</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Partially Paid">Partially Paid</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sales-filters-dropdown-footer">
+                  <button
+                    type="button"
+                    className="sales-filters-apply-action"
+                    onClick={() => setIsFilterOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <select
-            value={buyerFilter}
-            onChange={(e) => setBuyerFilter(e.target.value)}
-            title="Filter by Buyer"
-          >
-            <option value="All">All Buyers</option>
-            {buyers.map((b) => (
-              <option key={b.id || b.buyerCode} value={b.buyerName}>
-                {b.buyerName}
-              </option>
-            ))}
-          </select>
 
-          <select
-            value={farmFilter}
-            onChange={(e) => setFarmFilter(e.target.value)}
-            title="Filter by Farm"
-          >
-            <option value="All">All Farms</option>
-            {farms.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={cropFilter}
-            onChange={(e) => setCropFilter(e.target.value)}
-            title="Filter by Crop"
-          >
-            <option value="All">All Crops</option>
-            {crops.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            title="Filter by Payment Status"
-          >
-            <option value="All">All Payment Statuses</option>
-            <option value="Paid">Paid</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Pending">Pending</option>
-          </select>
-
-          <button className="sales-reset-btn" type="button" onClick={resetFilters}>
-            ↻ Reset Filters
-          </button>
         </div>
 
         {/* Data Table */}

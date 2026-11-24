@@ -221,34 +221,79 @@ function setStorage(key, data) {
 }
 
 export const cropActivityService = {
-  getActivities: async () => {
+  getActivities: async (params = {}) => {
+    try {
+      const res = await api.get('/api/CropActivities', { params });
+      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setStorage('agriman_crop_activities', data);
+        return data;
+      }
+    } catch (err) {
+      console.warn('[cropActivityService] API getActivities failed, using storage:', err);
+    }
     const raw = getStorage('agriman_crop_activities', SEED_ACTIVITIES);
     return [...raw].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   },
 
   getActivityById: async (id) => {
+    try {
+      const res = await api.get(`/api/CropActivities/${id}`);
+      if (res.data) return res.data?.data || res.data;
+    } catch {
+      // Fallback
+    }
     const list = getStorage('agriman_crop_activities', SEED_ACTIVITIES);
     return list.find(a => Number(a.id) === Number(id) || a.activityCode === id) || null;
   },
 
   createActivity: async (newAct) => {
+    let result = null;
+    try {
+      const payload = {
+        ...newAct,
+        totalCost: Number(String(newAct.totalCost || '').replace(/[^0-9.-]/g, '')) || 0
+      };
+      const res = await api.post('/api/CropActivities', payload);
+      result = res.data?.data || res.data;
+    } catch (err) {
+      console.warn('[cropActivityService] API createActivity failed, using storage:', err);
+    }
+
     const list = getStorage('agriman_crop_activities', SEED_ACTIVITIES);
-    const id = list.length ? Math.max(...list.map(a => Number(a.id) || 0)) + 1 : 1;
-    const activityCode = newAct.activityCode || `ACT-${new Date().getFullYear()}-${String(id).padStart(2, '0')}`;
-    const record = { ...newAct, id, activityCode, status: newAct.status || 'In Progress' };
+    const id = result?.id || (list.length ? Math.max(...list.map(a => Number(a.id) || 0)) + 1 : 1);
+    const activityCode = result?.activityCode || newAct.activityCode || `ACT-${new Date().getFullYear()}-${String(id).padStart(2, '0')}`;
+    const record = result || { ...newAct, id, activityCode, status: newAct.status || 'In Progress' };
     const updated = [...list.filter(v => v.id !== record.id), record];
     setStorage('agriman_crop_activities', updated);
     return record;
   },
 
   updateActivity: async (id, updatedAct) => {
+    let result = null;
+    try {
+      const payload = {
+        ...updatedAct,
+        totalCost: Number(String(updatedAct.totalCost || '').replace(/[^0-9.-]/g, '')) || 0
+      };
+      const res = await api.put(`/api/CropActivities/${id}`, payload);
+      result = res.data?.data || res.data;
+    } catch (err) {
+      console.warn('[cropActivityService] API updateActivity failed, using storage:', err);
+    }
+
     const list = getStorage('agriman_crop_activities', SEED_ACTIVITIES);
-    const updated = list.map(a => (a.id === id ? { ...a, ...updatedAct } : a));
+    const updated = list.map(a => (a.id === id ? { ...a, ...(result || updatedAct) } : a));
     setStorage('agriman_crop_activities', updated);
-    return updatedAct;
+    return result || updatedAct;
   },
 
   deleteActivity: async (id) => {
+    try {
+      await api.delete(`/api/CropActivities/${id}`);
+    } catch (err) {
+      console.warn('[cropActivityService] API deleteActivity failed, using storage:', err);
+    }
     const list = getStorage('agriman_crop_activities', SEED_ACTIVITIES);
     const updated = list.filter(a => a.id !== id);
     setStorage('agriman_crop_activities', updated);

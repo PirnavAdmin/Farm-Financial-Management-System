@@ -477,36 +477,105 @@ CREATE TABLE `expense_transactions` (
 -- 7. Inventory & Products
 -- ----------------------------------------------------------
 
+DROP TABLE IF EXISTS `stock_adjustments`;
+DROP TABLE IF EXISTS `inventory_transactions`;
 DROP TABLE IF EXISTS `inventory`;
 DROP TABLE IF EXISTS `products`;
+DROP TABLE IF EXISTS `units`;
 DROP TABLE IF EXISTS `product_categories`;
 
 CREATE TABLE `product_categories` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
-    `CategoryName` VARCHAR(100) NOT NULL UNIQUE,
-    `Description` VARCHAR(250) DEFAULT NULL
+    `Name` VARCHAR(100) NOT NULL UNIQUE,
+    `Description` VARCHAR(250) DEFAULT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    INDEX `idx_pc_name` (`Name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `units` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `Name` VARCHAR(50) NOT NULL,
+    `ShortCode` VARCHAR(20) NOT NULL UNIQUE,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    INDEX `idx_units_code` (`ShortCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `products` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `Code` VARCHAR(50) NOT NULL UNIQUE,
+    `Name` VARCHAR(150) NOT NULL,
     `CategoryId` INT NOT NULL,
-    `ProductCode` VARCHAR(50) NOT NULL UNIQUE,
-    `ProductName` VARCHAR(150) NOT NULL,
-    `Unit` VARCHAR(20) NOT NULL DEFAULT 'Bags',
-    `UnitPrice` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    `ReorderLevel` INT NOT NULL DEFAULT 10,
-    `Status` VARCHAR(20) NOT NULL DEFAULT 'Active',
-    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT `fk_products_category` FOREIGN KEY (`CategoryId`) REFERENCES `product_categories` (`Id`)
+    `UnitId` INT NOT NULL,
+    `ReorderLevel` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `StandardCost` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    INDEX `idx_products_category` (`CategoryId`),
+    INDEX `idx_products_unit` (`UnitId`),
+    INDEX `idx_products_code` (`Code`),
+    INDEX `idx_products_isactive` (`IsActive`),
+    CONSTRAINT `fk_products_category` FOREIGN KEY (`CategoryId`) REFERENCES `product_categories` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_products_units` FOREIGN KEY (`UnitId`) REFERENCES `units` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `inventory` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `ProductId` INT NOT NULL,
-    `CurrentStock` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
+    `CurrentStock` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `ReservedStock` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
     `LastUpdated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `ux_inventory_product_loc` (`ProductId`, `StorageLocation`),
     CONSTRAINT `fk_inventory_product` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `inventory_transactions` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `ProductId` INT NOT NULL,
+    `TransactionDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `TransactionType` VARCHAR(50) NOT NULL,
+    `Quantity` DECIMAL(18, 2) NOT NULL,
+    `UnitPrice` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
+    `ReferenceType` VARCHAR(50) DEFAULT NULL,
+    `ReferenceNumber` VARCHAR(100) DEFAULT NULL,
+    `Notes` VARCHAR(500) DEFAULT NULL,
+    `BalanceAfterTransaction` DECIMAL(18, 2) DEFAULT NULL,
+    INDEX `idx_inv_tx_product` (`ProductId`),
+    CONSTRAINT `fk_inv_tx_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `stock_adjustments` (
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `AdjustmentNumber` VARCHAR(50) NOT NULL UNIQUE,
+    `AdjustmentDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `ProductId` INT NOT NULL,
+    `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
+    `BookStock` DECIMAL(18, 2) NOT NULL,
+    `PhysicalStock` DECIMAL(18, 2) NOT NULL,
+    `Reason` VARCHAR(100) NOT NULL,
+    `Remarks` VARCHAR(500) DEFAULT NULL,
+    INDEX `idx_stock_adj_product` (`ProductId`),
+    CONSTRAINT `fk_stock_adj_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed Default Categories
+INSERT INTO `product_categories` (`Id`, `Name`, `Description`, `IsActive`) VALUES
+(1, 'Seeds', 'Agricultural crop seeds, hybrid varieties, and certified saplings', 1),
+(2, 'Fertilizers', 'Chemical, organic, and complex plant nutrients', 1),
+(3, 'Pesticides', 'Chemical insecticides, fungicides, and herbicides for pest control', 1),
+(4, 'Sprayer Chemicals', 'Specialized liquid sprays, adjuvants, and micronutrients', 1),
+(5, 'Spare Parts', 'Tractor, tiller, irrigation pump, and sprayer spare parts', 1),
+(6, 'Consumables', 'Drip lateral pipes, ropes, tarpaulins, and farm consumables')
+ON DUPLICATE KEY UPDATE `Description` = VALUES(`Description`), `IsActive` = VALUES(`IsActive`);
+
+-- Seed Default Units
+INSERT INTO `units` (`Id`, `Name`, `ShortCode`, `IsActive`) VALUES
+(1, 'Kilograms', 'kg', 1),
+(2, 'Bags', 'Bags', 1),
+(3, 'Litre', 'Litre', 1),
+(4, 'Quintals', 'Quintals', 1),
+(5, 'Packets', 'Packets', 1)
+ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `IsActive` = VALUES(`IsActive`);
 
 -- ----------------------------------------------------------
 -- 8. Buyers & Sales

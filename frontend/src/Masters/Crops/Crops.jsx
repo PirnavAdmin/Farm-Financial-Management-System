@@ -403,38 +403,38 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
   // Form states
   const [cropForm, setCropForm] = useState({
-    cropCode: '', cropName: '', cropType: 'Kharif / Food Grain',
-    cropCategory: 'Cereals', defaultUnit: 'Quintals', status: 'Active', description: ''
+    cropCode: '', cropName: '', cropType: '',
+    cropCategory: '', defaultUnit: '', status: '', description: ''
   });
   const [seasonForm, setSeasonForm] = useState({
-    seasonCode: '', farm: 'Farm 1 (South Block)', crop: 'Paddy',
-    variety: 'BPT 5204 (Samba Mahsuri)', season: 'Kharif 2025-26',
+    seasonCode: '', farm: '', crop: '',
+    variety: '', season: '',
     sowingDate: '', expectedHarvestDate: '', actualHarvestDate: '',
-    area: '5 Acres', expectedYield: '', expectedRevenue: '',
-    actualYield: '', actualRevenue: '', status: 'In Progress'
+    area: '', expectedYield: '', expectedRevenue: '',
+    actualYield: '', actualRevenue: '', status: ''
   });
   const [activityForm, setActivityForm] = useState({
     activityCode: '',
-    farm: 'Farm 1 (South Block)',
-    crop: 'Cotton',
-    season: 'Kharif 2025-26',
-    activityType: 'Land Preparation',
-    activityDate: new Date().toISOString().split('T')[0],
-    labourWorkers: '4 Labourers',
-    machinery: 'Mahindra 575 DI Tractor',
+    farm: '',
+    crop: '',
+    season: '',
+    activityType: '',
+    activityDate: '',
+    labourWorkers: '',
+    machinery: '',
     materialsUsed: '',
-    totalCost: '₹ 5,000',
-    status: 'In Progress',
-    supervisor: 'Niranjan Reddy',
+    totalCost: '',
+    status: '',
+    supervisor: '',
     notes: '',
     attachments: []
   });
   const [varietyForm, setVarietyForm] = useState({
-    code: '', cropName: 'Paddy', varietyName: '', durationDays: 120,
-    season: 'Kharif', expectedYield: '', status: 'Active'
+    code: '', cropName: '', varietyName: '', durationDays: '',
+    season: '', expectedYield: '', status: ''
   });
   const [categoryForm, setCategoryForm] = useState({
-    code: '', name: '', description: '', status: 'Active'
+    code: '', name: '', description: '', status: ''
   });
 
   // Toast feedback
@@ -894,48 +894,46 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       setCropForm({
         cropCode: `CRP-${String(nextNum).padStart(3, '0')}`,
         cropName: '',
-        cropType: 'Kharif / Food Grain',
-        cropCategory: categoriesList[0]?.name || 'Cereals',
-        defaultUnit: 'Quintals',
-        status: 'Active',
+        cropType: '',
+        cropCategory: '',
+        cropCategoryId: '',
+        defaultUnit: '',
+        status: '',
         description: ''
       });
       setModalType('crop');
     } else if (activeTab === 'seasons') {
       const nextNum = seasonsList.length + 1;
-      const defaultFarm = availableFarms[0] || 'Farm 1 (South Block)';
-      const defaultCrop = safeCrops[0]?.cropName || 'Paddy';
-      const matchedVariety = safeVarieties.find(v => v.cropName === defaultCrop);
       setSeasonForm({
         seasonCode: `CS-${new Date().getFullYear()}-${String(nextNum).padStart(2, '0')}`,
-        farm: defaultFarm,
-        farmName: defaultFarm,
-        crop: defaultCrop,
-        cropName: defaultCrop,
-        variety: matchedVariety ? matchedVariety.varietyName : 'Standard Hybrid',
-        varietyName: matchedVariety ? matchedVariety.varietyName : 'Standard Hybrid',
-        season: 'Kharif 2025-26',
-        sowingDate: new Date().toISOString().split('T')[0],
+        farm: '',
+        farmName: '',
+        crop: '',
+        cropName: '',
+        variety: '',
+        varietyName: '',
+        season: '',
+        sowingDate: '',
         expectedHarvestDate: '',
         actualHarvestDate: '',
-        area: '5 Acres',
-        expectedYield: '50 Quintals',
+        area: '',
+        expectedYield: '',
         actualYield: '',
-        expectedRevenue: '₹ 1,50,000',
+        expectedRevenue: '',
         actualRevenue: '',
-        status: 'In Progress'
+        status: ''
       });
       setModalType('season');
     } else if (activeTab === 'varieties') {
       const nextNum = varietiesList.length + 1;
       setVarietyForm({
         code: `VAR-${String(nextNum).padStart(3, '0')}`,
-        cropName: safeCrops[0]?.cropName || 'Paddy',
+        cropName: '',
         varietyName: '',
-        durationDays: 120,
-        season: 'Kharif',
-        expectedYield: '25-30 Qtl/Acre',
-        status: 'Active'
+        durationDays: '',
+        season: '',
+        expectedYield: '',
+        status: ''
       });
       setModalType('variety');
     } else if (activeTab === 'categories') {
@@ -944,24 +942,24 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         code: `CAT-${String(nextNum).padStart(2, '0')}`,
         name: '',
         description: '',
-        status: 'Active'
+        status: ''
       });
       setModalType('category');
     } else if (activeTab === 'activities') {
       const nextNum = safeActivities.length + 1;
       setActivityForm({
         activityCode: `ACT-${new Date().getFullYear()}-${String(nextNum).padStart(2, '0')}`,
-        farm: safeSeasons[0]?.farm || 'Farm 1 (South Block)',
-        crop: safeCrops[0]?.cropName || 'Cotton',
-        season: safeSeasons[0]?.season || 'Kharif 2025-26',
-        activityType: 'Land Preparation',
-        activityDate: new Date().toISOString().split('T')[0],
-        labourWorkers: '4 Labourers',
-        machinery: 'Mahindra 575 DI Tractor',
+        farm: '',
+        crop: '',
+        season: '',
+        activityType: '',
+        activityDate: '',
+        labourWorkers: '',
+        machinery: '',
         materialsUsed: '',
-        totalCost: '₹ 5,000',
-        status: 'In Progress',
-        supervisor: 'Niranjan Reddy',
+        totalCost: '',
+        status: '',
+        supervisor: '',
         notes: '',
         attachments: []
       });
@@ -1068,8 +1066,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         const matchedCat = categoriesList.find(c => (c.name || c.categoryName) === cropForm.cropCategory);
         const payload = {
           ...cropForm,
+          cropType: cropForm.cropType || 'Kharif / Food Grain',
           cropCategoryId: matchedCat?.id || cropForm.cropCategoryId || 1,
-          cropCategory: cropForm.cropCategory || matchedCat?.name || 'Cereal'
+          cropCategory: cropForm.cropCategory || matchedCat?.name || 'Cereals',
+          defaultUnit: cropForm.defaultUnit || 'Quintals',
+          status: cropForm.status || 'Active'
         };
         if (editingItem) {
           await cropService.updateCrop(editingItem.id, payload);
@@ -1136,7 +1137,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           farm: farmVal,
           farmName: farmVal,
           crop: cropVal,
-          cropName: cropVal
+          cropName: cropVal,
+          status: seasonForm.status || 'In Progress'
         };
         if (editingItem) {
           await cropService.updateSeason(editingItem.id, recordToSave);
@@ -1151,11 +1153,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const varietyToSave = {
+          ...varietyForm,
+          status: varietyForm.status || 'Active'
+        };
         if (editingItem) {
-          await cropService.updateVariety(editingItem.id, varietyForm);
+          await cropService.updateVariety(editingItem.id, varietyToSave);
           showToast(`Variety "${varietyForm.varietyName}" updated.`);
         } else {
-          await cropService.createVariety(varietyForm);
+          await cropService.createVariety(varietyToSave);
           showToast(`Variety "${varietyForm.varietyName}" added.`);
         }
       } else if (modalType === 'category') {
@@ -1164,11 +1170,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const categoryToSave = {
+          ...categoryForm,
+          status: categoryForm.status || 'Active'
+        };
         if (editingItem) {
-          await cropService.updateCategory(editingItem.id, categoryForm);
+          await cropService.updateCategory(editingItem.id, categoryToSave);
           showToast(`Category "${categoryForm.name}" updated.`);
         } else {
-          await cropService.createCategory(categoryForm);
+          await cropService.createCategory(categoryToSave);
           showToast(`Category "${categoryForm.name}" created.`);
         }
       } else if (modalType === 'activity') {
@@ -1177,11 +1187,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const activityToSave = {
+          ...activityForm,
+          status: activityForm.status || 'In Progress'
+        };
         if (editingItem) {
-          await cropService.updateActivity(editingItem.id, activityForm);
+          await cropService.updateActivity(editingItem.id, activityToSave);
           showToast(`Activity "${activityForm.activityCode}" updated.`);
         } else {
-          await cropService.createActivity(activityForm);
+          await cropService.createActivity(activityToSave);
           showToast(`Activity "${activityForm.activityCode}" logged.`);
         }
       }
@@ -1414,9 +1428,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         {activeTab === 'activities' && (
           <>
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
-                🚜
-              </div>
               <div className="cr-stat-info">
                 <span className="cr-stat-label">Crop Activities</span>
                 <span className="cr-stat-value">{totalActivitiesCount} Logged</span>
@@ -1424,9 +1435,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             </div>
 
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                ⚡
-              </div>
               <div className="cr-stat-info">
                 <span className="cr-stat-label">In Progress</span>
                 <span className="cr-stat-value">{inProgressActivitiesCount} Active</span>
@@ -1522,7 +1530,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             className={`cr-tab-btn ${activeTab === 'crops' ? 'active' : ''}`}
             onClick={() => { setActiveTab('crops'); setSearchQuery(''); setStatusFilter('All'); }}
           >
-            <span>🌱 Crop Master</span>
+            <span>Crop Master</span>
             <span className="cr-tab-badge">{cropsList.length}</span>
           </button>
 
@@ -1531,7 +1539,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             className={`cr-tab-btn ${activeTab === 'categories' ? 'active' : ''}`}
             onClick={() => { setActiveTab('categories'); setSearchQuery(''); setStatusFilter('All'); }}
           >
-            <span>🏷️ Crop Categories</span>
+            <span>Crop Categories</span>
             <span className="cr-tab-badge">{categoriesList.length}</span>
           </button>
         </div>
@@ -1601,7 +1609,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                 <tr>
                   <td colSpan="7" className="cr-empty">
                     <div className="cr-empty-state">
-                      <span className="cr-empty-icon">🌱</span>
+                      <span className="cr-empty-icon">📋</span>
                       <p>No crops found matching filters</p>
                       <span>Try clearing your search or add a new crop record</span>
                     </div>
@@ -1613,7 +1621,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><span className="cr-code-badge">{c.cropCode}</span></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">🌾</span>
                         <div>
                           <span className="cr-item-title">{c.cropName}</span>
                           <span className="cr-item-sub">{c.description || 'Standard cultivar'}</span>
@@ -1722,7 +1729,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <td><strong>{sFarm}</strong></td>
                       <td>
                         <div className="cr-item-cell">
-                          <span className="cr-item-icon">🌱</span>
                           <div>
                             <span className="cr-item-title">{sCrop}</span>
                             <span className="cr-item-sub">{sVariety}</span>
@@ -1801,7 +1807,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                 <tr>
                   <td colSpan="8" className="cr-empty">
                     <div className="cr-empty-state">
-                      <span className="cr-empty-icon">🌾</span>
+                      <span className="cr-empty-icon">📋</span>
                       <p>No crop varieties found</p>
                       <span>Add seed varieties, hybrids, and duration specifications</span>
                     </div>
@@ -1814,7 +1820,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><strong>{v.cropName}</strong></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">🧬</span>
                         <span className="cr-item-title">{v.varietyName}</span>
                       </div>
                     </td>
@@ -1889,7 +1894,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><span className="cr-code-badge">{cat.code}</span></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">📂</span>
                         <span className="cr-item-title">{cat.name}</span>
                       </div>
                     </td>
@@ -1969,7 +1973,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><span className="cr-code-badge">{act.activityCode}</span></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">🌱</span>
                         <div>
                           <span className="cr-item-title">{act.crop}</span>
                           <span className="cr-item-sub">{act.season}</span>
@@ -2072,9 +2075,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop Type</label>
                     <select
-                      value={cropForm.cropType}
+                      value={cropForm.cropType || ''}
                       onChange={(e) => setCropForm({ ...cropForm, cropType: e.target.value })}
                     >
+                      <option value="">Select Crop Type</option>
                       <option value="Kharif / Food Grain">Kharif / Food Grain</option>
                       <option value="Kharif / Cash Crop">Kharif / Cash Crop</option>
                       <option value="Kharif-Rabi / Spices">Kharif-Rabi / Spices</option>
@@ -2087,7 +2091,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop Category</label>
                     <select
-                      value={cropForm.cropCategory}
+                      value={cropForm.cropCategory || ''}
                       onChange={(e) => {
                         const selected = e.target.value;
                         const match = categoriesList.find(c => (c.name || c.categoryName) === selected);
@@ -2098,6 +2102,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                         });
                       }}
                     >
+                      <option value="">Select Crop Category</option>
                       {categoriesList.map(cat => (
                         <option key={cat.id} value={cat.name || cat.categoryName}>{cat.name || cat.categoryName}</option>
                       ))}
@@ -2115,9 +2120,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Default Unit</label>
                     <select
-                      value={cropForm.defaultUnit}
+                      value={cropForm.defaultUnit || ''}
                       onChange={(e) => setCropForm({ ...cropForm, defaultUnit: e.target.value })}
                     >
+                      <option value="">Select Default Unit</option>
                       <option value="Quintals">Quintals</option>
                       <option value="Bags">Bags</option>
                       <option value="Kg">Kg</option>
@@ -2128,9 +2134,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={cropForm.status}
+                      value={cropForm.status || ''}
                       onChange={(e) => setCropForm({ ...cropForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
@@ -2187,11 +2194,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Farm Parcel <span className="cr-req">*</span></label>
                     <select
-                      value={seasonForm.farm || seasonForm.farmName}
+                      value={seasonForm.farm || seasonForm.farmName || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, farm: e.target.value, farmName: e.target.value })}
                       required
                     >
-                      <option value="" disabled>Select Farm Parcel</option>
+                      <option value="">Select Farm Parcel</option>
                       {availableFarms.map(f => (
                         <option key={f} value={f}>{f}</option>
                       ))}
@@ -2203,7 +2210,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop <span className="cr-req">*</span></label>
                     <select
-                      value={seasonForm.crop || seasonForm.cropName}
+                      value={seasonForm.crop || seasonForm.cropName || ''}
                       onChange={(e) => {
                         const selectedCrop = e.target.value;
                         const matchVar = safeVarieties.find(v => v.cropName === selectedCrop);
@@ -2211,13 +2218,13 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                           ...seasonForm,
                           crop: selectedCrop,
                           cropName: selectedCrop,
-                          variety: matchVar ? matchVar.varietyName : (seasonForm.variety || 'Standard Hybrid'),
-                          varietyName: matchVar ? matchVar.varietyName : (seasonForm.variety || 'Standard Hybrid')
+                          variety: matchVar ? matchVar.varietyName : (seasonForm.variety || ''),
+                          varietyName: matchVar ? matchVar.varietyName : (seasonForm.variety || '')
                         });
                       }}
                       required
                     >
-                      <option value="" disabled>Select Crop</option>
+                      <option value="">Select Crop</option>
                       {safeCrops.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2229,7 +2236,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       value={seasonForm.variety || seasonForm.varietyName || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, variety: e.target.value, varietyName: e.target.value })}
                     >
-                      <option value="">Select or standard cultivar...</option>
+                      <option value="">Select Variety / Cultivar</option>
                       {safeVarieties
                         .filter(v => !seasonForm.crop || v.cropName?.toLowerCase() === seasonForm.crop?.toLowerCase())
                         .map(v => (
@@ -2265,9 +2272,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={seasonForm.status}
+                      value={seasonForm.status || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Planned">Planned</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Harvest Ready">Harvest Ready</option>
@@ -2389,10 +2397,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Parent Crop <span className="cr-req">*</span></label>
                     <select
-                      value={varietyForm.cropName}
+                      value={varietyForm.cropName || ''}
                       onChange={(e) => setVarietyForm({ ...varietyForm, cropName: e.target.value })}
                       required
                     >
+                      <option value="">Select Parent Crop</option>
                       {cropsList.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2433,9 +2442,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={varietyForm.status}
+                      value={varietyForm.status || ''}
                       onChange={(e) => setVarietyForm({ ...varietyForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
@@ -2514,9 +2524,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                 <div className="cr-field">
                   <label>Status</label>
                   <select
-                    value={categoryForm.status}
+                    value={categoryForm.status || ''}
                     onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value })}
                   >
+                    <option value="">Select Status</option>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
@@ -2562,10 +2573,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Farm Parcel <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.farm}
+                      value={activityForm.farm || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, farm: e.target.value })}
                       required
                     >
+                      <option value="">Select Farm Parcel</option>
                       <option value="Farm 1 (South Block)">Farm 1 (South Block)</option>
                       <option value="Farm 2 (Canal Belt)">Farm 2 (Canal Belt)</option>
                       <option value="Sunrise Farms (East Block)">Sunrise Farms (East Block)</option>
@@ -2578,10 +2590,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Target Crop <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.crop}
+                      value={activityForm.crop || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, crop: e.target.value })}
                       required
                     >
+                      <option value="">Select Target Crop</option>
                       {safeCrops.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2597,10 +2610,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Season Cycle <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.season}
+                      value={activityForm.season || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, season: e.target.value })}
                       required
                     >
+                      <option value="">Select Season Cycle</option>
                       <option value="Kharif 2025-26">Kharif 2025-26</option>
                       <option value="Kharif-Rabi 2025-26">Kharif-Rabi 2025-26</option>
                       <option value="Rabi 2025-26">Rabi 2025-26</option>
@@ -2613,10 +2627,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Activity Type <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.activityType}
+                      value={activityForm.activityType || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, activityType: e.target.value })}
                       required
                     >
+                      <option value="">Select Activity Type</option>
                       <option value="Land Preparation">Land Preparation</option>
                       <option value="Sowing / Planting">Sowing / Planting</option>
                       <option value="Nursery Raising &amp; Puddling">Nursery Raising &amp; Puddling</option>
@@ -2696,9 +2711,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Activity Status</label>
                     <select
-                      value={activityForm.status}
+                      value={activityForm.status || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })}
                     >
+                      <option value="">Select Activity Status</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Completed">Completed</option>
                       <option value="Scheduled">Scheduled</option>

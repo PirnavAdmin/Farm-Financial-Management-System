@@ -294,3 +294,35 @@ export async function deleteIncome(id) {
   const response = await api.delete(`/api/Income/${encodeURIComponent(id)}`, config())
   return unwrap(response.data)
 }
+
+export async function createIncomeCategory(values) {
+  const payload = {
+    code: values.code,
+    name: values.name,
+    source: values.source,
+    description: values.description,
+    status: values.status || 'Active',
+    isActive: values.status !== 'Inactive'
+  }
+  const response = await api.post('/api/Income/categories', payload, config())
+  return unwrap(response.data)
+}
+
+export async function updateIncomeCategory(id, values) {
+  const payload = {
+    id,
+    code: values.code,
+    name: values.name,
+    source: values.source,
+    description: values.description,
+    status: values.status || 'Active',
+    isActive: values.status !== 'Inactive'
+  }
+  const response = await api.put(`/api/Income/categories/${encodeURIComponent(id)}`, payload, config())
+  return unwrap(response.data)
+}
+
+export async function deleteIncomeCategory(id) {
+  const response = await api.delete(`/api/Income/categories/${encodeURIComponent(id)}`, config())
+  return unwrap(response.data)
+}

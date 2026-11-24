@@ -1,14 +1,16 @@
 ﻿import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react'
 import './roles.css'
+import api, { BUSINESS_API_BASE_URL } from '../../services/api'
 
 const storageKey = 'agriman-settings-roles'
 const defaults = [
-  { name: 'Administrator', description: 'Full access to system settings and records.', users: '1', permissions: 'All modules', status: 'Active' },
-  { name: 'Farm Manager', description: 'Manage farm operations and financial records.', users: '3', permissions: 'Dashboard, Masters, Agriculture, Finance, Inventory, Sales, Reports', status: 'Active' },
-  { name: 'Accountant', description: 'Manage transactions and financial reports.', users: '2', permissions: 'Dashboard, Finance, Sales, Reports', status: 'Active' },
-  { name: 'Field Supervisor', description: 'Manage assigned farms and crop activities.', users: '3', permissions: 'Dashboard, Agriculture, Inventory', status: 'Active' },
+  { id: 1, name: 'Administrator', description: 'Full access to system settings and records.', users: '1', permissions: 'All modules', status: 'Active' },
+  { id: 2, name: 'Farm Manager', description: 'Manage farm operations and financial records.', users: '3', permissions: 'Dashboard, Masters, Agriculture, Finance, Inventory, Sales, Reports', status: 'Active' },
+  { id: 3, name: 'Accountant', description: 'Manage transactions and financial reports.', users: '2', permissions: 'Dashboard, Finance, Sales, Reports', status: 'Active' },
+  { id: 4, name: 'Field Supervisor', description: 'Manage assigned farms and crop activities.', users: '3', permissions: 'Dashboard, Agriculture, Inventory', status: 'Active' },
 ]
+
 function loadRoles() {
   try { const saved = JSON.parse(localStorage.getItem(storageKey)); return Array.isArray(saved) ? saved : defaults } catch { return defaults }
 }
@@ -34,7 +36,32 @@ export default function Roles() {
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null)
   const [toast, setToast] = useState('')
-  useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(roles)) }, [roles])
+
+  const fetchRoles = async () => {
+    try {
+      const res = await api.request({ baseURL: BUSINESS_API_BASE_URL, url: '/api/v1/roles', method: 'GET' })
+      const data = res.data?.data || res.data
+      if (Array.isArray(data) && data.length > 0) {
+        const formatted = data.map(r => ({
+          id: r.id,
+          name: r.name,
+          description: r.description || '',
+          users: String(r.userCount ?? r.users ?? 0),
+          permissions: Array.isArray(r.permissions) ? r.permissions.join(', ') : (r.permissions || 'All modules'),
+          status: r.isActive === false || r.status === 'Inactive' ? 'Inactive' : 'Active'
+        }))
+        setRoles(formatted)
+        localStorage.setItem(storageKey, JSON.stringify(formatted))
+      }
+    } catch {
+      // Keep local state
+    }
+  }
+
+  useEffect(() => {
+    fetchRoles()
+  }, [])
+
   useEffect(() => { setPage(1) }, [query, status])
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(''), 2800); return () => clearTimeout(timer) }, [toast])
   const filtered = useMemo(() => roles.filter((role) => `${role.name} ${role.description} ${role.permissions}`.toLowerCase().includes(query.toLowerCase()) && (status === 'All statuses' || role.status === status)), [roles, query, status])
@@ -43,12 +70,37 @@ export default function Roles() {
   const currentPage = Math.min(page, pageCount)
   const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const activeCount = roles.filter((role) => role.status === 'Active').length
-  function saveRole(values) {
-    setRoles((current) => modal.index === null ? [values, ...current] : current.map((role, index) => index === modal.index ? values : role))
+
+  async function saveRole(values) {
+    try {
+      if (modal.index !== null) {
+        const existing = roles[modal.index]
+        await api.request({ baseURL: BUSINESS_API_BASE_URL, url: `/api/v1/roles/${existing.id || modal.index}`, method: 'PUT', data: { name: values.name, description: values.description, isActive: values.status === 'Active' } })
+      } else {
+        await api.request({ baseURL: BUSINESS_API_BASE_URL, url: '/api/v1/roles', method: 'POST', data: { name: values.name, description: values.description, isActive: values.status === 'Active' } })
+      }
+      setToast(`Role ${modal.index === null ? 'added' : 'updated'}.`)
+      fetchRoles()
+    } catch {
+      setRoles((current) => modal.index === null ? [values, ...current] : current.map((role, index) => index === modal.index ? values : role))
+      setToast(`Role ${modal.index === null ? 'added' : 'updated'} (locally).`)
+    }
     setModal(null)
-    setToast(`Role ${modal.index === null ? 'added' : 'updated'}.`)
   }
-  function deleteRole(index) { setRoles((current) => current.filter((_, rowIndex) => rowIndex !== index)); setToast('Role deleted.') }
+
+  async function deleteRole(index) {
+    const role = roles[index]
+    try {
+      if (role.id) {
+        await api.request({ baseURL: BUSINESS_API_BASE_URL, url: `/api/v1/roles/${role.id}`, method: 'DELETE' })
+      }
+      fetchRoles()
+      setToast('Role deleted.')
+    } catch {
+      setRoles((current) => current.filter((_, rowIndex) => rowIndex !== index))
+      setToast('Role deleted.')
+    }
+  }
 
   return <div className="users-page roles-page">
     <div className="users-title-row"><div><div className="users-eyebrow">SETTINGS <span>/</span> ROLES</div><h1>Roles</h1><p>Manage role definitions and access permissions.</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: {} })}><span>＋</span> Add Role</button></div>
@@ -57,7 +109,7 @@ export default function Roles() {
       <div className="users-table-wrap"><table className="users-table roles-table"><thead><tr><th>ROLE</th><th>DESCRIPTION</th><th>USERS</th><th>PERMISSIONS</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>{pageRows.map((role) => { const index = roles.indexOf(role); return <tr key={`${role.name}-${index}`}><td><strong className="role-name">{role.name}</strong></td><td>{role.description}</td><td>{role.users || '0'}</td><td><span className="permission-summary">{role.permissions || 'No permissions set'}</span></td><td><span className={`status-badge ${role.status === 'Active' ? 'active' : 'inactive'}`}>{role.status}</span></td><td><div className="user-actions"><TableActionMenu items={[{ label: 'Edit Role', icon: 'edit', onClick: () => setModal({ index, values: { ...role } }) }, { label: 'Delete Role', icon: 'delete', danger: true, onClick: () => deleteRole(index) }]} /></div></td></tr> })}{pageRows.length === 0 && <tr><td colSpan="6"><div className="users-empty"><span>⌕</span><strong>No roles found</strong><p>Add a role or change your search.</p><button type="button" onClick={() => { setQuery(''); setStatus('All statuses') }}>Clear filters</button></div></td></tr>}</tbody></table></div>
       <div className="users-table-footer"><span>Showing <strong>{filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> roles</span><div className="pagination"><button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button>{Array.from({ length: pageCount }, (_, index) => <button type="button" className={currentPage === index + 1 ? 'current' : ''} key={index} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div></div>
     </section>
-    <div className="users-disclaimer">Role management <span>•</span> Data is saved in this browser.</div>
+    <div className="users-disclaimer">Role management <span>•</span> Synchronized with user administration API.</div>
     {modal && <RoleModal values={modal.values} editing={modal.index !== null} onClose={() => setModal(null)} onSave={saveRole} />}
     {toast && <div className="user-toast" role="status"><span>✓</span>{toast}<button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>×</button></div>}
   </div>

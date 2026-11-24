@@ -1,128 +1,182 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FarmManagementApi.Data;
-using FarmManagementApi.Models;
+using Microsoft.AspNetCore.Http;
 using FarmManagementApi.DTOs;
+using FarmManagementApi.Services;
+using AgriMan.Api.Services;
 
 namespace FarmManagementApi.Controllers;
 
-[Route("api/[controller]")]
+/// <summary>
+/// API endpoints for managing Products, Agricultural Inputs, and Inventory Master.
+/// </summary>
 [ApiController]
+[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[Produces("application/json")]
 public class ProductsController : ControllerBase
 {
-    private readonly FarmDbContext _context;
+    private readonly IInventoryService _inventoryService;
+    private readonly IAuditService _auditService;
 
-    public ProductsController(FarmDbContext context)
+    public ProductsController(
+        IInventoryService inventoryService,
+        IAuditService auditService)
     {
-        _context = context;
+        _inventoryService = inventoryService;
+        _auditService = auditService;
     }
 
+    /// <summary>
+    /// Get paginated list of products with optional category, unit, active status, and search filters.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? categoryId, [FromQuery] string? search)
+    [ProducesResponseType(typeof(PaginatedProductsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int? categoryId,
+        [FromQuery] int? unitId,
+        [FromQuery] bool? isActive,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var query = _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Units)
-            .AsQueryable();
-
-        if (categoryId.HasValue)
-            query = query.Where(p => p.CategoryId == categoryId.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search) || p.Code.Contains(search));
-
-        var list = await query.ToListAsync();
-        return Ok(list);
+        var result = await _inventoryService.GetProductsAsync(categoryId, unitId, isActive, search, page, pageSize);
+        return Ok(result.Data);
     }
 
+    /// <summary>
+    /// Get next available collision-free sequential product code (PRD-NNN).
+    /// </summary>
+    [HttpGet("next-code")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextCode()
+    {
+        var code = await _inventoryService.GenerateNextProductCodeAsync();
+        return Ok(new { nextCode = code, code });
+    }
+
+    /// <summary>
+    /// Get product by ID with category details and current stock.
+    /// </summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
-        var product = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Units)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (product == null) return NotFound();
-        return Ok(product);
+        var result = await _inventoryService.GetProductByIdAsync(id);
+        if (!result.Success)
+        {
+            return NotFound(new { message = result.Message });
+        }
+        return Ok(result.Data);
     }
 
+    /// <summary>
+    /// Create a new product. If Code is omitted, automatically assigns sequential PRD-NNN.
+    /// Validates CategoryId and UnitId existence, and ensures ReorderLevel and StandardCost are non-negative.
+    /// </summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
-        using var tx = await _context.Database.BeginTransactionAsync();
-
-        var product = new Products
+        if (!ModelState.IsValid)
         {
-            Code = dto.Code,
-            Name = dto.Name,
-            CategoryId = dto.CategoryId,
-            UnitId = dto.UnitId,
-            ReorderLevel = dto.ReorderLevel,
-            StandardCost = dto.StandardCost,
-            IsActive = true
-        };
-
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        // Create initial inventory record
-        var inv = new Inventory
-        {
-            ProductId = product.Id,
-            StorageLocation = dto.StorageLocation,
-            CurrentStock = dto.InitialStock,
-            LastUpdated = DateTime.UtcNow
-        };
-        _context.Inventory.Add(inv);
-
-        if (dto.InitialStock > 0)
-        {
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ProductId = product.Id,
-                TransactionDate = DateTime.UtcNow,
-                TransactionType = "StockIn",
-                Quantity = dto.InitialStock,
-                UnitPrice = dto.StandardCost,
-                StorageLocation = dto.StorageLocation,
-                ReferenceType = "InitialStock",
-                BalanceAfterTransaction = dto.InitialStock,
-                Notes = "Initial balance on product creation"
-            });
+            return BadRequest(ModelState);
         }
 
-        await _context.SaveChangesAsync();
-        await tx.CommitAsync();
+        var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+        var result = await _inventoryService.CreateProductAsync(dto, actorId, actorName, ip);
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
+    /// <summary>
+    /// Update an existing product. Validates CategoryId and UnitId, and ensures non-negative numbers.
+    /// </summary>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateProductDto dto)
     {
-        var product = await _context.Products.FindAsync(id);
-        if (product == null) return NotFound();
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
 
-        product.Name = dto.Name;
-        product.CategoryId = dto.CategoryId;
-        product.UnitId = dto.UnitId;
-        product.ReorderLevel = dto.ReorderLevel;
-        product.StandardCost = dto.StandardCost;
-        product.IsActive = dto.IsActive;
+        var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        await _context.SaveChangesAsync();
-        return Ok(product);
+        var result = await _inventoryService.UpdateProductAsync(id, dto, actorId, actorName, ip);
+        if (!result.Success)
+        {
+            if (result.StatusCode == 404)
+            {
+                return NotFound(new { message = result.Message });
+            }
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(result.Data);
     }
 
+    /// <summary>
+    /// Update active status of a product (activate / deactivate).
+    /// </summary>
+    [HttpPatch("{id}/status")]
+    [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateProductStatusDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var result = await _inventoryService.UpdateProductStatusAsync(id, dto.IsActive, actorId, actorName, ip);
+        if (!result.Success)
+        {
+            if (result.StatusCode == 404)
+            {
+                return NotFound(new { message = result.Message });
+            }
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Soft delete (deactivate) a product to maintain relational integrity with transactions and purchases.
+    /// </summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        var product = await _context.Products.FindAsync(id);
-        if (product == null) return NotFound();
+        var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        product.IsActive = false; // Soft delete
-        await _context.SaveChangesAsync();
-        return NoContent();
+        var result = await _inventoryService.DeleteProductAsync(id, actorId, actorName, ip);
+        if (!result.Success)
+        {
+            if (result.StatusCode == 404)
+            {
+                return NotFound(new { message = result.Message });
+            }
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new { success = true, message = result.Message });
     }
 }
