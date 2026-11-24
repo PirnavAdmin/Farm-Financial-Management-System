@@ -1,6 +1,7 @@
 ﻿import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react'
 import './receipts.css'
+import api from '../../services/api'
 
 const moduleName = 'Receipts'
 const fields = ["Receipt No","Date","From","Reference","Amount","Payment Mode","Bank Account","Remarks"]
@@ -18,6 +19,34 @@ function readRecords(key, fallback) {
     return Array.isArray(saved) ? saved : fallback
   } catch {
     return fallback
+  }
+}
+
+function mapApiToRecord(item) {
+  return {
+    id: item.id,
+    "Receipt No": item.receiptNo || '',
+    "Date": item.date ? item.date.slice(0, 10) : '',
+    "From": item.from || '',
+    "Reference": item.reference || '',
+    "Amount": typeof item.amount === 'number' ? `₹${item.amount.toLocaleString('en-IN')}` : (item.amount || '₹0'),
+    "Payment Mode": item.paymentMode || 'Bank',
+    "Bank Account": item.bankAccount || '',
+    "Remarks": item.remarks || '',
+    Status: 'Received'
+  }
+}
+
+function mapRecordToApi(values) {
+  return {
+    receiptNo: values["Receipt No"] || '',
+    date: values["Date"] ? `${values["Date"]}T00:00:00` : new Date().toISOString(),
+    from: values["From"] || '',
+    reference: values["Reference"] || '',
+    amount: Number(String(values["Amount"] || '').replace(/[^0-9.-]/g, '')) || 0,
+    paymentMode: values["Payment Mode"] || 'Bank',
+    bankAccount: values["Bank Account"] || 'AGRIMAN Farm Account',
+    remarks: values["Remarks"] || ''
   }
 }
 
@@ -64,6 +93,24 @@ export default function Receipts() {
   const [modal, setModal] = useState(null)
   const [toast, setToast] = useState('')
 
+  const fetchReceipts = async () => {
+    try {
+      const res = await api.get('/api/FinanceReceipts')
+      const data = Array.isArray(res.data) ? res.data : res.data?.data
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped = data.map(mapApiToRecord)
+        setRecordsByView(prev => ({ ...prev, records: mapped }))
+        localStorage.setItem(`${storeKey}-records`, JSON.stringify(mapped))
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  useEffect(() => {
+    fetchReceipts()
+  }, [])
+
   useEffect(() => {
     localStorage.setItem(`${storeKey}-records`, JSON.stringify(recordsByView.records))
     if (supportsLoanPayments) localStorage.setItem(`${storeKey}-payments`, JSON.stringify(recordsByView.payments))
@@ -81,20 +128,41 @@ export default function Receipts() {
   const currentPage = Math.min(page, pageCount)
   const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  function saveRecord(values) {
-    setRecordsByView((current) => ({ ...current, [view]: modal.index === null ? [values, ...current[view]] : current[view].map((record, index) => index === modal.index ? values : record) }))
+  async function saveRecord(values) {
+    try {
+      if (modal.index !== null) {
+        const existing = records[modal.index]
+        if (existing?.id) {
+          await api.put(`/api/FinanceReceipts/${existing.id}`, { ...mapRecordToApi(values), id: existing.id })
+        }
+      } else {
+        await api.post('/api/FinanceReceipts', mapRecordToApi(values))
+      }
+      fetchReceipts()
+      setToast(`${moduleName} record saved successfully.`)
+    } catch {
+      setRecordsByView((current) => ({ ...current, [view]: modal.index === null ? [values, ...current[view]] : current[view].map((record, index) => index === modal.index ? values : record) }))
+      setToast(`${moduleName} record ${modal.index === null ? 'added' : 'updated'} (locally).`)
+    }
     setModal(null)
-    setToast(`${moduleName} record ${modal.index === null ? 'added' : 'updated'}.`)
   }
-  function deleteRecord(index) {
-    setRecordsByView((current) => ({ ...current, [view]: current[view].filter((_, rowIndex) => rowIndex !== index) }))
-    setToast(`${moduleName} record deleted.`)
+
+  async function deleteRecord(index) {
+    const record = records[index]
+    try {
+      if (record?.id) {
+        await api.delete(`/api/FinanceReceipts/${record.id}`)
+      }
+      fetchReceipts()
+      setToast(`${moduleName} record deleted.`)
+    } catch {
+      setRecordsByView((current) => ({ ...current, [view]: current[view].filter((_, rowIndex) => rowIndex !== index) }))
+      setToast(`${moduleName} record deleted.`)
+    }
   }
 
   return <div className="users-page finance-screen">
-    <div className="users-title-row"><div><div className="users-eyebrow">FINANCE <span>/</span> {moduleName.toUpperCase()}</div><h1>{moduleName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(currentFields.map((field) => [field, ''])) })}><span>＋</span> Add {supportsLoanPayments && view === 'payments' ? 'Loan Payment' : moduleName === 'Bank Accounts' ? 'Bank Account' : moduleName === 'Income' ? 'Income' : moduleName.slice(0, -1)}</button></div>
-
-    {supportsLoanPayments && <div className="finance-view-switch"><button className={view === 'records' ? 'selected' : ''} type="button" onClick={() => setView('records')}>Loans</button><button className={view === 'payments' ? 'selected' : ''} type="button" onClick={() => setView('payments')}>Loan Payments</button></div>}
+    <div className="users-title-row"><div><div className="users-eyebrow">FINANCE <span>/</span> {moduleName.toUpperCase()}</div><h1>{moduleName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(currentFields.map((field) => [field, ''])) })}><span>＋</span> Add Receipt</button></div>
 
     <div className="users-stats"><article><span className="stat-symbol">₹</span><div><small>TOTAL RECORDS</small><strong>{records.length}</strong><span className="stat-hint">In this workspace</span></div><b className="stat-arrow">↗</b></article><article><span className="stat-symbol active-symbol">✓</span><div><small>ROWS ON PAGE</small><strong>{pageRows.length}</strong><span className="stat-hint">Currently displayed</span></div></article><article><span className="stat-symbol inactive-symbol">◷</span><div><small>MATCHING FILTERS</small><strong>{filtered.length}</strong><span className="stat-hint">Search results</span></div></article></div>
 
@@ -103,7 +171,7 @@ export default function Receipts() {
       <div className="users-table-footer"><span>Showing <strong>{filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> records</span><div className="pagination"><button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button>{Array.from({ length: pageCount }, (_, index) => <button type="button" className={currentPage === index + 1 ? 'current' : ''} key={index} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div></div>
     </section>
 
-    <div className="users-disclaimer">Demo workspace <span>•</span> Finance records are saved in this browser.</div>
+    <div className="users-disclaimer">Receipts <span>•</span> Synchronized with Finance Receipts API.</div>
     {modal && <RecordModal currentFields={currentFields} values={modal.values} editing={modal.index !== null} onClose={() => setModal(null)} onSave={saveRecord} />}
     {toast && <div className="user-toast" role="status"><span>✓</span>{toast}<button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>×</button></div>}
   </div>

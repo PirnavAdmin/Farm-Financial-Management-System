@@ -36,34 +36,71 @@ function setStorage(key, data) {
 }
 
 export const cropVarietyService = {
-  getVarieties: async () => {
+  getVarieties: async (params = {}) => {
+    try {
+      const res = await api.get('/api/CropVarieties', { params });
+      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setStorage('agriman_crop_varieties', data);
+        return data;
+      }
+    } catch (err) {
+      console.warn('[cropVarietyService] API getVarieties failed, using storage:', err);
+    }
     const raw = getStorage('agriman_crop_varieties', SEED_VARIETIES);
     return [...raw].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   },
 
   getVarietyById: async (id) => {
+    try {
+      const res = await api.get(`/api/CropVarieties/${id}`);
+      if (res.data) return res.data?.data || res.data;
+    } catch {
+      // Fallback
+    }
     const list = getStorage('agriman_crop_varieties', SEED_VARIETIES);
     return list.find(v => Number(v.id) === Number(id) || v.code === id) || null;
   },
 
   createVariety: async (newVar) => {
+    let result = null;
+    try {
+      const res = await api.post('/api/CropVarieties', newVar);
+      result = res.data?.data || res.data;
+    } catch (err) {
+      console.warn('[cropVarietyService] API createVariety failed, using storage:', err);
+    }
+
     const list = getStorage('agriman_crop_varieties', SEED_VARIETIES);
-    const id = list.length ? Math.max(...list.map(v => Number(v.id) || 0)) + 1 : 1;
-    const code = newVar.code || `VAR-${String(id).padStart(3, '0')}`;
-    const record = { ...newVar, id, code, status: newVar.status || 'Active' };
+    const id = result?.id || (list.length ? Math.max(...list.map(v => Number(v.id) || 0)) + 1 : 1);
+    const code = result?.code || newVar.code || `VAR-${String(id).padStart(3, '0')}`;
+    const record = result || { ...newVar, id, code, status: newVar.status || 'Active' };
     const updated = [...list.filter(v => v.id !== record.id), record];
     setStorage('agriman_crop_varieties', updated);
     return record;
   },
 
   updateVariety: async (id, updatedVar) => {
+    let result = null;
+    try {
+      const res = await api.put(`/api/CropVarieties/${id}`, updatedVar);
+      result = res.data?.data || res.data;
+    } catch (err) {
+      console.warn('[cropVarietyService] API updateVariety failed, using storage:', err);
+    }
+
     const list = getStorage('agriman_crop_varieties', SEED_VARIETIES);
-    const updated = list.map(v => (v.id === id ? { ...v, ...updatedVar } : v));
+    const updated = list.map(v => (v.id === id ? { ...v, ...(result || updatedVar) } : v));
     setStorage('agriman_crop_varieties', updated);
-    return updatedVar;
+    return result || updatedVar;
   },
 
   deleteVariety: async (id) => {
+    try {
+      await api.delete(`/api/CropVarieties/${id}`);
+    } catch (err) {
+      console.warn('[cropVarietyService] API deleteVariety failed, using storage:', err);
+    }
     const list = getStorage('agriman_crop_varieties', SEED_VARIETIES);
     const updated = list.filter(v => v.id !== id);
     setStorage('agriman_crop_varieties', updated);

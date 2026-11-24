@@ -160,6 +160,15 @@ function setStorage(key, data) {
 
 export const cropSeasonService = {
   getSeasons: async () => {
+    try {
+      const res = await api.get('/api/CropSeason');
+      const data = Array.isArray(res.data) ? res.data : res.data?.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setStorage('agriman_crop_seasons', data);
+      }
+    } catch (err) {
+      console.warn('[cropSeasonService] API getSeasons failed, using storage:', err);
+    }
     const raw = getStorage('agriman_crop_seasons', SEED_SEASONS);
     const normalized = raw.map((s, idx) => {
       const idVal = s.id || idx + 1;

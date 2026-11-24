@@ -256,9 +256,16 @@ builder.Services.AddSwaggerGen(c =>
 
     c.SwaggerDoc("labour", new OpenApiInfo
     {
-        Title = "10. Labour Management API - Farmersdb",
+        Title = "10. Labour Management API - Farmersdb (Module 10)",
         Version = "v1",
         Description = "Farm workers registry, daily attendance rosters, piece-rate and daily wage payments in `Farmersdb`."
+    });
+
+    c.SwaggerDoc("finance", new OpenApiInfo
+    {
+        Title = "11. Finance, Bank Accounts & Reports API - Farmersdb (Module 11)",
+        Version = "v1",
+        Description = "Module 11: Treasury bank accounts, centralized finance payments, receipts, and P&L / cash flow analytics in `Farmersdb`."
     });
 
     c.SwaggerDoc("machinery", new OpenApiInfo
@@ -336,6 +343,10 @@ builder.Services.AddSwaggerGen(c =>
         {
             return name.StartsWith("Labour");
         }
+        if (docName == "finance")
+        {
+            return name.StartsWith("Bank") || name.StartsWith("Finance") || name.StartsWith("Report");
+        }
         if (docName == "machinery")
         {
             return ns.Contains("Agriman.Machinery") || name.StartsWith("Machinery");
@@ -368,74 +379,83 @@ builder.Services.AddSwaggerGen(c =>
         var ns = descriptor?.ControllerTypeInfo.Namespace ?? "";
 
         // 00. Unified Dashboard, Overview & Health
-        if (controllerName.Equals("Dashboard", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Dashboard - Multi-Farm Performance & Analytics" };
-        if (controllerName.Equals("TotalData", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Overview - Cross-Module System Data" };
-        if (controllerName.Equals("Health", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Overview - Health & Migrations" };
+        if (controllerName.Equals("Dashboard", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Dashboard - Multi-Farm Performance & Analytics (Module 0)" };
+        if (controllerName.Equals("TotalData", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Overview - Cross-Module System Data (Module 0)" };
+        if (controllerName.Equals("Health", StringComparison.OrdinalIgnoreCase)) return new[] { "00. Overview - Health & Migrations (Module 0)" };
 
         // 01. Auth & Users
         if (ns.Contains("AgriMan.Api") || controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase))
         {
-            if (controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Authentication (Login / Register / OTP / Refresh)" };
-            if (controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - User Administration & Stats" };
-            if (controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Roles & Permissions" };
-            if (controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Company Settings" };
-            if (controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Audit Logs & Login History" };
-            return new[] { "01. Auth & User API" };
+            if (controllerName.Equals("Auth", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Authentication (Login / Register / OTP / Refresh) (Module 1)" };
+            if (controllerName.Equals("Users", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - User Administration & Stats (Module 1)" };
+            if (controllerName.Equals("Roles", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Permissions", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Roles & Permissions (Module 1)" };
+            if (controllerName.Equals("Company", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Company Settings (Module 1)" };
+            if (controllerName.Equals("AuditLogs", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("LoginHistory", StringComparison.OrdinalIgnoreCase)) return new[] { "01. Auth - Audit Logs & Login History (Module 1)" };
+            return new[] { "01. Auth & User API (Module 1)" };
         }
 
         // 02. Farmers, Address & Bank
-        if (controllerName.Equals("Farmers", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Registry & Profiles" };
-        if (controllerName.Equals("FarmerAddresses", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Addresses" };
-        if (controllerName.Equals("FarmerBankAccounts", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Bank Accounts" };
+        if (controllerName.Equals("Farmers", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Registry & Profiles (Module 2)" };
+        if (controllerName.Equals("FarmerAddresses", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Addresses (Module 2)" };
+        if (controllerName.Equals("FarmerBankAccounts", StringComparison.OrdinalIgnoreCase)) return new[] { "02. Farmers - Farmer Bank Accounts (Module 2)" };
 
         // 03. Farms & Land Management
-        if (controllerName.Equals("Farms", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Farm Profiles" };
-        if (controllerName.Equals("FarmLandDetails", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Land & Soil Details" };
-        if (controllerName.Equals("RentalLands", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Rental Land Details" };
-        if (controllerName.Equals("FarmDocuments", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Farm Documents Vault" };
-        if (controllerName.Equals("Masters", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Master Lookups (Soil & Irrigation)" };
+        if (controllerName.Equals("Farms", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Farm Profiles (Module 3)" };
+        if (controllerName.Equals("FarmLandDetails", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Land & Soil Details (Module 3)" };
+        if (controllerName.Equals("RentalLands", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Rental Land Details (Module 3)" };
+        if (controllerName.Equals("FarmDocuments", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Farm Documents Vault (Module 3)" };
+        if (controllerName.Equals("Masters", StringComparison.OrdinalIgnoreCase)) return new[] { "03. Farms - Master Lookups (Soil & Irrigation) (Module 3)" };
 
         // 04. Income Management
-        if (controllerName.Equals("Income", StringComparison.OrdinalIgnoreCase)) return new[] { "04. Income - Categories, Inward Transactions & Payments" };
+        if (controllerName.Equals("Income", StringComparison.OrdinalIgnoreCase)) return new[] { "04. Income - Categories, Inward Transactions & Payments (Module 4)" };
 
         // 05. Crop Management
-        if (controllerName.StartsWith("Crop", StringComparison.OrdinalIgnoreCase)) return new[] { "05. Crops - Crop Profiles, Categories & Seasons" };
+        if (controllerName.StartsWith("Crop", StringComparison.OrdinalIgnoreCase)) return new[] { "05. Crops - Crop Profiles, Categories, Varieties & Seasons (Module 5)" };
 
         // 06. Inventory & Agricultural Inputs
-        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories" };
-        if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Stock In, Stock Out & Adjustments" };
+        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories (Module 6)" };
+        if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Stock In, Stock Out & Adjustments (Module 6)" };
 
         // 07. Expenses API
         if (ns.Contains("AgriMan.Expenses") || controllerName.Equals("Expenses", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("ExpenseCategories", StringComparison.OrdinalIgnoreCase))
         {
-            if (controllerName.Equals("Expenses", StringComparison.OrdinalIgnoreCase)) return new[] { "07. Expenses - Financial Ledger & Vouchers" };
-            if (controllerName.Equals("ExpenseCategories", StringComparison.OrdinalIgnoreCase)) return new[] { "07. Expenses - Overhead Categories" };
-            return new[] { "07. Expenses API" };
+            if (controllerName.Equals("Expenses", StringComparison.OrdinalIgnoreCase)) return new[] { "07. Expenses - Financial Ledger & Vouchers (Module 7)" };
+            if (controllerName.Equals("ExpenseCategories", StringComparison.OrdinalIgnoreCase)) return new[] { "07. Expenses - Overhead Categories (Module 7)" };
+            return new[] { "07. Expenses API (Module 7)" };
         }
 
-        // 08. Sales API (Module 10: Sales, SalesItems, SalesPayments)
-        if (controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase)) return new[] { "08. Sales - Crop Sales & Line Items" };
-        if (controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase)) return new[] { "08. Sales - Payments & Receivables" };
+        // 08. Sales API
+        if (controllerName.Equals("Sales", StringComparison.OrdinalIgnoreCase)) return new[] { "08. Sales - Crop Sales & Line Items (Module 8)" };
+        if (controllerName.Equals("SalesPayments", StringComparison.OrdinalIgnoreCase)) return new[] { "08. Sales - Payments & Receivables (Module 8)" };
 
         // 09. Purchases & Inward Deliveries
-        if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "09. Purchases - Purchase Orders & Inward Deliveries" };
+        if (controllerName.Equals("Purchases", StringComparison.OrdinalIgnoreCase)) return new[] { "09. Purchases - Purchase Orders & Inward Deliveries (Module 9)" };
 
         // 10. Labour Management
-        if (controllerName.StartsWith("Labour", StringComparison.OrdinalIgnoreCase)) return new[] { "10. Labour - Workers, Attendance & Daily Wages" };
+        if (controllerName.StartsWith("Labour", StringComparison.OrdinalIgnoreCase)) return new[] { "10. Labour - Workers, Attendance & Daily Wages (Module 10)" };
 
-        // 13. Machinery & Equipment (Matching Word Document Module 13)
+        // 11. Finance, Bank Accounts & Reports (Module 11)
+        if (controllerName.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("FinancePayments", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("FinanceReceipts", StringComparison.OrdinalIgnoreCase) ||
+            controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
+        {
+            return new[] { "11. Finance, Bank Accounts & Reports (Module 11)" };
+        }
+
+        // 13. Machinery & Equipment (Module 13)
         if (ns.Contains("Agriman.Machinery") || controllerName.Equals("Machinery", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("MachineryExpenses", StringComparison.OrdinalIgnoreCase))
         {
             return new[] { "13. Machinery & Equipment (Module 13)" };
         }
 
-        // 14. Loan & Finance (Matching Word Document Module 14)
+        // 14. Loan & Finance (Module 14)
         if (controllerName.Equals("Loan", StringComparison.OrdinalIgnoreCase) || controllerName.Equals("Loans", StringComparison.OrdinalIgnoreCase))
         {
             return new[] { "14. Loan & Finance (Module 14)" };
         }
 
-        // 15. Supplier Management (Matching Word Document Module 15)
+        // 15. Supplier Management (Module 15)
         if (controllerName.Equals("Suppliers", StringComparison.OrdinalIgnoreCase) ||
             controllerName.Equals("SupplierTransactions", StringComparison.OrdinalIgnoreCase) ||
             controllerName.Equals("SupplierPayments", StringComparison.OrdinalIgnoreCase))
@@ -443,8 +463,8 @@ builder.Services.AddSwaggerGen(c =>
             return new[] { "15. Supplier Management (Module 15)" };
         }
 
-        // 16. Buyer & Customer Management
-        if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "16. Buyers - Customers, Wholesalers & Traders" };
+        // 16. Buyer & Customer Management (Module 16)
+        if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "16. Buyers - Customers, Wholesalers & Traders (Module 16)" };
         return new[] { controllerName };
     });
 
@@ -580,20 +600,21 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "🌾 [SHOW ALL] All 15+ Modules (Unified Platform)");
-    c.SwaggerEndpoint("/swagger/auth/swagger.json", "01. Auth & User Management");
-    c.SwaggerEndpoint("/swagger/farmers/swagger.json", "02. Farmers Registry & Profiles");
-    c.SwaggerEndpoint("/swagger/farms/swagger.json", "03. Farms & Land Holdings");
-    c.SwaggerEndpoint("/swagger/income/swagger.json", "04. Income Management");
-    c.SwaggerEndpoint("/swagger/crops/swagger.json", "05. Crop & Season Management");
-    c.SwaggerEndpoint("/swagger/inventory/swagger.json", "06. Inventory & Products");
-    c.SwaggerEndpoint("/swagger/expenses/swagger.json", "07. Expenses API");
-    c.SwaggerEndpoint("/swagger/sales/swagger.json", "08. Sales & Produce Receipts");
-    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "09. Purchase Orders & Inward Deliveries");
-    c.SwaggerEndpoint("/swagger/labour/swagger.json", "10. Labour & Wage Management");
+    c.SwaggerEndpoint("/swagger/auth/swagger.json", "01. Auth & User Management (Module 1)");
+    c.SwaggerEndpoint("/swagger/farmers/swagger.json", "02. Farmers Registry & Profiles (Module 2)");
+    c.SwaggerEndpoint("/swagger/farms/swagger.json", "03. Farms & Land Holdings (Module 3)");
+    c.SwaggerEndpoint("/swagger/income/swagger.json", "04. Income Management (Module 4)");
+    c.SwaggerEndpoint("/swagger/crops/swagger.json", "05. Crop & Season Management (Module 5)");
+    c.SwaggerEndpoint("/swagger/inventory/swagger.json", "06. Inventory & Products (Module 6)");
+    c.SwaggerEndpoint("/swagger/expenses/swagger.json", "07. Expenses API (Module 7)");
+    c.SwaggerEndpoint("/swagger/sales/swagger.json", "08. Sales & Produce Receipts (Module 8)");
+    c.SwaggerEndpoint("/swagger/purchases/swagger.json", "09. Purchase Orders & Inward Deliveries (Module 9)");
+    c.SwaggerEndpoint("/swagger/labour/swagger.json", "10. Labour & Wage Management (Module 10)");
+    c.SwaggerEndpoint("/swagger/finance/swagger.json", "11. Finance, Bank Accounts & Reports (Module 11)");
     c.SwaggerEndpoint("/swagger/machinery/swagger.json", "13. Machinery & Equipment (Module 13)");
     c.SwaggerEndpoint("/swagger/loans/swagger.json", "14. Loan & Finance (Module 14)");
     c.SwaggerEndpoint("/swagger/suppliers/swagger.json", "15. Supplier Management (Module 15)");
-    c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management");
+    c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management (Module 16)");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";

@@ -22,11 +22,88 @@ namespace FarmManagementApi.Controllers
         public async Task<IActionResult> GetCategories()
         {
             var list = await _context.IncomeCategories
-                .Where(c => c.IsActive)
-                .Select(c => new { c.Id, c.Name })
+                .Select(c => new
+                {
+                    c.Id,
+                    Code = string.IsNullOrEmpty(c.Code) ? $"INC-CAT-{c.Id:D3}" : c.Code,
+                    c.Name,
+                    Source = c.Source ?? "Farm operations",
+                    c.Description,
+                    Status = string.IsNullOrEmpty(c.Status) ? (c.IsActive ? "Active" : "Inactive") : c.Status,
+                    c.IsActive
+                })
                 .ToListAsync();
 
             return Ok(list);
+        }
+
+        // GET: api/income/categories/{id}
+        [HttpGet("categories/{id}")]
+        public async Task<IActionResult> GetCategory(int id)
+        {
+            var c = await _context.IncomeCategories.FindAsync(id);
+            if (c == null) return NotFound();
+
+            return Ok(new
+            {
+                c.Id,
+                Code = string.IsNullOrEmpty(c.Code) ? $"INC-CAT-{c.Id:D3}" : c.Code,
+                c.Name,
+                Source = c.Source ?? "Farm operations",
+                c.Description,
+                Status = string.IsNullOrEmpty(c.Status) ? (c.IsActive ? "Active" : "Inactive") : c.Status,
+                c.IsActive
+            });
+        }
+
+        // POST: api/income/categories
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] IncomeCategory category)
+        {
+            if (string.IsNullOrWhiteSpace(category.Code))
+            {
+                var count = await _context.IncomeCategories.CountAsync() + 1;
+                category.Code = $"INC-CAT-{count:D3}";
+            }
+            if (string.IsNullOrWhiteSpace(category.Status))
+            {
+                category.Status = category.IsActive ? "Active" : "Inactive";
+            }
+            category.CreatedAt = DateTime.UtcNow;
+            _context.IncomeCategories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
+        }
+
+        // PUT: api/income/categories/{id}
+        [HttpPut("categories/{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] IncomeCategory updated)
+        {
+            var category = await _context.IncomeCategories.FindAsync(id);
+            if (category == null) return NotFound();
+
+            category.Name = updated.Name;
+            category.Code = string.IsNullOrWhiteSpace(updated.Code) ? category.Code : updated.Code;
+            category.Source = updated.Source;
+            category.Description = updated.Description;
+            category.Status = updated.Status ?? "Active";
+            category.IsActive = category.Status == "Active";
+
+            await _context.SaveChangesAsync();
+            return Ok(category);
+        }
+
+        // DELETE: api/income/categories/{id}
+        [HttpDelete("categories/{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.IncomeCategories.FindAsync(id);
+            if (category == null) return NotFound();
+
+            _context.IncomeCategories.Remove(category);
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
 
         // GET: api/income (Screen – Income List)

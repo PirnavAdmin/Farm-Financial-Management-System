@@ -1,6 +1,7 @@
 ﻿import TableActionMenu from '../../TableActionMenu';
 import { useEffect, useMemo, useState } from 'react'
 import './bank accounts.css'
+import api from '../../services/api'
 
 const moduleName = 'Bank Accounts'
 const fields = ["Bank Name","Account Name","Account Number","IFSC","Branch","Account Type","Opening Balance","Current Balance"]
@@ -18,6 +19,35 @@ function readRecords(key, fallback) {
     return Array.isArray(saved) ? saved : fallback
   } catch {
     return fallback
+  }
+}
+
+function mapApiToRecord(item) {
+  return {
+    id: item.id,
+    "Bank Name": item.bankName || '',
+    "Account Name": item.accountName || '',
+    "Account Number": item.accountNumber || '',
+    "IFSC": item.ifsc || '',
+    "Branch": item.branch || '',
+    "Account Type": item.accountType || 'Current',
+    "Opening Balance": typeof item.openingBalance === 'number' ? `₹${item.openingBalance.toLocaleString('en-IN')}` : (item.openingBalance || '₹0'),
+    "Current Balance": typeof item.currentBalance === 'number' ? `₹${item.currentBalance.toLocaleString('en-IN')}` : (item.currentBalance || '₹0'),
+    Status: item.status || 'Active'
+  }
+}
+
+function mapRecordToApi(values) {
+  return {
+    bankName: values["Bank Name"] || '',
+    accountName: values["Account Name"] || '',
+    accountNumber: values["Account Number"] || '',
+    ifsc: values["IFSC"] || '',
+    branch: values["Branch"] || '',
+    accountType: values["Account Type"] || 'Current',
+    openingBalance: Number(String(values["Opening Balance"] || '').replace(/[^0-9.-]/g, '')) || 0,
+    currentBalance: Number(String(values["Current Balance"] || '').replace(/[^0-9.-]/g, '')) || 0,
+    status: values.Status || 'Active'
   }
 }
 
@@ -64,6 +94,24 @@ export default function BankAccounts() {
   const [modal, setModal] = useState(null)
   const [toast, setToast] = useState('')
 
+  const fetchAccounts = async () => {
+    try {
+      const res = await api.get('/api/BankAccounts')
+      const data = Array.isArray(res.data) ? res.data : res.data?.data
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped = data.map(mapApiToRecord)
+        setRecordsByView(prev => ({ ...prev, records: mapped }))
+        localStorage.setItem(`${storeKey}-records`, JSON.stringify(mapped))
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  useEffect(() => {
+    fetchAccounts()
+  }, [])
+
   useEffect(() => {
     localStorage.setItem(`${storeKey}-records`, JSON.stringify(recordsByView.records))
     if (supportsLoanPayments) localStorage.setItem(`${storeKey}-payments`, JSON.stringify(recordsByView.payments))
@@ -81,29 +129,50 @@ export default function BankAccounts() {
   const currentPage = Math.min(page, pageCount)
   const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  function saveRecord(values) {
-    setRecordsByView((current) => ({ ...current, [view]: modal.index === null ? [values, ...current[view]] : current[view].map((record, index) => index === modal.index ? values : record) }))
+  async function saveRecord(values) {
+    try {
+      if (modal.index !== null) {
+        const existing = records[modal.index]
+        if (existing?.id) {
+          await api.put(`/api/BankAccounts/${existing.id}`, { ...mapRecordToApi(values), id: existing.id })
+        }
+      } else {
+        await api.post('/api/BankAccounts', mapRecordToApi(values))
+      }
+      fetchAccounts()
+      setToast(`${moduleName} record saved successfully.`)
+    } catch {
+      setRecordsByView((current) => ({ ...current, [view]: modal.index === null ? [values, ...current[view]] : current[view].map((record, index) => index === modal.index ? values : record) }))
+      setToast(`${moduleName} record ${modal.index === null ? 'added' : 'updated'} (locally).`)
+    }
     setModal(null)
-    setToast(`${moduleName} record ${modal.index === null ? 'added' : 'updated'}.`)
   }
-  function deleteRecord(index) {
-    setRecordsByView((current) => ({ ...current, [view]: current[view].filter((_, rowIndex) => rowIndex !== index) }))
-    setToast(`${moduleName} record deleted.`)
+
+  async function deleteRecord(index) {
+    const record = records[index]
+    try {
+      if (record?.id) {
+        await api.delete(`/api/BankAccounts/${record.id}`)
+      }
+      fetchAccounts()
+      setToast(`${moduleName} record deleted.`)
+    } catch {
+      setRecordsByView((current) => ({ ...current, [view]: current[view].filter((_, rowIndex) => rowIndex !== index) }))
+      setToast(`${moduleName} record deleted.`)
+    }
   }
 
   return <div className="users-page finance-screen">
-    <div className="users-title-row"><div><div className="users-eyebrow">FINANCE <span>/</span> {moduleName.toUpperCase()}</div><h1>{moduleName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(currentFields.map((field) => [field, ''])) })}><span>＋</span> Add {supportsLoanPayments && view === 'payments' ? 'Loan Payment' : moduleName === 'Bank Accounts' ? 'Bank Account' : moduleName === 'Income' ? 'Income' : moduleName.slice(0, -1)}</button></div>
+    <div className="users-title-row"><div><div className="users-eyebrow">FINANCE <span>/</span> {moduleName.toUpperCase()}</div><h1>{moduleName}</h1><p>{description}</p></div><button className="users-add" type="button" onClick={() => setModal({ index: null, values: Object.fromEntries(currentFields.map((field) => [field, ''])) })}><span>＋</span> Add Bank Account</button></div>
 
-    {supportsLoanPayments && <div className="finance-view-switch"><button className={view === 'records' ? 'selected' : ''} type="button" onClick={() => setView('records')}>Loans</button><button className={view === 'payments' ? 'selected' : ''} type="button" onClick={() => setView('payments')}>Loan Payments</button></div>}
-
-    <div className="users-stats"><article><span className="stat-symbol">₹</span><div><small>TOTAL RECORDS</small><strong>{records.length}</strong><span className="stat-hint">In this workspace</span></div><b className="stat-arrow">↗</b></article><article><span className="stat-symbol active-symbol">✓</span><div><small>ROWS ON PAGE</small><strong>{pageRows.length}</strong><span className="stat-hint">Currently displayed</span></div></article><article><span className="stat-symbol inactive-symbol">◷</span><div><small>MATCHING FILTERS</small><strong>{filtered.length}</strong><span className="stat-hint">Search results</span></div></article></div>
+    <div className="users-stats"><article><span className="stat-symbol">₹</span><div><small>TOTAL RECORDS</small><strong>{records.length}</strong><span className="stat-hint">Active accounts</span></div><b className="stat-arrow">↗</b></article><article><span className="stat-symbol active-symbol">✓</span><div><small>ROWS ON PAGE</small><strong>{pageRows.length}</strong><span className="stat-hint">Currently displayed</span></div></article><article><span className="stat-symbol inactive-symbol">◷</span><div><small>MATCHING FILTERS</small><strong>{filtered.length}</strong><span className="stat-hint">Search results</span></div></article></div>
 
     <section className="users-panel"><div className="users-toolbar"><div className="user-search"><span>⌕</span><input aria-label={`Search ${moduleName}`} placeholder={`Search ${moduleName.toLowerCase()}...`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} /></div>{currentFields.includes('Status') && <select aria-label="Filter by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1) }}><option>All statuses</option>{[...new Set(records.map((record) => record.Status).filter(Boolean))].map((value) => <option key={value}>{value}</option>)}</select>}<button className="reset-button" type="button" onClick={() => { setQuery(''); setStatus('All statuses'); setPage(1) }}>↻ <span>Reset Filters</span></button></div>
       <div className="users-table-wrap"><table className="users-table"><thead><tr>{currentFields.map((field) => <th key={field}>{field.toUpperCase()}</th>)}<th>ACTIONS</th></tr></thead><tbody>{pageRows.map((record) => { const index = records.indexOf(record); return <tr key={`${moduleName}-${view}-${index}`}>{currentFields.map((field, fieldIndex) => <td className={fieldIndex === 0 ? 'user-id' : ''} key={field}>{field === 'Status' ? <span className={`status-badge ${['Active', 'Paid', 'Received', 'Closed'].includes(record[field]) ? 'active' : 'inactive'}`}>{record[field]}</span> : record[field] || '—'}</td>)}<td><div className="user-actions"><TableActionMenu items={[{ label: 'Edit Account', icon: 'edit', onClick: () => setModal({ index, values: { ...record } }) }, { label: 'Delete Account', icon: 'delete', danger: true, onClick: () => deleteRecord(index) }]} /></div></td></tr> })}{pageRows.length === 0 && <tr><td colSpan={currentFields.length + 1}><div className="users-empty"><span>⌕</span><strong>No {moduleName.toLowerCase()} records found</strong><p>Add a record or change your search.</p><button type="button" onClick={() => { setQuery(''); setStatus('All statuses') }}>Clear filters</button></div></td></tr>}</tbody></table></div>
       <div className="users-table-footer"><span>Showing <strong>{filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> records</span><div className="pagination"><button type="button" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button>{Array.from({ length: pageCount }, (_, index) => <button type="button" className={currentPage === index + 1 ? 'current' : ''} key={index} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button type="button" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div></div>
     </section>
 
-    <div className="users-disclaimer">Demo workspace <span>•</span> Finance records are saved in this browser.</div>
+    <div className="users-disclaimer">Bank Accounts <span>•</span> Synchronized with Farm Treasury database API.</div>
     {modal && <RecordModal currentFields={currentFields} values={modal.values} editing={modal.index !== null} onClose={() => setModal(null)} onSave={saveRecord} />}
     {toast && <div className="user-toast" role="status"><span>✓</span>{toast}<button type="button" aria-label="Dismiss notification" onClick={() => setToast('')}>×</button></div>}
   </div>
