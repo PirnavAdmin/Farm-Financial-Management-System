@@ -623,8 +623,10 @@ namespace FarmManagementApi.Data
                 entity.Property(e => e.StorageLocation).HasMaxLength(100).HasDefaultValue("Main Warehouse").IsRequired();
                 entity.Property(e => e.BookStock).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.PhysicalStock).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.Reason).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Reason).HasMaxLength(250).IsRequired();
                 entity.Property(e => e.Remarks).HasMaxLength(500);
+                entity.Property(e => e.AdjustmentType).HasMaxLength(50);
+                entity.Property(e => e.ApprovedBy).HasMaxLength(100);
 
                 // Relationship: Product -> StockAdjustments
                 entity.HasOne(a => a.Product)
@@ -1088,7 +1090,7 @@ CREATE TABLE IF NOT EXISTS `inventory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `inventory_transactions` (
-    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Id` BIGINT NOT NULL AUTO_INCREMENT,
     `ProductId` INT NOT NULL,
     `TransactionDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `TransactionType` VARCHAR(50) NOT NULL,
@@ -1098,7 +1100,7 @@ CREATE TABLE IF NOT EXISTS `inventory_transactions` (
     `ReferenceType` VARCHAR(50) NULL,
     `ReferenceNumber` VARCHAR(100) NULL,
     `Notes` VARCHAR(500) NULL,
-    `BalanceAfterTransaction` DECIMAL(18,2) NULL,
+    `BalanceAfterTransaction` DECIMAL(18,2) NOT NULL DEFAULT 0,
     PRIMARY KEY (`Id`),
     KEY `IX_inventory_transactions_ProductId` (`ProductId`),
     CONSTRAINT `FK_inv_tx_products` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
@@ -1112,8 +1114,10 @@ CREATE TABLE IF NOT EXISTS `stock_adjustments` (
     `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
     `BookStock` DECIMAL(18,2) NOT NULL,
     `PhysicalStock` DECIMAL(18,2) NOT NULL,
-    `Reason` VARCHAR(100) NOT NULL,
+    `Reason` VARCHAR(250) NOT NULL,
     `Remarks` VARCHAR(500) NULL,
+    `AdjustmentType` VARCHAR(50) NULL,
+    `ApprovedBy` VARCHAR(100) NULL,
     PRIMARY KEY (`Id`),
     UNIQUE KEY `UX_stock_adjustments_Number` (`AdjustmentNumber`),
     KEY `IX_stock_adjustments_ProductId` (`ProductId`),
@@ -1121,6 +1125,34 @@ CREATE TABLE IF NOT EXISTS `stock_adjustments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ";
                 await context.Database.ExecuteSqlRawAsync(sql);
+
+                // Safe schema evolution for existing stock_adjustments & inventory_transactions tables
+                try
+                {
+                    var hasAdjustmentType = await context.Database.SqlQueryRaw<int>(@"
+                        SELECT COUNT(*) FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_adjustments' AND COLUMN_NAME = 'AdjustmentType'").FirstOrDefaultAsync();
+                    if (hasAdjustmentType == 0)
+                    {
+                        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `stock_adjustments` ADD COLUMN `AdjustmentType` VARCHAR(50) NULL AFTER `Remarks`");
+                    }
+
+                    var hasApprovedBy = await context.Database.SqlQueryRaw<int>(@"
+                        SELECT COUNT(*) FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_adjustments' AND COLUMN_NAME = 'ApprovedBy'").FirstOrDefaultAsync();
+                    if (hasApprovedBy == 0)
+                    {
+                        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `stock_adjustments` ADD COLUMN `ApprovedBy` VARCHAR(100) NULL AFTER `AdjustmentType`");
+                    }
+
+                    await context.Database.ExecuteSqlRawAsync("ALTER TABLE `stock_adjustments` MODIFY COLUMN `Reason` VARCHAR(250) NOT NULL");
+                    await context.Database.ExecuteSqlRawAsync("UPDATE `inventory_transactions` SET `BalanceAfterTransaction` = 0 WHERE `BalanceAfterTransaction` IS NULL");
+                    await context.Database.ExecuteSqlRawAsync("ALTER TABLE `inventory_transactions` MODIFY COLUMN `BalanceAfterTransaction` DECIMAL(18,2) NOT NULL DEFAULT 0");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Inventory Schema Alter Note]: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace FarmManagementApi.DTOs;
 
@@ -72,13 +72,40 @@ public class UpdateUnitDto
 
 public class CreateProductDto
 {
-    public string? Code { get; set; } // Optional: auto-generated sequential PRD-NNN if omitted
-    public string? ProductCode { get => Code; set => Code = value; } // Frontend alias
+    private string? _code;
+    private bool _codeSet;
+    private string _name = string.Empty;
+    private bool _nameSet;
+    private decimal _reorderLevel = 0;
+    private bool _reorderLevelSet;
+    private decimal _standardCost = 0;
+    private bool _standardCostSet;
+
+    public string? Code
+    {
+        get => _code;
+        set { _code = value; if (!string.IsNullOrWhiteSpace(value)) _codeSet = true; }
+    } // Optional: auto-generated sequential PRD-NNN if omitted
+
+    public string? ProductCode
+    {
+        get => _code;
+        set { if (!_codeSet && !string.IsNullOrWhiteSpace(value)) _code = value; }
+    } // Frontend alias
 
     [Required(ErrorMessage = "Product Name is required.")]
     [MaxLength(150)]
-    public string Name { get; set; } = string.Empty;
-    public string? ProductName { get => Name; set => Name = value; } // Frontend alias
+    public string Name
+    {
+        get => _name;
+        set { _name = value ?? string.Empty; if (!string.IsNullOrWhiteSpace(value)) _nameSet = true; }
+    }
+
+    public string? ProductName
+    {
+        get => _name;
+        set { if (!_nameSet && !string.IsNullOrWhiteSpace(value)) _name = value; }
+    } // Frontend alias
 
     [Required(ErrorMessage = "CategoryId is required.")]
     public int CategoryId { get; set; }
@@ -86,11 +113,29 @@ public class CreateProductDto
     [Required(ErrorMessage = "UnitId is required.")]
     public int UnitId { get; set; }
 
-    public decimal ReorderLevel { get; set; } = 0;
-    public decimal? MinimumStockLevel { get => ReorderLevel; set => ReorderLevel = value ?? 0; } // Frontend alias
+    public decimal ReorderLevel
+    {
+        get => _reorderLevel;
+        set { _reorderLevel = value; _reorderLevelSet = true; }
+    }
 
-    public decimal StandardCost { get; set; } = 0;
-    public decimal? UnitPrice { get => StandardCost; set => StandardCost = value ?? 0; } // Frontend alias
+    public decimal? MinimumStockLevel
+    {
+        get => _reorderLevel;
+        set { if (!_reorderLevelSet && value.HasValue) _reorderLevel = value.Value; }
+    } // Frontend alias
+
+    public decimal StandardCost
+    {
+        get => _standardCost;
+        set { _standardCost = value; _standardCostSet = true; }
+    }
+
+    public decimal? UnitPrice
+    {
+        get => _standardCost;
+        set { if (!_standardCostSet && value.HasValue) _standardCost = value.Value; }
+    } // Frontend alias
 
     public decimal InitialStock { get; set; } = 0;
     public string StorageLocation { get; set; } = "Main Warehouse";
@@ -99,10 +144,26 @@ public class CreateProductDto
 
 public class UpdateProductDto
 {
+    private string _name = string.Empty;
+    private bool _nameSet;
+    private decimal _reorderLevel = 0;
+    private bool _reorderLevelSet;
+    private decimal _standardCost = 0;
+    private bool _standardCostSet;
+
     [Required(ErrorMessage = "Product Name is required.")]
     [MaxLength(150)]
-    public string Name { get; set; } = string.Empty;
-    public string? ProductName { get => Name; set => Name = value; } // Frontend alias
+    public string Name
+    {
+        get => _name;
+        set { _name = value ?? string.Empty; if (!string.IsNullOrWhiteSpace(value)) _nameSet = true; }
+    }
+
+    public string? ProductName
+    {
+        get => _name;
+        set { if (!_nameSet && !string.IsNullOrWhiteSpace(value)) _name = value; }
+    } // Frontend alias
 
     [Required(ErrorMessage = "CategoryId is required.")]
     public int CategoryId { get; set; }
@@ -110,11 +171,29 @@ public class UpdateProductDto
     [Required(ErrorMessage = "UnitId is required.")]
     public int UnitId { get; set; }
 
-    public decimal ReorderLevel { get; set; } = 0;
-    public decimal? MinimumStockLevel { get => ReorderLevel; set => ReorderLevel = value ?? 0; } // Frontend alias
+    public decimal ReorderLevel
+    {
+        get => _reorderLevel;
+        set { _reorderLevel = value; _reorderLevelSet = true; }
+    }
 
-    public decimal StandardCost { get; set; } = 0;
-    public decimal? UnitPrice { get => StandardCost; set => StandardCost = value ?? 0; } // Frontend alias
+    public decimal? MinimumStockLevel
+    {
+        get => _reorderLevel;
+        set { if (!_reorderLevelSet && value.HasValue) _reorderLevel = value.Value; }
+    } // Frontend alias
+
+    public decimal StandardCost
+    {
+        get => _standardCost;
+        set { _standardCost = value; _standardCostSet = true; }
+    }
+
+    public decimal? UnitPrice
+    {
+        get => _standardCost;
+        set { if (!_standardCostSet && value.HasValue) _standardCost = value.Value; }
+    } // Frontend alias
 
     public bool IsActive { get; set; } = true;
 }
@@ -178,7 +257,7 @@ public class StockDirectoryItemDto
     public decimal StandardCost { get; set; }
     public decimal TotalValue => Math.Round(CurrentStock * StandardCost, 2);
     public decimal ReorderLevel { get; set; }
-    public bool IsLowStock => CurrentStock <= ReorderLevel;
+    public bool IsLowStock => ReorderLevel > 0 && CurrentStock <= ReorderLevel;
     public DateTime LastUpdated { get; set; }
 }
 
@@ -262,6 +341,9 @@ public class StockOutDto
 
 public class StockTransferDto
 {
+    private string? _notes;
+    private bool _notesSet;
+
     [Required]
     public int ProductId { get; set; }
 
@@ -277,27 +359,160 @@ public class StockTransferDto
     [Range(0.01, double.MaxValue, ErrorMessage = "Transfer quantity must be greater than zero.")]
     public decimal Quantity { get; set; }
 
-    public string? Notes { get; set; }
-    public string? Remarks { get => Notes; set => Notes = value; }
+    public string? Notes
+    {
+        get => _notes;
+        set { _notes = value; if (!string.IsNullOrWhiteSpace(value)) _notesSet = true; }
+    }
+
+    public string? Remarks
+    {
+        get => _notes;
+        set { if (!_notesSet && !string.IsNullOrWhiteSpace(value)) _notes = value; }
+    }
 }
+
+// =========================================================================
+// PART 3: STOCK ADJUSTMENTS, LEDGER, LOW STOCK & ANALYTICS (Chandana Paparao)
+// =========================================================================
 
 public class CreateStockAdjustmentDto
 {
-    [Required]
+    private string _storageLocation = "Main Warehouse";
+    private bool _storageLocationSet;
+
+    [Required(ErrorMessage = "ProductId is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "ProductId must be a valid positive integer.")]
     public int ProductId { get; set; }
 
-    [Required]
     [MaxLength(100)]
-    public string StorageLocation { get; set; } = "Main Warehouse";
+    public string StorageLocation
+    {
+        get => _storageLocation;
+        set { _storageLocation = string.IsNullOrWhiteSpace(value) ? "Main Warehouse" : value; if (!string.IsNullOrWhiteSpace(value)) _storageLocationSet = true; }
+    }
+
+    // Frontend compatibility alias
+    public string? Location
+    {
+        get => _storageLocation;
+        set { if (!_storageLocationSet && !string.IsNullOrWhiteSpace(value)) _storageLocation = value; }
+    }
 
     [Required]
     [Range(0, double.MaxValue, ErrorMessage = "Physical stock cannot be negative.")]
     public decimal PhysicalStock { get; set; }
 
     [Required(ErrorMessage = "Reason is mandatory.")]
-    [MaxLength(100)]
+    [MaxLength(250)]
     public string Reason { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string? ApprovedBy { get; set; }
 
     [MaxLength(500)]
     public string? Remarks { get; set; }
+}
+
+public class StockAdjustmentHistoryDto
+{
+    public int Id { get; set; }
+    public string AdjustmentNumber { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public decimal BookStock { get; set; }
+    public decimal PhysicalStock { get; set; }
+    public decimal DifferenceQty { get; set; }
+    public decimal Difference => DifferenceQty;
+    public string AdjustmentType { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string? ApprovedBy { get; set; }
+    public string? Remarks { get; set; }
+    public DateTime AdjustmentDate { get; set; }
+}
+
+public class PaginatedStockAdjustmentsResponse
+{
+    public List<StockAdjustmentHistoryDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+}
+
+public class StockLedgerItemDto
+{
+    public long Id { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public string TransactionType { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalCost => Math.Round(Math.Abs(Quantity) * UnitPrice, 2);
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public string? ReferenceType { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public decimal BalanceAfterTransaction { get; set; }
+    public decimal BalanceAfter => BalanceAfterTransaction;
+    public string? Notes { get; set; }
+}
+
+public class PaginatedStockLedgerResponse
+{
+    public List<StockLedgerItemDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+}
+
+public class LowStockAlertDto
+{
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public decimal CurrentStock { get; set; }
+    public decimal ReorderLevel { get; set; }
+    public decimal Deficit => Math.Max(0, ReorderLevel - CurrentStock);
+    public decimal StandardCost { get; set; }
+    public decimal EstimatedReorderCost => Math.Round(Deficit * StandardCost, 2);
+    public string Unit { get; set; } = string.Empty;
+}
+
+public class InventoryExecutiveSummaryDto
+{
+    public int TotalActiveProducts { get; set; }
+    public decimal TotalStockValuation { get; set; }
+    public int LowStockItemCount { get; set; }
+    public decimal TotalStockInQuantity { get; set; }
+    public decimal TotalStockOutQuantity { get; set; }
+    public List<CategoryStockSummaryDto> CategoryBreakdown { get; set; } = new();
+    public List<LocationStockSummaryDto> LocationBreakdown { get; set; } = new();
+}
+
+public class CategoryStockSummaryDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public int ProductCount { get; set; }
+    public decimal TotalStockQuantity { get; set; }
+    public decimal Valuation { get; set; }
+}
+
+public class LocationStockSummaryDto
+{
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public int ItemCount { get; set; }
+    public decimal TotalStockQuantity { get; set; }
+    public decimal Valuation { get; set; }
 }

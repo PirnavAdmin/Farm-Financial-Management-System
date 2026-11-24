@@ -16,4 +16,6 @@ public class StockAdjustment
     public decimal DifferenceQty => PhysicalStock - BookStock;
     public string Reason { get; set; } = string.Empty; // Damaged, Expired, Spillage, CountDiscrepancy
     public string? Remarks { get; set; }
+    public string? AdjustmentType { get; set; } // Increase, Decrease, Reconciliation
+    public string? ApprovedBy { get; set; }
 }

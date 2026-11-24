@@ -232,7 +232,7 @@ INSERT IGNORE INTO `product_categories` (`Id`, `Name`, `Description`, `IsActive`
 (3, 'Pesticides', 'Chemical insecticides, fungicides, and herbicides for pest control', 1),
 (4, 'Sprayer Chemicals', 'Specialized liquid sprays, adjuvants, and micronutrients', 1),
 (5, 'Spare Parts', 'Tractor, tiller, irrigation pump, and sprayer spare parts', 1),
-(6, 'Consumables', 'Drip lateral pipes, ropes, tarpaulins, and farm consumables');
+(6, 'Consumables', 'Drip lateral pipes, ropes, tarpaulins, and farm consumables', 1);
 
 CREATE TABLE IF NOT EXISTS `units` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -282,7 +282,7 @@ CREATE TABLE IF NOT EXISTS `inventory` (
 
 -- 10. Inventory Transactions & Stock Adjustments
 CREATE TABLE IF NOT EXISTS `inventory_transactions` (
-    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `Id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `ProductId` INT NOT NULL,
     `TransactionDate` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `TransactionType` VARCHAR(50) NOT NULL,
@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS `inventory_transactions` (
     `ReferenceType` VARCHAR(50) DEFAULT NULL,
     `ReferenceNumber` VARCHAR(100) DEFAULT NULL,
     `Notes` VARCHAR(500) DEFAULT NULL,
-    `BalanceAfterTransaction` DECIMAL(18, 2) DEFAULT NULL,
+    `BalanceAfterTransaction` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
     CONSTRAINT `fk_inv_tx_prod` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -304,8 +304,10 @@ CREATE TABLE IF NOT EXISTS `stock_adjustments` (
     `StorageLocation` VARCHAR(100) NOT NULL DEFAULT 'Main Warehouse',
     `BookStock` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
     `PhysicalStock` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
-    `Reason` VARCHAR(100) NOT NULL,
+    `Reason` VARCHAR(250) NOT NULL,
     `Remarks` VARCHAR(500) DEFAULT NULL,
+    `AdjustmentType` VARCHAR(50) DEFAULT NULL,
+    `ApprovedBy` VARCHAR(100) DEFAULT NULL,
     CONSTRAINT `fk_stock_adj_prod` FOREIGN KEY (`ProductId`) REFERENCES `products` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
