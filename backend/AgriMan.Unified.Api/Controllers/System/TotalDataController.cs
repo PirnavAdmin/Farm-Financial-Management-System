@@ -417,7 +417,7 @@ public class TotalDataController : ControllerBase
         var productsCount = await _farmDb.Products.CountAsync(cancellationToken);
         var inventoryLocationsCount = await _farmDb.Inventory.CountAsync(cancellationToken);
         var totalCurrentStock = await _farmDb.Inventory.SumAsync(x => (decimal?)x.CurrentStock, cancellationToken) ?? 0m;
-        var lowStockItemsCount = await _farmDb.Inventory.CountAsync(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel, cancellationToken);
+        var lowStockItemsCount = await _farmDb.Inventory.CountAsync(i => i.Product != null && i.Product.IsActive && i.Product.ReorderLevel > 0 && i.CurrentStock <= i.Product.ReorderLevel, cancellationToken);
         var totalInventoryValuation = await _farmDb.Inventory.Where(i => i.Product != null && i.Product.IsActive).SumAsync(i => (decimal?)(i.CurrentStock * i.Product!.StandardCost), cancellationToken) ?? 0m;
 
         var expenseCount = await _expenseDb.ExpenseTransactions.CountAsync(cancellationToken);

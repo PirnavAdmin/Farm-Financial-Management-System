@@ -231,7 +231,7 @@ namespace FarmManagementApi.Controllers
                 .SumAsync(p => (decimal?)p.BalanceAmount) ?? 0m;
 
             var lowStockCount = await _farmDb.Inventory
-                .CountAsync(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel);
+                .CountAsync(i => i.Product != null && i.Product.IsActive && i.Product.ReorderLevel > 0 && i.CurrentStock <= i.Product.ReorderLevel);
 
             var inventoryValuation = await _farmDb.Inventory
                 .Where(i => i.Product != null && i.Product.IsActive)
@@ -395,33 +395,39 @@ namespace FarmManagementApi.Controllers
         [HttpGet("low-stock-items")]
         public async Task<IActionResult> GetLowStockItems()
         {
-            var lowStock = await _farmDb.Inventory
+            var rawLowStock = await _farmDb.Inventory
                 .Include(i => i.Product)
                     .ThenInclude(p => p!.Category)
                 .Include(i => i.Product)
                     .ThenInclude(p => p!.Units)
-                .Where(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel)
+                .AsNoTracking()
+                .Where(i => i.Product != null && i.Product.IsActive && i.Product.ReorderLevel > 0 && i.CurrentStock <= i.Product.ReorderLevel)
                 .OrderByDescending(i => (i.Product!.ReorderLevel - i.CurrentStock) * i.Product.StandardCost)
                 .Take(10)
-                .Select(i => new
+                .ToListAsync();
+
+            var lowStock = rawLowStock.Select(i =>
+            {
+                var deficit = Math.Max(0, i.Product!.ReorderLevel - i.CurrentStock);
+                return new
                 {
                     id = i.ProductId,
                     productId = i.ProductId,
-                    itemName = i.Product!.Name,
+                    itemName = i.Product.Name,
                     productName = i.Product.Name,
                     productCode = i.Product.Code,
                     category = i.Product.Category != null ? i.Product.Category.Name : "Farm Supplies",
                     currentStock = i.CurrentStock,
                     reorderLevel = i.Product.ReorderLevel,
                     minThreshold = i.Product.ReorderLevel,
-                    deficit = Math.Max(0, i.Product.ReorderLevel - i.CurrentStock),
+                    deficit,
                     unit = i.Product.Units != null ? i.Product.Units.ShortCode : "Units",
-                    estimatedReorderCost = Math.Max(0, i.Product.ReorderLevel - i.CurrentStock) * i.Product.StandardCost,
+                    estimatedReorderCost = Math.Round(deficit * i.Product.StandardCost, 2),
                     storageLocation = i.StorageLocation,
                     status = "Low Stock",
-                    urgencyLevel = (i.Product.ReorderLevel - i.CurrentStock) > (i.Product.ReorderLevel * 0.5m) ? "high" : "warning"
-                })
-                .ToListAsync();
+                    urgencyLevel = deficit > (i.Product.ReorderLevel * 0.5m) ? "high" : "warning"
+                };
+            }).ToList();
 
             return Ok(lowStock);
         }

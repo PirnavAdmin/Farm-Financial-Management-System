@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using AgriMan.Api.Data;
@@ -414,8 +414,6 @@ builder.Services.AddSwaggerGen(c =>
         if (controllerName.StartsWith("Crop", StringComparison.OrdinalIgnoreCase)) return new[] { "05. Crops - Crop Profiles, Categories, Varieties & Seasons (Module 5)" };
 
         // 06. Inventory & Agricultural Inputs
-        if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories (Module 6)" };
-        if (controllerName.Equals("Inventory", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Stock In, Stock Out & Adjustments (Module 6)" };
         if (controllerName.Equals("ProductCategories", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Product Categories (Module 6)" };
         if (controllerName.Equals("Units", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Units of Measurement (Module 6)" };
         if (controllerName.Equals("Products", StringComparison.OrdinalIgnoreCase)) return new[] { "06. Inventory - Agricultural Products & Categories (Module 6)" };
@@ -533,7 +531,6 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var farmDb = services.GetRequiredService<FarmDbContext>();
-        await FarmManagementApi.Data.FarmDbContext.EnsureInventorySchemaAsync(farmDb);
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
         await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
         logger.LogInformation("[agriman_db] 2. Farm Management, Inventory Master & Loans ready.");

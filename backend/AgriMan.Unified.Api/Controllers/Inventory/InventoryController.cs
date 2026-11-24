@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FarmManagementApi.Data;
 using FarmManagementApi.Models;
@@ -8,7 +8,7 @@ using AgriMan.Api.Services;
 namespace FarmManagementApi.Controllers;
 
 /// <summary>
-/// Inventory Movements Engine & Stock Operations Controller.
+/// Inventory Movements Engine &amp; Stock Operations Controller.
 /// Implements Part 2: Live Stock Directory, Stock In, Stock Out, and Inter-location Transfers.
 /// </summary>
 [Route("api/[controller]")]
@@ -176,6 +176,7 @@ public class InventoryController : ControllerBase
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
 
         var query = _context.InventoryTransactions
             .Include(t => t.Product)
@@ -185,7 +186,13 @@ public class InventoryController : ControllerBase
             .AsQueryable();
 
         if (fromDate.HasValue) query = query.Where(t => t.TransactionDate >= fromDate.Value);
-        if (toDate.HasValue) query = query.Where(t => t.TransactionDate <= toDate.Value);
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(t => t.TransactionDate <= endOfDay);
+        }
         if (productId.HasValue) query = query.Where(t => t.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(location))
             query = query.Where(t => t.StorageLocation.ToLower() == location.Trim().ToLower());
@@ -268,15 +275,14 @@ public class InventoryController : ControllerBase
             inv.LastUpdated = DateTime.UtcNow;
         }
 
-        // Auto-generate TransactionNo: SIN-YYYY-NNN
+        // Auto-generate collision-safe TransactionNo: SIN-YYYY-NNN
         var year = DateTime.UtcNow.Year;
         var prefix = $"SIN-{year}-";
-        var countThisYear = await _context.InventoryTransactions
-            .CountAsync(t => t.TransactionType == "StockIn" && t.TransactionDate.Year == year);
-        var transactionNo = $"{prefix}{(countThisYear + 1):D3}";
+        var transactionNo = await GenerateNextReferenceAsync(prefix, 3);
 
         var unitPrice = dto.UnitPrice > 0 ? dto.UnitPrice : product.StandardCost;
         var metadataParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(dto.ReferenceNumber)) metadataParts.Add($"Ref:{dto.ReferenceNumber.Trim()}");
         if (dto.SupplierId.HasValue) metadataParts.Add($"SupplierId:{dto.SupplierId.Value}");
         if (!string.IsNullOrWhiteSpace(dto.SupplierName)) metadataParts.Add($"Supplier:{dto.SupplierName}");
         if (!string.IsNullOrWhiteSpace(dto.Notes)) metadataParts.Add(dto.Notes);
@@ -340,6 +346,7 @@ public class InventoryController : ControllerBase
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
 
         var query = _context.InventoryTransactions
             .Include(t => t.Product)
@@ -349,7 +356,13 @@ public class InventoryController : ControllerBase
             .AsQueryable();
 
         if (fromDate.HasValue) query = query.Where(t => t.TransactionDate >= fromDate.Value);
-        if (toDate.HasValue) query = query.Where(t => t.TransactionDate <= toDate.Value);
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(t => t.TransactionDate <= endOfDay);
+        }
         if (productId.HasValue) query = query.Where(t => t.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(location))
             query = query.Where(t => t.StorageLocation.ToLower() == location.Trim().ToLower());
@@ -413,14 +426,14 @@ public class InventoryController : ControllerBase
         var inv = await _context.Inventory
             .FirstOrDefaultAsync(i => i.ProductId == dto.ProductId && i.StorageLocation.ToLower() == normalizedLoc.ToLower());
 
-        // Strict Insufficient-stock validation
-        if (inv == null || inv.CurrentStock < dto.Quantity)
+        // Strict Insufficient-stock validation (respecting ReservedStock)
+        var available = inv != null ? Math.Max(0, inv.CurrentStock - inv.ReservedStock) : 0;
+        if (inv == null || available < dto.Quantity)
         {
-            var available = inv?.CurrentStock ?? 0;
             return BadRequest(new
             {
                 error = "INSUFFICIENT_STOCK",
-                message = $"Insufficient stock for '{product.Name}' in '{normalizedLoc}'. Available: {available}, Requested: {dto.Quantity}"
+                message = $"Insufficient available stock for '{product.Name}' in '{normalizedLoc}'. Available: {available}, Requested: {dto.Quantity}"
             });
         }
 
@@ -430,14 +443,13 @@ public class InventoryController : ControllerBase
         inv.CurrentStock -= dto.Quantity;
         inv.LastUpdated = DateTime.UtcNow;
 
-        // Auto-generate TransactionNo: SOUT-YYYY-NNN
+        // Auto-generate collision-safe TransactionNo: SOUT-YYYY-NNN
         var year = DateTime.UtcNow.Year;
         var prefix = $"SOUT-{year}-";
-        var countThisYear = await _context.InventoryTransactions
-            .CountAsync(t => t.TransactionType == "StockOut" && t.TransactionDate.Year == year);
-        var transactionNo = $"{prefix}{(countThisYear + 1):D3}";
+        var transactionNo = await GenerateNextReferenceAsync(prefix, 3);
 
         var metadataParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(dto.ReferenceNumber)) metadataParts.Add($"Ref:{dto.ReferenceNumber.Trim()}");
         if (dto.FarmId.HasValue) metadataParts.Add($"FarmId:{dto.FarmId.Value}");
         if (dto.CropId.HasValue) metadataParts.Add($"CropId:{dto.CropId.Value}");
         if (!string.IsNullOrWhiteSpace(dto.IssuedTo)) metadataParts.Add($"IssuedTo:{dto.IssuedTo}");
@@ -502,6 +514,7 @@ public class InventoryController : ControllerBase
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
 
         var query = _context.InventoryTransactions
             .Include(t => t.Product)
@@ -511,12 +524,22 @@ public class InventoryController : ControllerBase
             .AsQueryable();
 
         if (fromDate.HasValue) query = query.Where(t => t.TransactionDate >= fromDate.Value);
-        if (toDate.HasValue) query = query.Where(t => t.TransactionDate <= toDate.Value);
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(t => t.TransactionDate <= endOfDay);
+        }
         if (productId.HasValue) query = query.Where(t => t.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(fromLocation))
-            query = query.Where(t => t.StorageLocation.ToLower() == fromLocation.Trim().ToLower() || (t.Notes != null && t.Notes.Contains($"From:{fromLocation.Trim()}")));
+            query = query.Where(t =>
+                (t.TransactionType == "TransferOut" && t.StorageLocation.ToLower() == fromLocation.Trim().ToLower()) ||
+                (t.TransactionType == "TransferIn" && t.Notes != null && t.Notes.Contains($"From:{fromLocation.Trim()}")));
         if (!string.IsNullOrWhiteSpace(toLocation))
-            query = query.Where(t => t.StorageLocation.ToLower() == toLocation.Trim().ToLower() || (t.Notes != null && t.Notes.Contains($"To:{toLocation.Trim()}")));
+            query = query.Where(t =>
+                (t.TransactionType == "TransferIn" && t.StorageLocation.ToLower() == toLocation.Trim().ToLower()) ||
+                (t.TransactionType == "TransferOut" && t.Notes != null && t.Notes.Contains($"To:{toLocation.Trim()}")));
 
         var totalCount = await query.CountAsync();
 
@@ -532,6 +555,7 @@ public class InventoryController : ControllerBase
                 t.ProductId,
                 ProductName = t.Product != null ? t.Product.Name : "",
                 ProductCode = t.Product != null ? t.Product.Code : "",
+                Unit = t.Product != null && t.Product.Units != null ? t.Product.Units.ShortCode : "",
                 Quantity = Math.Abs(t.Quantity),
                 t.StorageLocation,
                 t.ReferenceNumber,
@@ -564,6 +588,9 @@ public class InventoryController : ControllerBase
         var fromLoc = dto.FromLocation?.Trim() ?? "";
         var toLoc = dto.ToLocation?.Trim() ?? "";
 
+        if (string.IsNullOrWhiteSpace(fromLoc) || string.IsNullOrWhiteSpace(toLoc))
+            return BadRequest(new { error = "INVALID_LOCATIONS", message = "Source and target locations are required." });
+
         if (string.Equals(fromLoc, toLoc, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { error = "INVALID_LOCATIONS", message = "Source and target locations must be different." });
 
@@ -573,17 +600,18 @@ public class InventoryController : ControllerBase
             return NotFound(new { error = "PRODUCT_NOT_FOUND", message = $"Product with ID {dto.ProductId} was not found." });
         }
 
-        using var tx = await _context.Database.BeginTransactionAsync();
-
         var fromInv = await _context.Inventory
             .FirstOrDefaultAsync(i => i.ProductId == dto.ProductId && i.StorageLocation.ToLower() == fromLoc.ToLower());
 
-        if (fromInv == null || fromInv.CurrentStock < dto.Quantity)
+        var availableFrom = fromInv != null ? Math.Max(0, fromInv.CurrentStock - fromInv.ReservedStock) : 0;
+        if (fromInv == null || availableFrom < dto.Quantity)
             return BadRequest(new
             {
                 error = "INSUFFICIENT_SOURCE_STOCK",
-                message = $"Insufficient stock for '{product.Name}' at {fromLoc}. Available: {fromInv?.CurrentStock ?? 0}, Requested: {dto.Quantity}"
+                message = $"Insufficient available stock for '{product.Name}' at {fromLoc}. Available: {availableFrom}, Requested: {dto.Quantity}"
             });
+
+        using var tx = await _context.Database.BeginTransactionAsync();
 
         var toInv = await _context.Inventory
             .FirstOrDefaultAsync(i => i.ProductId == dto.ProductId && i.StorageLocation.ToLower() == toLoc.ToLower());
@@ -610,12 +638,11 @@ public class InventoryController : ControllerBase
 
         var year = DateTime.UtcNow.Year;
         var prefix = $"STR-{year}-";
-        var countThisYear = await _context.InventoryTransactions
-            .CountAsync(t => (t.TransactionType == "TransferOut" || t.TransactionType == "TransferIn") && t.TransactionDate.Year == year);
-        var baseSequence = $"{prefix}{(countThisYear / 2 + 1):D3}";
+        var baseSequence = await GenerateNextReferenceAsync(prefix, 3);
 
         var transferOutNumber = $"{baseSequence}-OUT";
         var transferInNumber = $"{baseSequence}-IN";
+        var cleanNotes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
 
         // Paired Ledger Entry 1: TransferOut
         _context.InventoryTransactions.Add(new InventoryTransaction
@@ -628,7 +655,7 @@ public class InventoryController : ControllerBase
             StorageLocation = fromLoc,
             ReferenceType = "Transfer",
             ReferenceNumber = transferOutNumber,
-            Notes = $"To:{toLoc} | {dto.Notes}".Trim(),
+            Notes = cleanNotes != null ? $"To:{toLoc} | {cleanNotes}" : $"To:{toLoc}",
             BalanceAfterTransaction = fromInv.CurrentStock
         });
 
@@ -643,7 +670,7 @@ public class InventoryController : ControllerBase
             StorageLocation = toLoc,
             ReferenceType = "Transfer",
             ReferenceNumber = transferInNumber,
-            Notes = $"From:{fromLoc} | {dto.Notes}".Trim(),
+            Notes = cleanNotes != null ? $"From:{fromLoc} | {cleanNotes}" : $"From:{fromLoc}",
             BalanceAfterTransaction = toInv.CurrentStock
         });
 
@@ -781,7 +808,7 @@ public class InventoryController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(approver))
         {
-            approver = "Chandana Paparao (Warehouse Manager)";
+            approver = "Warehouse Manager";
         }
 
         using var tx = await _context.Database.BeginTransactionAsync();
@@ -826,12 +853,10 @@ public class InventoryController : ControllerBase
             inv.LastUpdated = DateTime.UtcNow;
         }
 
-        // 4. Generate unique adjustment number: ADJ-YYYY-NNNN
+        // 4. Generate collision-safe unique adjustment number: ADJ-YYYY-NNNN
         var year = DateTime.UtcNow.Year;
         var prefix = $"ADJ-{year}-";
-        var countThisYear = await _context.StockAdjustments
-            .CountAsync(sa => sa.AdjustmentDate.Year == year);
-        var adjNumber = $"{prefix}{(countThisYear + 1):D4}";
+        var adjNumber = await GenerateNextAdjustmentNumberAsync(prefix, 4);
 
         var adjustment = new StockAdjustment
         {
@@ -1086,7 +1111,7 @@ public class InventoryController : ControllerBase
                 .ThenInclude(p => p!.Category)
             .Include(i => i.Product)
                 .ThenInclude(p => p!.Units)
-            .Where(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel)
+            .Where(i => i.Product != null && i.Product.IsActive && i.Product.ReorderLevel > 0 && i.CurrentStock <= i.Product.ReorderLevel)
             .AsNoTracking()
             .AsQueryable();
 
@@ -1103,23 +1128,17 @@ public class InventoryController : ControllerBase
 
         var lowStockList = await query.ToListAsync();
 
-        var alerts = lowStockList.Select(i =>
+        var alerts = lowStockList.Select(i => new LowStockAlertDto
         {
-            var deficit = Math.Max(0, i.Product!.ReorderLevel - i.CurrentStock);
-            var estCost = deficit * i.Product.StandardCost;
-
-            return new LowStockAlertDto
-            {
-                ProductId = i.ProductId,
-                ProductCode = i.Product.Code,
-                ProductName = i.Product.Name,
-                CategoryName = i.Product.Category?.Name ?? "General",
-                StorageLocation = i.StorageLocation,
-                CurrentStock = i.CurrentStock,
-                ReorderLevel = i.Product.ReorderLevel,
-                StandardCost = i.Product.StandardCost,
-                Unit = i.Product.Units?.ShortCode ?? "Kg"
-            };
+            ProductId = i.ProductId,
+            ProductCode = i.Product!.Code,
+            ProductName = i.Product.Name,
+            CategoryName = i.Product.Category?.Name ?? "General",
+            StorageLocation = i.StorageLocation,
+            CurrentStock = i.CurrentStock,
+            ReorderLevel = i.Product.ReorderLevel,
+            StandardCost = i.Product.StandardCost,
+            Unit = i.Product.Units?.ShortCode ?? "Kg"
         })
         .OrderByDescending(x => x.EstimatedReorderCost)
         .ToList();
@@ -1128,69 +1147,65 @@ public class InventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Executive Inventory Summary & KPI Analytics (Total active products, valuation, low stock count, stock-in/out, breakdowns).
+    /// Executive Inventory Summary &amp; KPI Analytics (Total active products, valuation, low stock count, stock-in/out, breakdowns).
     /// </summary>
     [HttpGet("summary")]
     [ProducesResponseType(typeof(InventoryExecutiveSummaryDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetInventorySummary()
     {
-        var activeProducts = await _context.Products
-            .Where(p => p.IsActive)
-            .ToListAsync();
+        var totalActive = await _context.Products
+            .AsNoTracking()
+            .CountAsync(p => p.IsActive);
 
-        var inventories = await _context.Inventory
+        var activeInventories = await _context.Inventory
             .Include(i => i.Product)
                 .ThenInclude(p => p!.Category)
+            .AsNoTracking()
+            .Where(i => i.Product != null && i.Product.IsActive)
             .ToListAsync();
 
-        var transactions = await _context.InventoryTransactions.ToListAsync();
-
-        var totalActive = activeProducts.Count;
         decimal totalValuation = 0;
         int lowStockCount = 0;
 
-        foreach (var inv in inventories)
+        foreach (var inv in activeInventories)
         {
-            if (inv.Product != null && inv.Product.IsActive)
+            totalValuation += inv.CurrentStock * inv.Product!.StandardCost;
+            if (inv.Product.ReorderLevel > 0 && inv.CurrentStock <= inv.Product.ReorderLevel)
             {
-                totalValuation += inv.CurrentStock * inv.Product.StandardCost;
-                if (inv.CurrentStock <= inv.Product.ReorderLevel)
-                {
-                    lowStockCount++;
-                }
+                lowStockCount++;
             }
         }
 
-        var stockInTotal = transactions
+        var stockInTotal = await _context.InventoryTransactions
+            .AsNoTracking()
             .Where(t => t.TransactionType == "StockIn" || t.TransactionType == "Stock In")
-            .Sum(t => Math.Abs(t.Quantity));
+            .SumAsync(t => (decimal?)(t.Quantity < 0 ? -t.Quantity : t.Quantity)) ?? 0m;
 
-        var stockOutTotal = transactions
+        var stockOutTotal = await _context.InventoryTransactions
+            .AsNoTracking()
             .Where(t => t.TransactionType == "StockOut" || t.TransactionType == "Stock Out")
-            .Sum(t => Math.Abs(t.Quantity));
+            .SumAsync(t => (decimal?)(t.Quantity < 0 ? -t.Quantity : t.Quantity)) ?? 0m;
 
-        var categoryBreakdown = inventories
-            .Where(i => i.Product != null)
+        var categoryBreakdown = activeInventories
             .GroupBy(i => i.Product!.Category?.Name ?? "Uncategorized")
             .Select(g => new CategoryStockSummaryDto
             {
                 CategoryName = g.Key,
                 ProductCount = g.Select(x => x.ProductId).Distinct().Count(),
                 TotalStockQuantity = g.Sum(x => x.CurrentStock),
-                Valuation = g.Sum(x => x.CurrentStock * (x.Product != null ? x.Product.StandardCost : 0))
+                Valuation = g.Sum(x => x.CurrentStock * x.Product!.StandardCost)
             })
             .OrderByDescending(c => c.Valuation)
             .ToList();
 
-        var locationBreakdown = inventories
-            .Where(i => i.Product != null)
+        var locationBreakdown = activeInventories
             .GroupBy(i => i.StorageLocation)
             .Select(g => new LocationStockSummaryDto
             {
                 StorageLocation = g.Key,
                 ItemCount = g.Count(),
                 TotalStockQuantity = g.Sum(x => x.CurrentStock),
-                Valuation = g.Sum(x => x.CurrentStock * (x.Product != null ? x.Product.StandardCost : 0))
+                Valuation = g.Sum(x => x.CurrentStock * x.Product!.StandardCost)
             })
             .OrderByDescending(l => l.Valuation)
             .ToList();
@@ -1205,6 +1220,44 @@ public class InventoryController : ControllerBase
             CategoryBreakdown = categoryBreakdown,
             LocationBreakdown = locationBreakdown
         });
+    }
+
+    private async Task<string> GenerateNextReferenceAsync(string prefix, int padWidth)
+    {
+        var existingRefs = await _context.InventoryTransactions
+            .AsNoTracking()
+            .Where(t => t.ReferenceNumber != null && t.ReferenceNumber.StartsWith(prefix))
+            .Select(t => t.ReferenceNumber!)
+            .ToListAsync();
+
+        var maxSeq = 0;
+        foreach (var r in existingRefs)
+        {
+            var suffix = r.Substring(prefix.Length);
+            var dashIdx = suffix.IndexOf('-');
+            if (dashIdx >= 0) suffix = suffix.Substring(0, dashIdx);
+            if (int.TryParse(suffix, out var n) && n > maxSeq) maxSeq = n;
+        }
+
+        return $"{prefix}{(maxSeq + 1).ToString($"D{padWidth}")}";
+    }
+
+    private async Task<string> GenerateNextAdjustmentNumberAsync(string prefix, int padWidth)
+    {
+        var existingNums = await _context.StockAdjustments
+            .AsNoTracking()
+            .Where(sa => sa.AdjustmentNumber.StartsWith(prefix))
+            .Select(sa => sa.AdjustmentNumber)
+            .ToListAsync();
+
+        var maxSeq = 0;
+        foreach (var num in existingNums)
+        {
+            var suffix = num.Substring(prefix.Length);
+            if (int.TryParse(suffix, out var n) && n > maxSeq) maxSeq = n;
+        }
+
+        return $"{prefix}{(maxSeq + 1).ToString($"D{padWidth}")}";
     }
 
     private static string EscapeCsv(string value)
