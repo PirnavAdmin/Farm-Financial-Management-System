@@ -489,9 +489,7 @@ export default function Receivables({ onNavigate }) {
             </>
           )}
 
-          <button className="sales-reset-btn" type="button" onClick={resetFilters}>
-            ↻ Reset Filters
-          </button>
+
         </div>
 
         {/* Dynamic Table Content */}
