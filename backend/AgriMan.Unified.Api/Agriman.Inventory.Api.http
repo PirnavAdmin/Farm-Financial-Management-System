@@ -126,3 +126,130 @@ Content-Type: {{contentType}}
   "quantity": 5.0,
   "notes": "Should return 400 Bad Request: Locations cannot be identical"
 }
+
+
+### ==============================================================================
+### PART 3: STOCK ADJUSTMENTS, LEDGER, LOW STOCK & ANALYTICS (Chandana Paparao)
+### ==============================================================================
+
+### 5.1 GET Stock Adjustment History (Default pagination: Page 1, Size 10)
+GET {{baseUrl}}/api/Inventory/stock-adjustment?page=1&pageSize=10
+Accept: {{contentType}}
+
+### 5.2 GET Stock Adjustment History with Filters (ProductId & Location)
+GET {{baseUrl}}/api/Inventory/stock-adjustment?productId=1&location=Main%20Warehouse&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 5.3 GET Stock Adjustment History with Date Range Filters
+GET {{baseUrl}}/api/Inventory/stock-adjustment?fromDate=2026-01-01&toDate=2026-12-31&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 5.4 POST Stock Adjustment - Decrease (Variance computed automatically)
+POST {{baseUrl}}/api/Inventory/stock-adjustment
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "physicalStock": 115.0,
+  "reason": "Quarterly physical stock audit count (damaged bags)",
+  "approvedBy": "Chandana Paparao (Warehouse Manager)",
+  "remarks": "Discrepancy reconciled during quarterly physical audit"
+}
+
+### 5.5 POST Stock Adjustment - Increase
+POST {{baseUrl}}/api/Inventory/stock-adjustment
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "physicalStock": 125.0,
+  "reason": "Found unrecorded returned goods in bin A4",
+  "approvedBy": "Chandana Paparao (Warehouse Manager)",
+  "remarks": "Added surplus back to inventory"
+}
+
+### 5.6 POST Stock Adjustment - Validation Test (Non-Existent Product ID returns 404)
+POST {{baseUrl}}/api/Inventory/stock-adjustment
+Content-Type: {{contentType}}
+
+{
+  "productId": 99999,
+  "storageLocation": "Main Warehouse",
+  "physicalStock": 50.0,
+  "reason": "Invalid product ID validation test",
+  "approvedBy": "QA Auditor"
+}
+
+### 5.7 POST Stock Adjustment - Validation Test (Negative Physical Stock returns 400)
+POST {{baseUrl}}/api/Inventory/stock-adjustment
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "storageLocation": "Main Warehouse",
+  "physicalStock": -10.0,
+  "reason": "Negative stock validation test",
+  "approvedBy": "QA Auditor"
+}
+
+
+### ------------------------------------------------------------------------------
+### 6. ENHANCED STOCK LEDGER & CSV EXPORT
+### ------------------------------------------------------------------------------
+
+### 6.1 GET Stock Ledger (All transactions, paginated)
+GET {{baseUrl}}/api/Inventory/ledger?page=1&pageSize=15
+Accept: {{contentType}}
+
+### 6.2 GET Stock Ledger Filtered by Transaction Type (Adjustment)
+GET {{baseUrl}}/api/Inventory/ledger?transactionType=Adjustment&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 6.3 GET Stock Ledger Filtered by Search Keyword
+GET {{baseUrl}}/api/Inventory/ledger?search=Urea&page=1&pageSize=10
+Accept: {{contentType}}
+
+### 6.4 GET Stock Ledger CSV Export
+GET {{baseUrl}}/api/Inventory/ledger/export
+Accept: text/csv
+
+### 6.5 GET Stock Ledger CSV Export Filtered
+GET {{baseUrl}}/api/Inventory/ledger/export?transactionType=Adjustment
+Accept: text/csv
+
+
+### ------------------------------------------------------------------------------
+### 7. LOW STOCK ALERTS & EXECUTIVE INVENTORY SUMMARY
+### ------------------------------------------------------------------------------
+
+### 7.1 GET Low Stock Alerts with Calculated Deficit and Estimated Reorder Cost
+GET {{baseUrl}}/api/Inventory/low-stock
+Accept: {{contentType}}
+
+### 7.2 GET Low Stock Alerts with Location and Category Filters
+GET {{baseUrl}}/api/Inventory/low-stock?location=Main%20Warehouse&categoryId=1
+Accept: {{contentType}}
+
+### 7.3 GET Executive Inventory Summary & Valuation Breakdown
+GET {{baseUrl}}/api/Inventory/summary
+Accept: {{contentType}}
+
+
+### ------------------------------------------------------------------------------
+### 8. PLATFORM INTEGRATION VERIFICATION (Dashboard & TotalData)
+### ------------------------------------------------------------------------------
+
+### 8.1 GET Dashboard Summary (Wired with lowStockCount and inventoryValuation)
+GET {{baseUrl}}/api/Dashboard/summary
+Accept: {{contentType}}
+
+### 8.2 GET Dashboard Low Stock Items Widget (Live threshold calculations)
+GET {{baseUrl}}/api/Dashboard/low-stock-items
+Accept: {{contentType}}
+
+### 8.3 GET Total Platform Data Summary (Wired with totalInventoryValuation and lowStockItemsCount)
+GET {{baseUrl}}/api/total-data/summary
+Accept: {{contentType}}
+

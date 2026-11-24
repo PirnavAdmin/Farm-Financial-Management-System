@@ -670,29 +670,152 @@ public class InventoryController : ControllerBase
     }
 
     // =========================================================================
-    // 5. EXISTING STOCK OPERATIONS (Adjustments, Ledger, Low Stock)
+    // 5. PART 3: STOCK ADJUSTMENTS, LEDGER, LOW STOCK & ANALYTICS (Chandana Paparao)
     // =========================================================================
 
+    /// <summary>
+    /// Retrieves paginated stock adjustment history with optional filters (productId, location, fromDate, toDate).
+    /// </summary>
+    [HttpGet("stock-adjustment")]
+    [ProducesResponseType(typeof(PaginatedStockAdjustmentsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStockAdjustmentHistory(
+        [FromQuery] int? productId,
+        [FromQuery] string? location,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+        var query = _context.StockAdjustments
+            .Include(sa => sa.Product)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (productId.HasValue && productId.Value > 0)
+        {
+            query = query.Where(sa => sa.ProductId == productId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var loc = location.Trim().ToLower();
+            query = query.Where(sa => sa.StorageLocation.ToLower().Contains(loc));
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(sa => sa.AdjustmentDate >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(sa => sa.AdjustmentDate <= endOfDay);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(sa => sa.AdjustmentDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(sa => new StockAdjustmentHistoryDto
+            {
+                Id = sa.Id,
+                AdjustmentNumber = sa.AdjustmentNumber,
+                ProductId = sa.ProductId,
+                ProductCode = sa.Product != null ? sa.Product.Code : string.Empty,
+                ProductName = sa.Product != null ? sa.Product.Name : string.Empty,
+                StorageLocation = sa.StorageLocation,
+                BookStock = sa.BookStock,
+                PhysicalStock = sa.PhysicalStock,
+                DifferenceQty = sa.PhysicalStock - sa.BookStock,
+                AdjustmentType = sa.AdjustmentType ?? (sa.PhysicalStock > sa.BookStock ? "Increase" : (sa.PhysicalStock < sa.BookStock ? "Decrease" : "Reconciliation")),
+                Reason = sa.Reason,
+                ApprovedBy = sa.ApprovedBy,
+                Remarks = sa.Remarks,
+                AdjustmentDate = sa.AdjustmentDate
+            })
+            .ToListAsync();
+
+        return Ok(new PaginatedStockAdjustmentsResponse
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        });
+    }
+
+    /// <summary>
+    /// Records physical inventory count reconciliation with product validation, automatic adjustment type computation, and atomic ledger sync.
+    /// </summary>
     [HttpPost("stock-adjustment")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> StockAdjustment([FromBody] CreateStockAdjustmentDto dto)
     {
-        if (dto.PhysicalStock < 0) return BadRequest("Physical stock cannot be negative.");
+        if (dto.PhysicalStock < 0)
+        {
+            return BadRequest(new { error = "INVALID_PHYSICAL_STOCK", message = "Physical stock cannot be negative." });
+        }
+
+        // 1. Product existence validation
+        var product = await _context.Products.FindAsync(dto.ProductId);
+        if (product == null)
+        {
+            return NotFound(new { error = "PRODUCT_NOT_FOUND", message = $"Product with ID {dto.ProductId} was not found." });
+        }
+
+        var normalizedLoc = string.IsNullOrWhiteSpace(dto.StorageLocation) ? "Main Warehouse" : dto.StorageLocation.Trim();
+        var approver = !string.IsNullOrWhiteSpace(dto.ApprovedBy)
+            ? dto.ApprovedBy.Trim()
+            : _auditService.GetActorFromPrincipal(User).ActorName;
+
+        if (string.IsNullOrWhiteSpace(approver))
+        {
+            approver = "Chandana Paparao (Warehouse Manager)";
+        }
 
         using var tx = await _context.Database.BeginTransactionAsync();
 
+        // 2. Fetch or initialize inventory record
         var inv = await _context.Inventory
-            .FirstOrDefaultAsync(i => i.ProductId == dto.ProductId && i.StorageLocation == dto.StorageLocation);
+            .FirstOrDefaultAsync(i => i.ProductId == dto.ProductId && i.StorageLocation.ToLower() == normalizedLoc.ToLower());
 
         decimal bookStock = inv?.CurrentStock ?? 0;
         decimal diff = dto.PhysicalStock - bookStock;
+
+        // 3. Computed AdjustmentType
+        string adjustmentType;
+        if (diff > 0)
+        {
+            adjustmentType = "Increase";
+        }
+        else if (diff < 0)
+        {
+            adjustmentType = "Decrease";
+        }
+        else
+        {
+            adjustmentType = "Reconciliation (No Change)";
+        }
 
         if (inv == null)
         {
             inv = new Inventory
             {
                 ProductId = dto.ProductId,
-                StorageLocation = dto.StorageLocation,
+                StorageLocation = normalizedLoc,
                 CurrentStock = dto.PhysicalStock,
+                ReservedStock = 0,
                 LastUpdated = DateTime.UtcNow
             };
             _context.Inventory.Add(inv);
@@ -703,31 +826,40 @@ public class InventoryController : ControllerBase
             inv.LastUpdated = DateTime.UtcNow;
         }
 
-        var adjNumber = $"ADJ-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+        // 4. Generate unique adjustment number: ADJ-YYYY-NNNN
+        var year = DateTime.UtcNow.Year;
+        var prefix = $"ADJ-{year}-";
+        var countThisYear = await _context.StockAdjustments
+            .CountAsync(sa => sa.AdjustmentDate.Year == year);
+        var adjNumber = $"{prefix}{(countThisYear + 1):D4}";
 
         var adjustment = new StockAdjustment
         {
             AdjustmentNumber = adjNumber,
             AdjustmentDate = DateTime.UtcNow,
             ProductId = dto.ProductId,
-            StorageLocation = dto.StorageLocation,
+            StorageLocation = normalizedLoc,
             BookStock = bookStock,
             PhysicalStock = dto.PhysicalStock,
             Reason = dto.Reason,
-            Remarks = dto.Remarks
+            Remarks = dto.Remarks,
+            AdjustmentType = adjustmentType,
+            ApprovedBy = approver
         };
         _context.StockAdjustments.Add(adjustment);
 
+        // 5. Atomic sync into InventoryTransaction ledger
         var log = new InventoryTransaction
         {
             ProductId = dto.ProductId,
             TransactionDate = DateTime.UtcNow,
             TransactionType = "Adjustment",
             Quantity = diff,
-            StorageLocation = dto.StorageLocation,
+            UnitPrice = product.StandardCost,
+            StorageLocation = normalizedLoc,
             ReferenceType = "StockAdjustment",
             ReferenceNumber = adjNumber,
-            Notes = $"Physical count adjustment: {dto.Reason}",
+            Notes = $"Adjustment ({adjustmentType}): Diff {diff:+0.00;-0.00;0.00}. Approved by: {approver}. Reason: {dto.Reason}",
             BalanceAfterTransaction = dto.PhysicalStock
         };
         _context.InventoryTransactions.Add(log);
@@ -735,78 +867,353 @@ public class InventoryController : ControllerBase
         await _context.SaveChangesAsync();
         await tx.CommitAsync();
 
-        return Ok(new { Message = "Stock adjusted successfully", AdjustmentNumber = adjNumber, Variance = diff });
+        // 6. Audit Logging
+        var actor = _auditService.GetActorFromPrincipal(User);
+        await _auditService.LogActionAsync(
+            actor.ActorUserId,
+            approver,
+            "StockAdjustment",
+            "Inventory",
+            adjNumber,
+            $"Adjusted '{product.Name}' at '{normalizedLoc}' from {bookStock} to {dto.PhysicalStock} ({adjustmentType}, diff: {diff})");
+
+        return Ok(new
+        {
+            message = "Stock adjusted successfully",
+            adjustmentNumber = adjNumber,
+            productId = dto.ProductId,
+            productName = product.Name,
+            storageLocation = normalizedLoc,
+            bookStock,
+            physicalStock = dto.PhysicalStock,
+            difference = diff,
+            adjustmentType,
+            approvedBy = approver
+        });
     }
 
+    /// <summary>
+    /// Upgraded stock ledger endpoint with transactionType filter, keyword search, pagination, and full reference metadata.
+    /// </summary>
     [HttpGet("ledger")]
+    [ProducesResponseType(typeof(PaginatedStockLedgerResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLedger(
         [FromQuery] int? productId,
         [FromQuery] string? location,
+        [FromQuery] string? transactionType,
+        [FromQuery] string? search,
         [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate)
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
         var query = _context.InventoryTransactions
             .Include(t => t.Product)
-            .ThenInclude(p => p!.Units)
+                .ThenInclude(p => p!.Units)
+            .AsNoTracking()
             .AsQueryable();
 
-        if (productId.HasValue)
+        if (productId.HasValue && productId.Value > 0)
             query = query.Where(t => t.ProductId == productId.Value);
 
         if (!string.IsNullOrWhiteSpace(location))
-            query = query.Where(t => t.StorageLocation == location);
+        {
+            var loc = location.Trim().ToLower();
+            query = query.Where(t => t.StorageLocation.ToLower().Contains(loc));
+        }
+
+        if (!string.IsNullOrWhiteSpace(transactionType))
+        {
+            var tt = transactionType.Trim().ToLower();
+            query = query.Where(t => t.TransactionType.ToLower() == tt ||
+                                     t.TransactionType.ToLower().Replace(" ", "") == tt);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(t =>
+                (t.Product != null && t.Product.Name.ToLower().Contains(term)) ||
+                (t.Product != null && t.Product.Code.ToLower().Contains(term)) ||
+                (t.ReferenceNumber != null && t.ReferenceNumber.ToLower().Contains(term)) ||
+                (t.Notes != null && t.Notes.ToLower().Contains(term)));
+        }
 
         if (fromDate.HasValue)
             query = query.Where(t => t.TransactionDate >= fromDate.Value);
 
         if (toDate.HasValue)
-            query = query.Where(t => t.TransactionDate <= toDate.Value);
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(t => t.TransactionDate <= endOfDay);
+        }
 
-        var ledger = await query
+        var totalCount = await query.CountAsync();
+
+        var items = await query
             .OrderByDescending(t => t.TransactionDate)
-            .Select(t => new
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new StockLedgerItemDto
             {
-                t.Id,
-                t.TransactionDate,
-                t.ProductId,
-                ProductName = t.Product != null ? t.Product.Name : "",
-                ProductCode = t.Product != null ? t.Product.Code : "",
-                Unit = t.Product != null && t.Product.Units != null ? t.Product.Units.ShortCode : "",
-                t.TransactionType,
-                t.Quantity,
-                t.StorageLocation,
-                t.ReferenceType,
-                t.ReferenceNumber,
-                t.BalanceAfterTransaction,
-                t.Notes
+                Id = t.Id,
+                TransactionDate = t.TransactionDate,
+                ProductId = t.ProductId,
+                ProductCode = t.Product != null ? t.Product.Code : string.Empty,
+                ProductName = t.Product != null ? t.Product.Name : string.Empty,
+                Unit = t.Product != null && t.Product.Units != null ? t.Product.Units.ShortCode : "Kg",
+                TransactionType = t.TransactionType,
+                Quantity = t.Quantity,
+                UnitPrice = t.UnitPrice,
+                StorageLocation = t.StorageLocation,
+                ReferenceType = t.ReferenceType,
+                ReferenceNumber = t.ReferenceNumber,
+                BalanceAfterTransaction = t.BalanceAfterTransaction,
+                Notes = t.Notes
             })
             .ToListAsync();
 
-        return Ok(ledger);
+        return Ok(new PaginatedStockLedgerResponse
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        });
     }
 
-    [HttpGet("low-stock")]
-    public async Task<IActionResult> GetLowStock()
+    /// <summary>
+    /// Exports the filtered stock ledger as a formatted CSV spreadsheet.
+    /// </summary>
+    [HttpGet("ledger/export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportStockLedgerCsv(
+        [FromQuery] int? productId,
+        [FromQuery] string? location,
+        [FromQuery] string? transactionType,
+        [FromQuery] string? search,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate)
     {
-        var lowStockList = await _context.Inventory
-            .Include(i => i.Product)
-            .ThenInclude(p => p!.Units)
-            .Include(i => i.Product!.Category)
-            .Where(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel)
-            .Select(i => new
-            {
-                i.ProductId,
-                ProductName = i.Product!.Name,
-                ProductCode = i.Product.Code,
-                Category = i.Product.Category != null ? i.Product.Category.Name : "",
-                Unit = i.Product.Units != null ? i.Product.Units.ShortCode : "",
-                i.StorageLocation,
-                i.CurrentStock,
-                i.Product.ReorderLevel,
-                Deficit = i.Product.ReorderLevel - i.CurrentStock
-            })
+        var query = _context.InventoryTransactions
+            .Include(t => t.Product)
+                .ThenInclude(p => p!.Units)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (productId.HasValue && productId.Value > 0)
+            query = query.Where(t => t.ProductId == productId.Value);
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var loc = location.Trim().ToLower();
+            query = query.Where(t => t.StorageLocation.ToLower().Contains(loc));
+        }
+
+        if (!string.IsNullOrWhiteSpace(transactionType))
+        {
+            var tt = transactionType.Trim().ToLower();
+            query = query.Where(t => t.TransactionType.ToLower() == tt ||
+                                     t.TransactionType.ToLower().Replace(" ", "") == tt);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(t =>
+                (t.Product != null && t.Product.Name.ToLower().Contains(term)) ||
+                (t.Product != null && t.Product.Code.ToLower().Contains(term)) ||
+                (t.ReferenceNumber != null && t.ReferenceNumber.ToLower().Contains(term)) ||
+                (t.Notes != null && t.Notes.ToLower().Contains(term)));
+        }
+
+        if (fromDate.HasValue)
+            query = query.Where(t => t.TransactionDate >= fromDate.Value);
+
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.TimeOfDay == TimeSpan.Zero
+                ? toDate.Value.Date.AddDays(1).AddTicks(-1)
+                : toDate.Value;
+            query = query.Where(t => t.TransactionDate <= endOfDay);
+        }
+
+        var records = await query
+            .OrderByDescending(t => t.TransactionDate)
             .ToListAsync();
 
-        return Ok(lowStockList);
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("ID,Transaction Date,Product Code,Product Name,Transaction Type,Quantity,Unit,Unit Price,Total Cost,Balance After,Storage Location,Reference Type,Reference Number,Notes");
+
+        foreach (var r in records)
+        {
+            var prodCode = EscapeCsv(r.Product?.Code ?? string.Empty);
+            var prodName = EscapeCsv(r.Product?.Name ?? string.Empty);
+            var unit = EscapeCsv(r.Product?.Units?.ShortCode ?? string.Empty);
+            var transType = EscapeCsv(r.TransactionType);
+            var locationStr = EscapeCsv(r.StorageLocation);
+            var refType = EscapeCsv(r.ReferenceType ?? string.Empty);
+            var refNum = EscapeCsv(r.ReferenceNumber ?? string.Empty);
+            var notes = EscapeCsv(r.Notes ?? string.Empty);
+            var totalCost = Math.Abs(r.Quantity) * r.UnitPrice;
+
+            sb.AppendLine($"{r.Id},{r.TransactionDate:yyyy-MM-dd HH:mm:ss},{prodCode},{prodName},{transType},{r.Quantity},{unit},{r.UnitPrice:F2},{totalCost:F2},{r.BalanceAfterTransaction},{locationStr},{refType},{refNum},{notes}");
+        }
+
+        var utf8Encoding = new System.Text.UTF8Encoding(true);
+        var bytes = utf8Encoding.GetBytes(sb.ToString());
+        var fileName = $"stock_ledger_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(bytes, "text/csv", fileName);
+    }
+
+    /// <summary>
+    /// Retrieves low stock alerts with location/categoryId filters and calculated deficit and estimated reorder costs.
+    /// </summary>
+    [HttpGet("low-stock")]
+    [ProducesResponseType(typeof(List<LowStockAlertDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLowStock(
+        [FromQuery] string? location,
+        [FromQuery] int? categoryId)
+    {
+        var query = _context.Inventory
+            .Include(i => i.Product)
+                .ThenInclude(p => p!.Category)
+            .Include(i => i.Product)
+                .ThenInclude(p => p!.Units)
+            .Where(i => i.Product != null && i.Product.IsActive && i.CurrentStock <= i.Product.ReorderLevel)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var loc = location.Trim().ToLower();
+            query = query.Where(i => i.StorageLocation.ToLower().Contains(loc));
+        }
+
+        if (categoryId.HasValue && categoryId.Value > 0)
+        {
+            query = query.Where(i => i.Product != null && i.Product.CategoryId == categoryId.Value);
+        }
+
+        var lowStockList = await query.ToListAsync();
+
+        var alerts = lowStockList.Select(i =>
+        {
+            var deficit = Math.Max(0, i.Product!.ReorderLevel - i.CurrentStock);
+            var estCost = deficit * i.Product.StandardCost;
+
+            return new LowStockAlertDto
+            {
+                ProductId = i.ProductId,
+                ProductCode = i.Product.Code,
+                ProductName = i.Product.Name,
+                CategoryName = i.Product.Category?.Name ?? "General",
+                StorageLocation = i.StorageLocation,
+                CurrentStock = i.CurrentStock,
+                ReorderLevel = i.Product.ReorderLevel,
+                StandardCost = i.Product.StandardCost,
+                Unit = i.Product.Units?.ShortCode ?? "Kg"
+            };
+        })
+        .OrderByDescending(x => x.EstimatedReorderCost)
+        .ToList();
+
+        return Ok(alerts);
+    }
+
+    /// <summary>
+    /// Executive Inventory Summary & KPI Analytics (Total active products, valuation, low stock count, stock-in/out, breakdowns).
+    /// </summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(InventoryExecutiveSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInventorySummary()
+    {
+        var activeProducts = await _context.Products
+            .Where(p => p.IsActive)
+            .ToListAsync();
+
+        var inventories = await _context.Inventory
+            .Include(i => i.Product)
+                .ThenInclude(p => p!.Category)
+            .ToListAsync();
+
+        var transactions = await _context.InventoryTransactions.ToListAsync();
+
+        var totalActive = activeProducts.Count;
+        decimal totalValuation = 0;
+        int lowStockCount = 0;
+
+        foreach (var inv in inventories)
+        {
+            if (inv.Product != null && inv.Product.IsActive)
+            {
+                totalValuation += inv.CurrentStock * inv.Product.StandardCost;
+                if (inv.CurrentStock <= inv.Product.ReorderLevel)
+                {
+                    lowStockCount++;
+                }
+            }
+        }
+
+        var stockInTotal = transactions
+            .Where(t => t.TransactionType == "StockIn" || t.TransactionType == "Stock In")
+            .Sum(t => Math.Abs(t.Quantity));
+
+        var stockOutTotal = transactions
+            .Where(t => t.TransactionType == "StockOut" || t.TransactionType == "Stock Out")
+            .Sum(t => Math.Abs(t.Quantity));
+
+        var categoryBreakdown = inventories
+            .Where(i => i.Product != null)
+            .GroupBy(i => i.Product!.Category?.Name ?? "Uncategorized")
+            .Select(g => new CategoryStockSummaryDto
+            {
+                CategoryName = g.Key,
+                ProductCount = g.Select(x => x.ProductId).Distinct().Count(),
+                TotalStockQuantity = g.Sum(x => x.CurrentStock),
+                Valuation = g.Sum(x => x.CurrentStock * (x.Product != null ? x.Product.StandardCost : 0))
+            })
+            .OrderByDescending(c => c.Valuation)
+            .ToList();
+
+        var locationBreakdown = inventories
+            .Where(i => i.Product != null)
+            .GroupBy(i => i.StorageLocation)
+            .Select(g => new LocationStockSummaryDto
+            {
+                StorageLocation = g.Key,
+                ItemCount = g.Count(),
+                TotalStockQuantity = g.Sum(x => x.CurrentStock),
+                Valuation = g.Sum(x => x.CurrentStock * (x.Product != null ? x.Product.StandardCost : 0))
+            })
+            .OrderByDescending(l => l.Valuation)
+            .ToList();
+
+        return Ok(new InventoryExecutiveSummaryDto
+        {
+            TotalActiveProducts = totalActive,
+            TotalStockValuation = totalValuation,
+            LowStockItemCount = lowStockCount,
+            TotalStockInQuantity = stockInTotal,
+            TotalStockOutQuantity = stockOutTotal,
+            CategoryBreakdown = categoryBreakdown,
+            LocationBreakdown = locationBreakdown
+        });
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "\"\"";
+        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n") || value.Contains("\r"))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
     }
 }

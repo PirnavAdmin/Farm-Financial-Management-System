@@ -281,23 +281,136 @@ public class StockTransferDto
     public string? Remarks { get => Notes; set => Notes = value; }
 }
 
+// =========================================================================
+// PART 3: STOCK ADJUSTMENTS, LEDGER, LOW STOCK & ANALYTICS (Chandana Paparao)
+// =========================================================================
+
 public class CreateStockAdjustmentDto
 {
-    [Required]
+    [Required(ErrorMessage = "ProductId is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "ProductId must be a valid positive integer.")]
     public int ProductId { get; set; }
 
-    [Required]
     [MaxLength(100)]
     public string StorageLocation { get; set; } = "Main Warehouse";
+
+    // Frontend compatibility alias
+    public string? Location { get => StorageLocation; set => StorageLocation = value ?? "Main Warehouse"; }
 
     [Required]
     [Range(0, double.MaxValue, ErrorMessage = "Physical stock cannot be negative.")]
     public decimal PhysicalStock { get; set; }
 
     [Required(ErrorMessage = "Reason is mandatory.")]
-    [MaxLength(100)]
+    [MaxLength(250)]
     public string Reason { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string? ApprovedBy { get; set; }
 
     [MaxLength(500)]
     public string? Remarks { get; set; }
+}
+
+public class StockAdjustmentHistoryDto
+{
+    public int Id { get; set; }
+    public string AdjustmentNumber { get; set; } = string.Empty;
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public decimal BookStock { get; set; }
+    public decimal PhysicalStock { get; set; }
+    public decimal DifferenceQty { get; set; }
+    public decimal Difference => DifferenceQty;
+    public string AdjustmentType { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string? ApprovedBy { get; set; }
+    public string? Remarks { get; set; }
+    public DateTime AdjustmentDate { get; set; }
+}
+
+public class PaginatedStockAdjustmentsResponse
+{
+    public List<StockAdjustmentHistoryDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+}
+
+public class StockLedgerItemDto
+{
+    public long Id { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public string TransactionType { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalCost => Math.Round(Math.Abs(Quantity) * UnitPrice, 2);
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public string? ReferenceType { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public decimal BalanceAfterTransaction { get; set; }
+    public decimal BalanceAfter => BalanceAfterTransaction;
+    public string? Notes { get; set; }
+}
+
+public class PaginatedStockLedgerResponse
+{
+    public List<StockLedgerItemDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+}
+
+public class LowStockAlertDto
+{
+    public int ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public decimal CurrentStock { get; set; }
+    public decimal ReorderLevel { get; set; }
+    public decimal Deficit => Math.Max(0, ReorderLevel - CurrentStock);
+    public decimal StandardCost { get; set; }
+    public decimal EstimatedReorderCost => Math.Round(Deficit * StandardCost, 2);
+    public string Unit { get; set; } = string.Empty;
+}
+
+public class InventoryExecutiveSummaryDto
+{
+    public int TotalActiveProducts { get; set; }
+    public decimal TotalStockValuation { get; set; }
+    public int LowStockItemCount { get; set; }
+    public decimal TotalStockInQuantity { get; set; }
+    public decimal TotalStockOutQuantity { get; set; }
+    public List<CategoryStockSummaryDto> CategoryBreakdown { get; set; } = new();
+    public List<LocationStockSummaryDto> LocationBreakdown { get; set; } = new();
+}
+
+public class CategoryStockSummaryDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public int ProductCount { get; set; }
+    public decimal TotalStockQuantity { get; set; }
+    public decimal Valuation { get; set; }
+}
+
+public class LocationStockSummaryDto
+{
+    public string StorageLocation { get; set; } = string.Empty;
+    public string Location => StorageLocation;
+    public int ItemCount { get; set; }
+    public decimal TotalStockQuantity { get; set; }
+    public decimal Valuation { get; set; }
 }
