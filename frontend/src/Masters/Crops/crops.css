@@ -1385,3 +1385,273 @@
   flex-shrink: 0;
   color: currentColor;
 }
+
+
+/* ── Crop Management Specific Styles ── */
+.cr-toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cr-select-filter {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font: 500 12px var(--sans, sans-serif);
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  transition: border 0.15s, box-shadow 0.15s;
+}
+
+.cr-select-filter:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.cr-season-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 550;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.cr-action-menu-item.toggle {
+  color: #059669;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+.cr-action-menu-item.toggle.deactivate {
+  color: #d97706;
+}
+
+.cr-action-menu-item.toggle:hover {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cr-action-menu-item.toggle.deactivate:hover {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+/* ─── Unified Filters Dropdown for Crop Management ─── */
+.cr-filters-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+}
+
+.cr-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font: 600 13px var(--sans, sans-serif);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cr-filters-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.cr-filters-btn.active,
+.cr-filters-btn.has-active {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #15803d;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+}
+
+.cr-filters-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.cr-filters-chevron {
+  transition: transform 0.2s ease;
+  color: #64748b;
+}
+
+.cr-filters-chevron.rotated {
+  transform: rotate(180deg);
+  color: #15803d;
+}
+
+.cr-filters-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1050;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.15), 0 8px 12px -4px rgba(0, 0, 0, 0.06);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: crFilterFade 0.15s ease-out;
+}
+
+@keyframes crFilterFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cr-filters-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cr-filters-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cr-filters-header-title svg {
+  color: #16a34a;
+}
+
+.cr-filters-clear-btn {
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cr-filters-clear-btn:hover {
+  text-decoration: underline;
+}
+
+.cr-filters-dropdown-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cr-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cr-filter-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cr-filter-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  font: 500 12.5px var(--sans, sans-serif);
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cr-filter-field select:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+}
+
+.cr-filters-status-row {
+  display: flex;
+  gap: 6px;
+}
+
+.cr-filters-status-btn {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font: 600 12px var(--sans, sans-serif);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cr-filters-status-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.cr-filters-status-btn.active {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.cr-filters-dropdown-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.cr-filters-apply-action {
+  width: 100%;
+  height: 33px;
+  border: none;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cr-filters-apply-action:hover {
+  background: #15803d;
+}

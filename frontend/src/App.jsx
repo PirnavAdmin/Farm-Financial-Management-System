@@ -377,14 +377,9 @@ function App() {
           </section>
         ) : active === 'Users' ? (
           <Users />
-        ) : active === 'Crop Master' || active === 'Crops' ? (
+        ) : active === 'Crop Management' || active === 'Crop Master' || active === 'Crops' || active === 'Crop Varieties' ? (
           <section className="page-content">
-            <Crops initialTab="crops" onNavigate={selectItem} />
-            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
-          </section>
-        ) : active === 'Crop Varieties' ? (
-          <section className="page-content">
-            <Crops initialTab="varieties" onNavigate={selectItem} />
+            <Crops initialTab="crop-management" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : active === 'Crop Season' || active === 'Crop Seasons' ? (
