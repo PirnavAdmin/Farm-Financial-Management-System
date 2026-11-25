@@ -94,6 +94,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IInventoryService, FarmManagementApi.Services.InventoryService>();
+builder.Services.AddScoped<FarmManagementApi.Services.Reports.IReportsService, FarmManagementApi.Services.Reports.ReportsService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -297,6 +298,13 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Wholesale buyers, commission agents, trader directories, and receivable accounts in `Farmersdb`."
     });
 
+    c.SwaggerDoc("reports", new OpenApiInfo
+    {
+        Title = "19. Reports Module API - agriman_db",
+        Version = "v1",
+        Description = "Module 19: Financial Reports (10), Agriculture Reports (11), Inventory Reports (5), and unified CSV export."
+    });
+
     // Filter endpoints into dropdown views
     c.DocInclusionPredicate((docName, apiDesc) =>
     {
@@ -368,6 +376,10 @@ builder.Services.AddSwaggerGen(c =>
         {
             return name.StartsWith("Buyer");
         }
+        if (docName == "reports")
+        {
+            return name.StartsWith("Report");
+        }
 
         return false;
     });
@@ -437,13 +449,25 @@ builder.Services.AddSwaggerGen(c =>
         // 10. Labour Management
         if (controllerName.StartsWith("Labour", StringComparison.OrdinalIgnoreCase)) return new[] { "10. Labour - Workers, Attendance & Daily Wages (Module 10)" };
 
-        // 11. Finance, Bank Accounts & Reports (Module 11)
+        // 11. Finance & Bank Accounts (Module 11)
         if (controllerName.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase) ||
             controllerName.Equals("FinancePayments", StringComparison.OrdinalIgnoreCase) ||
-            controllerName.Equals("FinanceReceipts", StringComparison.OrdinalIgnoreCase) ||
-            controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
+            controllerName.Equals("FinanceReceipts", StringComparison.OrdinalIgnoreCase))
         {
             return new[] { "11. Finance, Bank Accounts & Reports (Module 11)" };
+        }
+
+        // 19. Reports Module (Module 19)
+        if (controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
+        {
+            var relPath = apiDesc.RelativePath ?? string.Empty;
+            if (relPath.Contains("/financial/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Financial (Module 19)" };
+            if (relPath.Contains("/agriculture/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Agriculture (Module 19)" };
+            if (relPath.Contains("/inventory/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Inventory (Module 19)" };
+            return new[] { "19. Reports - Catalog, Core & CSV Export (Module 19)" };
         }
 
         // 13. Machinery & Equipment (Module 13)
@@ -637,6 +661,7 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/loans/swagger.json", "14. Loan & Finance (Module 14)");
     c.SwaggerEndpoint("/swagger/suppliers/swagger.json", "15. Supplier Management (Module 15)");
     c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management (Module 16)");
+    c.SwaggerEndpoint("/swagger/reports/swagger.json", "19. Reports Module - Financial, Agriculture & Inventory (Module 19)");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";
