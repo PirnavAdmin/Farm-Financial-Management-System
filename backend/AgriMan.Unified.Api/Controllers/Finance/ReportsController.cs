@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FarmManagementApi.Data;
 using AgriMan.Expenses.Api.Data;
+using AgriMan.Unified.Api.DTOs.Crops;
+using AgriMan.Unified.Api.Services.Crops;
 using SalesApi.Data;
 
 namespace FarmManagementApi.Controllers
@@ -14,12 +16,18 @@ namespace FarmManagementApi.Controllers
         private readonly FarmDbContext _farmDb;
         private readonly ExpenseDbContext _expenseDb;
         private readonly SalesDbContext _salesDb;
+        private readonly ICropProfitabilityService _cropProfitability;
 
-        public ReportsController(FarmDbContext farmDb, ExpenseDbContext expenseDb, SalesDbContext salesDb)
+        public ReportsController(
+            FarmDbContext farmDb,
+            ExpenseDbContext expenseDb,
+            SalesDbContext salesDb,
+            ICropProfitabilityService? cropProfitability = null)
         {
             _farmDb = farmDb;
             _expenseDb = expenseDb;
             _salesDb = salesDb;
+            _cropProfitability = cropProfitability ?? new CropProfitabilityService(farmDb, expenseDb, salesDb);
         }
 
         // GET: api/Reports/pnl
@@ -143,6 +151,49 @@ namespace FarmManagementApi.Controllers
             }).OrderByDescending(c => c.NetProfit).ToList();
 
             return Ok(result);
+        }
+
+        // GET: api/Reports/crop-profitability
+        [HttpGet("crop-profitability")]
+        public async Task<IActionResult> GetCropProfitability(
+            [FromQuery] CropProfitabilityQueryParameters parameters,
+            CancellationToken cancellationToken)
+        {
+            if (parameters.FromDate.HasValue && parameters.ToDate.HasValue &&
+                parameters.FromDate.Value.Date > parameters.ToDate.Value.Date)
+            {
+                return BadRequest(new { message = "fromDate cannot be later than toDate." });
+            }
+
+            var overview = await _cropProfitability.GetAllCropsProfitabilityAsync(parameters, cancellationToken);
+            return Ok(overview);
+        }
+
+        // GET: api/Reports/crop-profitability/{cropName}
+        [HttpGet("crop-profitability/{cropName}")]
+        public async Task<IActionResult> GetCropProfitabilityByName(
+            string cropName,
+            [FromQuery] CropProfitabilityQueryParameters parameters,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(cropName))
+            {
+                return BadRequest(new { message = "Crop name is required." });
+            }
+
+            if (parameters.FromDate.HasValue && parameters.ToDate.HasValue &&
+                parameters.FromDate.Value.Date > parameters.ToDate.Value.Date)
+            {
+                return BadRequest(new { message = "fromDate cannot be later than toDate." });
+            }
+
+            var item = await _cropProfitability.GetCropProfitabilityByNameAsync(cropName, parameters, cancellationToken);
+            if (item == null)
+            {
+                return NotFound(new { message = $"No crop profitability data found for '{cropName.Trim()}'." });
+            }
+
+            return Ok(item);
         }
 
         // GET: api/Reports/farm-profit
