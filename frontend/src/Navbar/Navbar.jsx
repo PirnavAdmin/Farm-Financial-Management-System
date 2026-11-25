@@ -9,17 +9,11 @@ export default function Navbar({
   userEmail = '',
   userRole = 'User',
   userInitials = 'U',
-  handleLogout,
-  unreadNotificationsCount = 3,
-  sidebarNavModules = []
+  handleLogout
 }) {
   const { theme, toggleTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifMenu, setShowNotifMenu] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-
   // Active modal state: null | 'profile' | 'settings' | 'security' | 'notifications' | 'support'
   const [activeModal, setActiveModal] = useState(null)
 
@@ -99,32 +93,23 @@ export default function Navbar({
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
-  const searchInputRef = useRef(null)
-  const searchContainerRef = useRef(null)
   const notifRef = useRef(null)
   const userMenuRef = useRef(null)
 
-  // Keyboard shortcut Ctrl + K / Cmd + K to focus search, Esc to close
+  // Escape closes open menus and dialogs.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        searchInputRef.current?.focus()
-        setSearchFocused(true)
-        if (searchQuery.trim()) setSearchOpen(true)
-      } else if (e.key === 'Escape') {
-        setSearchOpen(false)
+      if (e.key === 'Escape') {
         setShowUserMenu(false)
         setShowNotifMenu(false)
         setActiveModal(null)
-        searchInputRef.current?.blur()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [searchQuery])
+  }, [])
 
-  // Click outside to close menus and search dropdown
+  // Click outside to close menus.
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -133,34 +118,10 @@ export default function Navbar({
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setShowUserMenu(false)
       }
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
-        setSearchOpen(false)
-      }
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
-
-  // Filter modules based on search query
-  const searchResults = searchQuery.trim()
-    ? sidebarNavModules.filter(
-        (m) =>
-          m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (m.category && m.category.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : []
-
-  const handleSelectSearchResult = (target) => {
-    selectItem && selectItem(target)
-    setSearchQuery('')
-    setSearchOpen(false)
-  }
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter' && searchResults.length > 0) {
-      handleSelectSearchResult(searchResults[0].name)
-    }
-  }
 
   // Notification actions
   const handleMarkAllRead = () => {
@@ -272,87 +233,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* 2. CENTER SECTION - Global Search */}
-        <div className="navbar-center" ref={searchContainerRef}>
-          <div className={`navbar-search-box ${searchFocused ? 'focused' : ''}`}>
-            <span className="search-icon" aria-hidden="true">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </span>
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="navbar-search-input"
-              placeholder="Search farmers, farms, crops, transactions..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setSearchOpen(true)
-              }}
-              onFocus={() => {
-                setSearchFocused(true)
-                if (searchQuery.trim()) setSearchOpen(true)
-              }}
-              onBlur={() => setSearchFocused(false)}
-              onKeyDown={handleSearchKeyDown}
-              aria-label="Search modules and records"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                className="search-clear-btn"
-                title="Clear search"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSearchOpen(false)
-                }}
-              >
-                ×
-              </button>
-            ) : (
-              <div className="search-shortcut-badge" title="Press Ctrl + K to search">
-                <kbd>Ctrl</kbd> + <kbd>K</kbd>
-              </div>
-            )}
-          </div>
-
-          {/* Global Search Results Overlay */}
-          {searchOpen && searchQuery.trim() && (
-            <div className="navbar-search-results">
-              {searchResults.length > 0 ? (
-                searchResults.map((result) => (
-                  <button
-                    type="button"
-                    key={result.path || result.name}
-                    className="search-result-item"
-                    onClick={() => handleSelectSearchResult(result.name)}
-                  >
-                    <span style={{ color: '#245438', fontSize: '13px' }}>{result.icon || '▪'}</span>
-                    <strong>{result.name}</strong>
-                    {result.path && <span className="search-result-path">{result.path}</span>}
-                  </button>
-                ))
-              ) : (
-                <div className="search-empty">
-                  No modules or records found matching "{searchQuery}".
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 3. RIGHT SECTION - Actions & User Profile */}
+        {/* 2. RIGHT SECTION - Actions & User Profile */}
         <div className="navbar-right">
           {/* Element 1: Light / Dark Mode Toggle Button */}
           <button

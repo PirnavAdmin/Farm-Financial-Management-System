@@ -47,43 +47,6 @@ import Sidebar from './Sidebar/Sidebar.jsx'
 import Navbar from './Navbar/Navbar.jsx'
 
 
-const menuGroups = [
-  { label: 'Dashboard', icon: '▦' },
-  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products', 'Suppliers', 'Machinery'] },
-  { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
-  { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans & Finance', 'Bank Accounts'] },
-  { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
-  { label: 'Sales', icon: '▱', children: ['Sales Transactions', 'Customers', 'Payments & Receivables'] },
-  { label: 'Reports', icon: '▥', children: ['Income Report', 'Expense Report', 'Crop Profit', 'Farm Profit', 'Cash Flow', 'P&L', 'Dashboard Reports'] },
-  { label: 'Notifications', icon: '♧' },
-  { label: 'Settings', icon: '⚙', children: ['Users', 'Roles', 'Company', 'Audit Log'] },
-]
-
-// All searchable modules strictly from the sidebar menuGroups
-const sidebarNavModules = menuGroups.flatMap((group) => {
-  const list = [
-    {
-      name: group.label,
-      category: group.label,
-      icon: group.icon,
-      isParent: true,
-      path: group.label
-    }
-  ]
-  if (group.children) {
-    group.children.forEach((child) => {
-      list.push({
-        name: child,
-        category: group.label,
-        icon: group.icon,
-        isParent: false,
-        path: `${group.label} → ${child}`
-      })
-    })
-  }
-  return list
-})
-
 function formatDisplayName(email, customName) {
   if (customName) return customName
   if (!email) return 'Meghana Reddy'
@@ -404,8 +367,6 @@ function App() {
           userRole={userRole}
           userInitials={userInitials}
           handleLogout={handleLogout}
-          unreadNotificationsCount={3}
-          sidebarNavModules={sidebarNavModules}
         />
 
         <ModuleErrorBoundary active={active}>

@@ -4,6 +4,7 @@ import { farmerService } from '../../services/farmerService'
 import { farmerAddressService } from '../../services/farmerAddressService'
 import { farmerBankService } from '../../services/farmerBankService'
 import api from '../../services/api'
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import './farmers.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -64,6 +65,304 @@ function formatLeaseDate(value) {
   if (!value) return '—'
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN')
+}
+
+function areaInAcres(area, unit) {
+  const conversions = {
+    acres: 1,
+    hectares: 2.47105,
+    cents: 0.01,
+    'square feet': 1 / 43560,
+    gunthas: 0.025,
+  }
+  return (Number(area) || 0) * (conversions[String(unit || 'Acres').toLowerCase()] || 1)
+}
+
+function getLeaseDuration(start, end) {
+  if (!start || !end) return '—'
+  const startDate = new Date(`${start}T00:00:00`)
+  const endDate = new Date(`${end}T00:00:00`)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return '—'
+  const days = Math.ceil((endDate - startDate) / 86400000) + 1
+  return `${days} day${days === 1 ? '' : 's'}`
+}
+
+function defaultCropAllocations() {
+  return [
+    { crop: 'Paddy', area: 5 },
+    { crop: 'Chilli', area: 5 },
+    { crop: 'Corn', area: 5 },
+  ]
+}
+
+function rentalCropStorageKey(record) {
+  const identifier = record.id ?? `${record.tenantName}-${record.surveyNumber}`
+  return `agriman_rental_crop_allocations_${encodeURIComponent(identifier)}`
+}
+
+function loadRentalCropAllocations(record) {
+  try {
+    const saved = localStorage.getItem(rentalCropStorageKey(record))
+    if (saved === null) return { allocations: defaultCropAllocations(), isSample: true, error: '' }
+    const allocations = JSON.parse(saved)
+    if (!Array.isArray(allocations) || allocations.length === 0 || allocations.some(item => (
+      typeof item.crop !== 'string' || !item.crop.trim() || !Number.isFinite(Number(item.area)) || Number(item.area) <= 0
+    ))) {
+      throw new Error('Saved crop chart data has an invalid format.')
+    }
+    return { allocations, isSample: false, error: '' }
+  } catch (error) {
+    return {
+      allocations: defaultCropAllocations(),
+      isSample: true,
+      error: `Saved crop chart data could not be loaded: ${error.message}`,
+    }
+  }
+}
+
+function RentalLandDetails({ record, records, farmer, onClose }) {
+  const [cropAllocationState, setCropAllocationState] = useState(() => loadRentalCropAllocations(record))
+  const [editingCropAllocation, setEditingCropAllocation] = useState(false)
+  const [cropAllocationDraft, setCropAllocationDraft] = useState([])
+  const [cropAllocationError, setCropAllocationError] = useState(cropAllocationState.error)
+  const cropChartData = cropAllocationState.allocations.map(item => ({
+    name: item.crop,
+    value: Number(item.area),
+  }))
+  const totalFarmAcres = Number(farmer?.totalLand) || 0
+  const activeRentalRecords = records.filter(item => item.status === 'Active')
+  const activelyLeasedAcres = activeRentalRecords
+    .reduce((total, item) => total + areaInAcres(item.landArea, item.areaUnit), 0)
+  const activeTenantNames = [...new Set(activeRentalRecords
+    .map(item => String(item.tenantName || '').trim())
+    .filter(Boolean))]
+  const chartLeasedAcres = Math.min(activelyLeasedAcres, totalFarmAcres)
+  const farmAllocation = totalFarmAcres > 0
+    ? [
+        { name: 'Actively leased', value: chartLeasedAcres },
+        { name: 'Not actively leased', value: Math.max(0, totalFarmAcres - activelyLeasedAcres) },
+      ].filter(item => item.value > 0)
+    : []
+  const colors = ['#15803d', '#86efac', '#f59e0b', '#0ea5e9', '#8b5cf6', '#f97316']
+  const details = [
+    ['Tenant / Receiver', record.tenantName],
+    ['Mobile number', record.tenantMobile],
+    ['Survey number', record.surveyNumber],
+    ['Land area', `${Number(record.landArea).toLocaleString('en-IN')} ${record.areaUnit}`],
+    ['Village', record.village],
+    ['Mandal', record.mandal],
+    ['District', record.district],
+    ['Rent', `₹${Number(record.rentAmount).toLocaleString('en-IN')} / ${record.rentFrequency}`],
+    ['Lease period', `${formatLeaseDate(record.leaseStartDate)} – ${formatLeaseDate(record.leaseEndDate)}`],
+    ['Duration', getLeaseDuration(record.leaseStartDate, record.leaseEndDate)],
+    ['Status', record.status],
+    ['Remarks', record.remarks],
+  ]
+
+  function startCropAllocationEdit() {
+    setCropAllocationDraft(cropAllocationState.allocations.map(item => ({ ...item })))
+    setCropAllocationError('')
+    setEditingCropAllocation(true)
+  }
+
+  function saveCropAllocation(event) {
+    event.preventDefault()
+    const allocations = cropAllocationDraft.map(item => ({
+      crop: item.crop.trim(),
+      area: Number(item.area),
+    }))
+    if (!allocations.length || allocations.some(item => !item.crop || !Number.isFinite(item.area) || item.area <= 0)) {
+      setCropAllocationError('Enter a crop name and a positive acreage for each chart entry.')
+      return
+    }
+    try {
+      localStorage.setItem(rentalCropStorageKey(record), JSON.stringify(allocations))
+      setCropAllocationState({ allocations, isSample: false, error: '' })
+      setCropAllocationError('')
+      setEditingCropAllocation(false)
+    } catch (error) {
+      setCropAllocationError(`Crop chart could not be saved in this browser: ${error.message}`)
+    }
+  }
+
+  return (
+    <div className="fm-overlay" role="presentation" onClick={event => {
+      if (event.target === event.currentTarget) onClose()
+    }}>
+      <section className="fm-modal fm-tenant-detail" role="dialog" aria-modal="true" aria-labelledby="fm-tenant-detail-title">
+        <header className="fm-modal-head">
+          <div>
+            <span className="fm-tenant-detail-eyebrow">RENTAL LAND / TENANT DETAILS</span>
+            <h2 id="fm-tenant-detail-title">{record.tenantName || 'Tenant details'}</h2>
+            <p>Land leased from {farmer?.name || 'the selected farmer'}.</p>
+          </div>
+          <button className="fm-close" onClick={onClose} aria-label="Close tenant details" type="button">✕</button>
+        </header>
+        <div className="fm-tenant-detail-body">
+          <section className="fm-tenant-address-card" aria-label="Leased land address">
+            <span className="fm-tenant-detail-eyebrow">LEASED LAND ADDRESS</span>
+            <strong>{[record.village, record.mandal, record.district].filter(Boolean).join(', ') || 'Address not provided'}</strong>
+            <span>Plot / Survey No. {record.surveyNumber || '—'}</span>
+          </section>
+
+          <section className="fm-tenant-fields" aria-label="Tenant and lease information">
+            {details.map(([label, value]) => (
+              <div className="fm-tenant-field" key={label}>
+                <span>{label}</span>
+                <strong>{value || '—'}</strong>
+              </div>
+            ))}
+          </section>
+
+          <div className="fm-tenant-charts">
+            <section className="fm-tenant-chart-card">
+              <h3>Crop-wise land allocation</h3>
+              <p>
+                {cropAllocationState.isSample
+                  ? 'Sample crop areas on this leased land, in acres.'
+                  : 'Crop acreage saved in this browser, in acres.'}
+              </p>
+              {cropChartData.length ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={cropChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="48%"
+                      outerRadius={82}
+                      label={({ name, value }) => `${name} ${value}ac`}
+                    >
+                      {cropChartData.map((item, index) => (
+                        <Cell key={`${item.name}-${index}`} fill={colors[index % colors.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={value => `${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })} acres`} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="fm-tenant-chart-empty">Add crop and acreage values to show the pie chart.</div>
+              )}
+              {cropAllocationError && <p className="fm-tenant-chart-note" role="alert">{cropAllocationError}</p>}
+              {!editingCropAllocation ? (
+                <button type="button" className="fm-tenant-chart-edit" onClick={startCropAllocationEdit}>
+                  Edit chart
+                </button>
+              ) : (
+                <form className="fm-crop-allocation-editor" onSubmit={saveCropAllocation}>
+                  {cropAllocationDraft.map((item, index) => (
+                    <div className="fm-crop-allocation-row" key={`crop-${index}`}>
+                      <label>
+                        Crop
+                        <input
+                          value={item.crop}
+                          onChange={event => setCropAllocationDraft(current => current.map((crop, cropIndex) => (
+                            cropIndex === index ? { ...crop, crop: event.target.value } : crop
+                          )))}
+                          maxLength={60}
+                          required
+                        />
+                      </label>
+                      <label>
+                        Acres
+                        <input
+                          type="number"
+                          value={item.area}
+                          onChange={event => setCropAllocationDraft(current => current.map((crop, cropIndex) => (
+                            cropIndex === index ? { ...crop, area: event.target.value } : crop
+                          )))}
+                          min="0.01"
+                          step="any"
+                          required
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="fm-crop-allocation-remove"
+                        onClick={() => setCropAllocationDraft(current => current.filter((_, cropIndex) => cropIndex !== index))}
+                        aria-label={`Remove ${item.crop || 'crop'} chart entry`}
+                      >×</button>
+                    </div>
+                  ))}
+                  <div className="fm-crop-allocation-actions">
+                    <button type="button" className="fm-tenant-chart-edit" onClick={() => setCropAllocationDraft(current => [...current, { crop: '', area: '' }])}>
+                      + Add crop
+                    </button>
+                    <div>
+                      <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={() => { setEditingCropAllocation(false); setCropAllocationError('') }}>
+                        Cancel
+                      </button>
+                      <button type="submit" className="fm-btn-primary fm-foot-btn">Save chart</button>
+                    </div>
+                  </div>
+                </form>
+              )}
+            </section>
+
+            <section className="fm-tenant-chart-card">
+              <h3>Farm land allocation</h3>
+              <p>Active rental plots compared with the farmer’s registered land.</p>
+              {farmAllocation.length ? (
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={farmAllocation}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="48%"
+                        outerRadius={82}
+                        label={labelProps => {
+                          const labelLines = [
+                            `${Number(labelProps.value).toLocaleString('en-IN', { maximumFractionDigits: 2 })} acres`,
+                            ...(labelProps.name === 'Actively leased' ? activeTenantNames : []),
+                          ]
+
+                          return (
+                            <text
+                              x={labelProps.x}
+                              y={labelProps.y}
+                              textAnchor={labelProps.textAnchor}
+                              fill={labelProps.name === 'Actively leased' ? '#15803d' : '#64748b'}
+                              fontSize={12}
+                            >
+                              {labelLines.map((line, index) => (
+                                <tspan key={`${line}-${index}`} x={labelProps.x} dy={index === 0 ? 0 : 14}>
+                                  {line}
+                                </tspan>
+                              ))}
+                            </text>
+                          )
+                        }}
+                      >
+                        {farmAllocation.map((item, index) => (
+                          <Cell key={item.name} fill={index === 0 ? '#15803d' : '#dbeafe'} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={value => `${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })} acres`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {activelyLeasedAcres > totalFarmAcres && (
+                    <p className="fm-tenant-chart-note">Recorded active rental area exceeds the farmer’s registered total land.</p>
+                  )}
+                </>
+              ) : (
+                <div className="fm-tenant-chart-empty">Registered total land is not available, so this comparison cannot be calculated.</div>
+              )}
+            </section>
+          </div>
+        </div>
+        <footer className="fm-modal-foot fm-tenant-detail-foot">
+          <span className="fm-rental-note">Address shown is the leased plot location recorded for this rental.</span>
+          <button type="button" className="fm-btn-secondary fm-foot-btn" onClick={onClose}>Close</button>
+        </footer>
+      </section>
+    </div>
+  )
 }
 
 const STATES = [
@@ -795,6 +1094,7 @@ export default function Farmers({ profileEmail, profileName }) {
   const [toast, setToast]                 = useState(null)
   const [rentalModal, setRentalModal]     = useState(null)
   const [rentalForm, setRentalForm]       = useState(null)
+  const [selectedRentalDetail, setSelectedRentalDetail] = useState(null)
   const [rentalError, setRentalError]     = useState('')
   const [savingRental, setSavingRental]   = useState(false)
   const [rentalLands, setRentalLands]     = useState([])
@@ -1277,20 +1577,17 @@ export default function Farmers({ profileEmail, profileName }) {
         </button>
       </div>
 
-      <div className="fm-table-wrap">
+      <div className="fm-table-wrap fm-rental-table-wrap">
         <table className="fm-table fm-rental-table">
           <colgroup>
-            <col style={{ width: '180px' }} />
-            <col style={{ width: '140px' }} />
-            <col style={{ width: '130px' }} />
-            <col style={{ width: '130px' }} />
-            <col style={{ width: '140px' }} />
-            <col style={{ width: '140px' }} />
-            <col style={{ width: '150px' }} />
-            <col style={{ width: '160px' }} />
-            <col style={{ width: '220px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '90px' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '19%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '7%' }} />
           </colgroup>
           <thead>
             <tr>
@@ -1298,9 +1595,6 @@ export default function Farmers({ profileEmail, profileName }) {
               <th className="fm-th-mobile">Mobile</th>
               <th className="fm-th-survey">Survey No.</th>
               <th className="fm-th-area">Land Area</th>
-              <th className="fm-th-village">Village</th>
-              <th className="fm-th-mandal">Mandal</th>
-              <th className="fm-th-district">District</th>
               <th className="fm-th-rent">Rent</th>
               <th className="fm-th-lease">Lease Period</th>
               <th className="fm-th-status">Status</th>
@@ -1310,13 +1604,13 @@ export default function Farmers({ profileEmail, profileName }) {
           <tbody>
             {loading && !hasLoaded ? (
               <tr>
-                <td colSpan={11} className="fm-state-cell">
+                <td colSpan={8} className="fm-state-cell">
                   <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
                 </td>
               </tr>
             ) : !currentFarmer ? (
               <tr>
-                <td colSpan={11} className="fm-state-cell">
+                <td colSpan={8} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">⚠</div>
                     <p>No linked land owner profile.</p>
@@ -1326,7 +1620,7 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : rentalLoadError ? (
               <tr>
-                <td colSpan={11} className="fm-state-cell">
+                <td colSpan={8} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">⚠</div>
                     <p>Rental land could not be loaded.</p>
@@ -1337,13 +1631,13 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : rentalLoading ? (
               <tr>
-                <td colSpan={11} className="fm-state-cell">
+                <td colSpan={8} className="fm-state-cell">
                   <div className="fm-loading-state"><div className="fm-loading-spinner"></div><p>Loading rental land…</p></div>
                 </td>
               </tr>
             ) : visibleRentalLands.length === 0 ? (
               <tr>
-                <td colSpan={11} className="fm-state-cell">
+                <td colSpan={8} className="fm-state-cell">
                   <div className="fm-empty-state">
                     <div className="fm-empty-icon">🌾</div>
                     <p>{rentalLands.length ? 'No rental land matches your search.' : 'No rental land records to display.'}</p>
@@ -1353,13 +1647,19 @@ export default function Farmers({ profileEmail, profileName }) {
               </tr>
             ) : visibleRentalLands.map(record => (
                 <tr key={record.id}>
-                  <td className="fm-td-tenant"><strong>{record.tenantName}</strong></td>
+                  <td className="fm-td-tenant">
+                    <button
+                      type="button"
+                      className="fm-tenant-name-button"
+                      onClick={() => setSelectedRentalDetail(record)}
+                      aria-label={`View tenant and rental details for ${record.tenantName}`}
+                    >
+                      {record.tenantName}
+                    </button>
+                  </td>
                   <td className="fm-td-mobile">{record.tenantMobile}</td>
                   <td className="fm-td-survey">{record.surveyNumber}</td>
                   <td className="fm-td-area">{Number(record.landArea).toFixed(2)} {record.areaUnit}</td>
-                  <td className="fm-td-village">{record.village}</td>
-                  <td className="fm-td-mandal">{record.mandal}</td>
-                  <td className="fm-td-district">{record.district}</td>
                   <td className="fm-td-rent">₹{Number(record.rentAmount).toLocaleString('en-IN')} / {record.rentFrequency}</td>
                   <td className="fm-td-lease">{formatLeaseDate(record.leaseStartDate)} – {formatLeaseDate(record.leaseEndDate)}</td>
                   <td className="fm-td-status">
@@ -1419,7 +1719,7 @@ export default function Farmers({ profileEmail, profileName }) {
                             onClick={() => {
                               setOpenRentalMenuId(null)
                               setRentalMenuPosition(null)
-                              openRentalLandForm(record, 'view')
+                              setSelectedRentalDetail(record)
                             }}
                           >
                             <span className="fm-menu-item-icon">
@@ -1487,6 +1787,14 @@ export default function Farmers({ profileEmail, profileName }) {
       )}
       {viewTarget && (
         <ViewFarmer farmer={viewTarget} onClose={() => setViewTarget(null)} onEdit={openEdit} />
+      )}
+      {selectedRentalDetail && (
+        <RentalLandDetails
+          record={selectedRentalDetail}
+          records={rentalLands}
+          farmer={currentFarmer}
+          onClose={() => setSelectedRentalDetail(null)}
+        />
       )}
       {deleteTarget && (
         <DeleteConfirm

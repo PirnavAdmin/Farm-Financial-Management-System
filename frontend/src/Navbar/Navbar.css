@@ -69,146 +69,6 @@
 }
 
 /* --------------------------------------------------------------------------
-   Center Section - Global Search
-   -------------------------------------------------------------------------- */
-.navbar-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  max-width: 440px;
-  position: relative;
-}
-
-.navbar-search-box {
-  width: 100%;
-  max-width: 360px;
-  height: 38px;
-  background-color: #FFFFFF;
-  border: 1px solid #E6EAE5;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  gap: 9px;
-  box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.navbar-search-box.focused,
-.navbar-search-box:focus-within {
-  border-color: #344C3A;
-  box-shadow: 0 0 0 3px rgba(52, 76, 58, 0.08);
-}
-
-.search-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #78827B;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.navbar-search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 13px;
-  font-family: inherit;
-  color: #26332B;
-  min-width: 0;
-}
-
-.navbar-search-input::placeholder {
-  color: #78827B;
-  font-size: 12.5px;
-}
-
-.search-shortcut-badge {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10.5px;
-  color: #78827B;
-  background-color: #F4F7F2;
-  border: 1px solid #E6EAE5;
-  border-radius: 4px;
-  padding: 1.5px 5px;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.search-shortcut-badge kbd {
-  font-family: inherit;
-  font-weight: 600;
-}
-
-.search-clear-btn {
-  background: transparent;
-  border: none;
-  color: #78827B;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-}
-
-.search-clear-btn:hover {
-  color: #26332B;
-}
-
-/* Global Search Instant Results Dropdown */
-.navbar-search-results {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: #FFFFFF;
-  border: 1px solid #E6EAE5;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  max-height: 320px;
-  overflow-y: auto;
-  z-index: 100;
-  padding: 6px 0;
-}
-
-.search-result-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  font-size: 13px;
-  color: #26332B;
-  transition: background 0.15s ease;
-}
-
-.search-result-item:hover {
-  background-color: #F4F7F2;
-  color: #344C3A;
-}
-
-.search-result-path {
-  margin-left: auto;
-  font-size: 11px;
-  color: #78827B;
-}
-
-.search-empty {
-  padding: 16px;
-  text-align: center;
-  font-size: 12.5px;
-  color: #78827B;
-}
-
-/* --------------------------------------------------------------------------
    Right Section - Actions & User Profile
    -------------------------------------------------------------------------- */
 .navbar-right {
@@ -1168,42 +1028,6 @@
   color: #F1F5F1;
 }
 
-[data-theme="dark"] .navbar-search-box {
-  background-color: #151C18;
-  border-color: #34443A;
-}
-
-[data-theme="dark"] .navbar-search-box.focused,
-[data-theme="dark"] .navbar-search-box:focus-within {
-  border-color: #8FAE8B;
-  box-shadow: 0 0 0 3px rgba(143, 174, 139, 0.15);
-}
-
-[data-theme="dark"] .navbar-search-input {
-  color: #F1F5F1;
-}
-
-[data-theme="dark"] .search-shortcut-badge {
-  background-color: #26332B;
-  border-color: #34443A;
-  color: #A8B5AA;
-}
-
-[data-theme="dark"] .navbar-search-results {
-  background-color: #1D2821;
-  border-color: #34443A;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-[data-theme="dark"] .search-result-item {
-  color: #F1F5F1;
-}
-
-[data-theme="dark"] .search-result-item:hover {
-  background-color: #26332B;
-  color: #8FAE8B;
-}
-
 [data-theme="dark"] .navbar-icon-btn {
   background-color: #1D2821;
   border-color: #34443A;
@@ -1426,12 +1250,6 @@
   .navbar-container {
     padding: 0 16px;
   }
-  .navbar-search-box {
-    max-width: 240px;
-  }
-  .search-shortcut-badge {
-    display: none;
-  }
   .profile-details-grid,
   .settings-grid,
   .support-cards-grid {
@@ -1440,9 +1258,6 @@
 }
 
 @media (max-width: 680px) {
-  .navbar-center {
-    display: none;
-  }
   .navbar-user-meta {
     display: none;
   }
