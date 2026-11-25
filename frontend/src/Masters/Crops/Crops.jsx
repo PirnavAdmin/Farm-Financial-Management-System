@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cropService } from '../../services/cropService';
+import { labourService } from '../../services/labourService';
 import './crops.css';
 
 /* ─── Crop Activity File & Photo Upload Utilities ─── */
@@ -185,6 +186,11 @@ function CropsInner({ initialTab = 'crop-management', onNavigate }) {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null); // { type, item }
   const [viewTarget, setViewTarget] = useState(null); // { title, subtitle, rawItem, editType, fields }
+  const [labourDetailsTarget, setLabourDetailsTarget] = useState(null);
+  const [labourDetails, setLabourDetails] = useState([]);
+  const [labourDetailsMatch, setLabourDetailsMatch] = useState('');
+  const [labourDetailsLoading, setLabourDetailsLoading] = useState(false);
+  const [labourDetailsError, setLabourDetailsError] = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -1106,6 +1112,137 @@ const resolveCropType = (crop) => {
           { label: 'Notes & Field Observations', value: target.notes || '-', fullWidth: true }
         ]
       });
+    }
+  };
+
+  const handleOpenLabourDetails = async (activity) => {
+    setLabourDetailsTarget(activity);
+    setLabourDetails([]);
+    setLabourDetailsMatch('');
+    setLabourDetailsError('');
+    setLabourDetailsLoading(true);
+
+    try {
+      const [attendanceRecords, labourRecords, paymentRecords] = await Promise.all([
+        labourService.getAttendance(),
+        labourService.getLabours(),
+        labourService.getPayments()
+      ]);
+      const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const dateOnly = (value) => String(value || '').split(/[T ]/)[0];
+      const parseAmount = (value) => {
+        const amount = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+        return Number.isFinite(amount) ? amount : 0;
+      };
+      const activityDate = dateOnly(activity.activityDate);
+      const activityFarm = normalize(activity.farm);
+      const activityCrop = normalize(activity.crop);
+      const labourNames = new Map(
+        labourRecords.map((labour) => [String(labour.id), labour.labourName])
+      );
+
+      const allAttendance = attendanceRecords.map((record, index) => ({
+        record,
+        key: String(record.id || record.attendanceCode || index),
+        labourId: String(record.labourId || ''),
+        date: dateOnly(record.attendanceDate || record.date),
+        amount: parseAmount(record.amount ?? record.calculatedAmount),
+        index
+      }));
+      const paidByAttendance = new Map(allAttendance.map(({ key }) => [key, 0]));
+      const orderedPayments = [...paymentRecords].sort(
+        (a, b) => dateOnly(a.paymentDate).localeCompare(dateOnly(b.paymentDate))
+      );
+
+      orderedPayments.forEach((payment) => {
+        const paymentStart = dateOnly(payment.periodStart || payment.periodEnd || payment.paymentDate);
+        const paymentEnd = dateOnly(payment.periodEnd || payment.periodStart || payment.paymentDate);
+        let remaining = parseAmount(payment.amountPaid);
+        if (!paymentStart || !paymentEnd || paymentStart > paymentEnd || remaining <= 0) return;
+
+        const eligibleAttendance = allAttendance
+          .filter((entry) => (
+            entry.labourId === String(payment.labourId || '') &&
+            entry.date >= paymentStart &&
+            entry.date <= paymentEnd
+          ))
+          .sort((a, b) => a.date.localeCompare(b.date) || a.index - b.index);
+
+        eligibleAttendance.forEach((entry) => {
+          if (remaining <= 0) return;
+          const alreadyPaid = paidByAttendance.get(entry.key) || 0;
+          const stillDue = Math.max(0, entry.amount - alreadyPaid);
+          const allocated = Math.min(stillDue, remaining);
+          paidByAttendance.set(entry.key, alreadyPaid + allocated);
+          remaining -= allocated;
+        });
+      });
+
+      const dateAndCropMatches = allAttendance.filter(({ record }) => (
+        dateOnly(record.attendanceDate || record.date) === activityDate &&
+        normalize(record.cropName) === activityCrop
+      ));
+      const sameFarmMatches = dateAndCropMatches.filter(
+        ({ record }) => normalize(record.farmName) === activityFarm
+      );
+      const matchingAttendance = (sameFarmMatches.length > 0 ? sameFarmMatches : dateAndCropMatches)
+        .map(({ record, key, amount }) => {
+          const paidAmount = Math.min(amount, paidByAttendance.get(key) || 0);
+          const paymentStatus = amount <= 0
+            ? 'Amount not set'
+            : paidAmount >= amount
+              ? 'Paid'
+              : paidAmount > 0
+                ? 'Partially paid'
+                : 'Unpaid';
+
+          return {
+            ...record,
+            labourName: record.labourName ||
+              labourNames.get(String(record.labourId)) ||
+              (record.labourId ? `Labour #${record.labourId}` : 'Labourer'),
+            amount,
+            paidAmount,
+            paymentStatus
+          };
+        });
+
+      if (matchingAttendance.length > 0) {
+        setLabourDetailsMatch(sameFarmMatches.length > 0 ? 'date-farm-crop' : 'date-crop');
+        setLabourDetails(matchingAttendance);
+      } else {
+        const activeLabours = labourRecords.filter(
+          (labour) => String(labour.status || 'Active').toLowerCase() !== 'inactive'
+        );
+        const sampleLabours = activeLabours.length > 0 ? activeLabours : labourRecords;
+        const requestedCount = Number(String(activity.labourWorkers || '').match(/\d+/)?.[0]) || 1;
+        const workerLabel = normalize(activity.labourWorkers);
+        const femaleLabours = workerLabel.includes('women')
+          ? sampleLabours.filter((labour) => normalize(labour.gender) === 'female')
+          : [];
+        const workersToShow = (femaleLabours.length > 0 ? femaleLabours : sampleLabours)
+          .slice(0, Math.min(requestedCount, sampleLabours.length));
+
+        setLabourDetailsMatch(workersToShow.length > 0 ? 'sample' : 'no-match');
+        setLabourDetails(workersToShow.map((labour, index) => ({
+          id: `sample-${activity.id}-${labour.id || index}`,
+          labourName: labour.labourName || `Labourer ${index + 1}`,
+          farmName: activity.farm,
+          workType: activity.activityType,
+          workBasis: 'Days',
+          unitsWorked: 1,
+          amount: Number(labour.dailyRate) || 400,
+          paidAmount: 0,
+          paymentStatus: 'Unpaid',
+          notes: '',
+          isSample: true
+        })));
+      }
+    } catch (error) {
+      console.error('[Crops] Failed to load matching labour attendance:', error);
+      setLabourDetailsError('Could not load labour attendance details. Please try again.');
+    } finally {
+      setLabourDetailsLoading(false);
     }
   };
 
@@ -2191,7 +2328,23 @@ const resolveCropType = (crop) => {
       {/* ─── TAB 2: CROP SEASON ────────────────────────────────────────── */}
       {activeTab === 'seasons' && (
         <div className="cr-table-wrap">
-          <table className="cr-table">
+          <table className="cr-table cr-seasons-table">
+            <colgroup>
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '140px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '140px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '85px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '65px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th><strong>Season ID</strong></th>
@@ -2381,7 +2534,21 @@ const resolveCropType = (crop) => {
             {/* ─── TAB 5: CROP ACTIVITIES ─────────────────────────────────────── */}
       {activeTab === 'activities' && (
         <div className="cr-table-wrap">
-          <table className="cr-table">
+          <table className="cr-table cr-activities-table">
+            <colgroup>
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '6%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th><strong>Activity ID</strong></th>
@@ -2429,9 +2596,19 @@ const resolveCropType = (crop) => {
                         {act.activityType}
                       </span>
                     </td>
-                    <td>{act.activityDate || '-'}</td>
+                    <td>{act.activityDate ? String(act.activityDate).split(/[T ]/)[0] : '-'}</td>
                     <td>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>{act.labourWorkers || '-'}</span>
+                      {act.labourWorkers ? (
+                        <button
+                          type="button"
+                          className="cr-labour-count"
+                          onClick={() => handleOpenLabourDetails(act)}
+                          aria-label={`View labour attendance for ${act.activityCode}`}
+                          title="View matching attendance details"
+                        >
+                          {act.labourWorkers}
+                        </button>
+                      ) : '-'}
                     </td>
                     <td>
                       <span style={{ fontSize: '12px', color: '#475569' }}>{act.machinery || '-'}</span>
@@ -2738,7 +2915,7 @@ const resolveCropType = (crop) => {
       {/* ─── MODAL: CROP SEASON FORM ───────────────────────────────────── */}
       {modalType === 'season' && (
         <div className="cr-overlay" role="dialog" aria-modal="true">
-          <div className="cr-modal">
+          <div className="cr-modal cr-season-modal">
             <div className="cr-modal-head">
               <div>
                 <h2>{editingItem ? 'Edit Crop Season' : 'Add New Crop Season (crop_seasons)'}</h2>
@@ -2747,8 +2924,8 @@ const resolveCropType = (crop) => {
               <button type="button" className="cr-close" onClick={() => setModalType(null)}>✕</button>
             </div>
 
-            <form className="cr-form" onSubmit={handleSaveForm}>
-              <div className="cr-form-body">
+            <form className="cr-form cr-season-form" onSubmit={handleSaveForm}>
+              <div className="cr-form-body cr-season-form-body">
                 <div className="cr-row">
                   <div className="cr-field">
                     <label>Season Record ID</label>
@@ -3117,7 +3294,7 @@ const resolveCropType = (crop) => {
             {/* ─── MODAL: CROP ACTIVITY FORM ─────────────────────────────────── */}
       {modalType === 'activity' && (
         <div className="cr-overlay" role="dialog" aria-modal="true">
-          <div className="cr-modal cr-modal-lg">
+                <div className="cr-modal cr-modal-lg cr-activity-modal">
             <div className="cr-modal-head">
               <div>
                 <h2>{editingItem ? 'Edit Crop Activity' : 'Log New Crop Activity'}</h2>
@@ -3126,8 +3303,8 @@ const resolveCropType = (crop) => {
               <button type="button" className="cr-close" onClick={() => setModalType(null)}>✕</button>
             </div>
 
-            <form className="cr-form" onSubmit={handleSaveForm}>
-              <div className="cr-form-body">
+            <form className="cr-form cr-activity-form" onSubmit={handleSaveForm}>
+              <div className="cr-form-body cr-activity-form-body">
                 <div className="cr-row">
                   <div className="cr-field">
                     <label>Activity Code</label>
@@ -3545,6 +3722,104 @@ const resolveCropType = (crop) => {
 
             <div className="cr-modal-foot">
               <button type="button" className="cr-btn-secondary" onClick={() => setViewTarget(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {labourDetailsTarget && (
+        <div className="cr-overlay" role="dialog" aria-modal="true" onClick={() => setLabourDetailsTarget(null)}>
+          <div className="cr-modal cr-labour-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cr-modal-head">
+              <div>
+                <h2>Labour Attendance</h2>
+                <p>
+                  {labourDetailsTarget.activityCode} · {labourDetailsTarget.crop} · {labourDetailsTarget.activityDate ? String(labourDetailsTarget.activityDate).split(/[T ]/)[0] : '-'}
+                </p>
+              </div>
+              <button type="button" className="cr-close" onClick={() => setLabourDetailsTarget(null)}>✕</button>
+            </div>
+
+            <div className="cr-labour-details-content">
+              <p className="cr-labour-details-hint">
+                {labourDetailsMatch === 'sample'
+                  ? 'Sample details only: names and daily rates are from Labour Management; one-day duration and unpaid status are illustrative. Record actual details in Labour Attendance and Labour Payments.'
+                  : labourDetailsMatch === 'date-crop'
+                  ? 'No farm-name match found. Showing attendance for the same date and crop; farm/plot is shown as recorded. Payments are allocated oldest attendance first within each settlement period, or by exact payment date if no period is set.'
+                  : labourDetailsMatch === 'date-farm-crop'
+                    ? 'Attendance matched by date, farm and crop. Names, work and duration come from Labour Attendance and Labour Management. Payments are allocated oldest attendance first within each settlement period, or by exact payment date if no period is set.'
+                    : 'Attendance details are loaded from Labour Attendance and Labour Management.'}
+              </p>
+              {labourDetailsLoading ? (
+                <div className="cr-labour-details-state">Loading attendance details...</div>
+              ) : labourDetailsError ? (
+                <div className="cr-labour-details-state cr-labour-details-error">{labourDetailsError}</div>
+              ) : labourDetails.length === 0 ? (
+                <div className="cr-labour-details-state">
+                  No Labour Attendance record found for this crop and date. Add attendance there to see worker details here.
+                </div>
+              ) : (
+                <div className="cr-labour-details-table-wrap">
+                  <table className="cr-labour-details-table">
+                    <thead>
+                      <tr>
+                        <th>Labourer</th>
+                        <th>Farm / Plot</th>
+                        <th>Work performed</th>
+                        <th>Duration</th>
+                        <th>Amount</th>
+                        <th>Payment status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {labourDetails.map((record, index) => {
+                        const unitsWorked = Number(record.unitsWorked);
+                        const unit = String(record.workBasis || 'Days').toLowerCase().replace(/s$/, '');
+                        const duration = Number.isFinite(unitsWorked)
+                          ? `${unitsWorked} ${unit}${unitsWorked === 1 ? '' : 's'}`
+                          : '-';
+                        const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2
+                        })}`;
+                        const paymentStatusClass = record.paymentStatus === 'Paid'
+                          ? 'paid'
+                          : record.paymentStatus === 'Partially paid'
+                            ? 'partial'
+                            : record.paymentStatus === 'Unpaid'
+                              ? 'unpaid'
+                              : 'unset';
+
+                        return (
+                          <tr key={record.id || record.attendanceCode || index}>
+                            <td><strong>{record.labourName}</strong></td>
+                            <td>{record.farmName || '-'}</td>
+                            <td>{record.workType || '-'}</td>
+                            <td>{duration}{record.isSample ? ' (sample)' : ''}</td>
+                            <td>
+                              <strong>{formatCurrency(record.amount)}</strong>
+                              {record.isSample && <span className="cr-labour-sample-label">Sample estimate</span>}
+                              {record.paidAmount > 0 && (
+                                <span className="cr-labour-paid-amount">Paid: {formatCurrency(record.paidAmount)}</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`cr-labour-payment-status ${paymentStatusClass}`}>
+                                {record.paymentStatus || 'Unpaid'}
+                              </span>
+                              {record.isSample && <span className="cr-labour-sample-label">Illustrative</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="cr-modal-foot">
+              <button type="button" className="cr-btn-secondary" onClick={() => setLabourDetailsTarget(null)}>Close</button>
             </div>
           </div>
         </div>
