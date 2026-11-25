@@ -2,7 +2,7 @@
    AGRIMAN - Centralized Theme Tokens & Application-Wide Dark Mode
    Strict Palette Specifications:
    Light:
-     - Background: #FFFFFF
+     - Background: #EAF4E7
      - Surface: #F7F8F5
      - Primary text: #26332B
      - Secondary text: #78827B
@@ -28,7 +28,7 @@
 
 :root,
 [data-theme="light"] {
-  --ag-bg: #FFFFFF;
+  --ag-bg: #EAF4E7;
   --ag-surface: #F7F8F5;
   --ag-card-bg: #FFFFFF;
   --ag-secondary-surface: #FFFFFF;
