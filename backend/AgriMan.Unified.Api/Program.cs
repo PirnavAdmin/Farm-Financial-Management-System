@@ -580,6 +580,25 @@ using (var scope = app.Services.CreateScope())
 // -----------------------------------------------------------------------------
 app.UseForwardedHeaders();
 
+// Resilient Global Exception Handler: returns clean JSON instead of dropping TCP socket (prevents ngrok 502 Bad Gateway)
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var ex = exceptionHandlerPathFeature?.Error;
+        var response = new
+        {
+            status = 500,
+            title = "Internal Server Error",
+            message = ex?.Message ?? "An unexpected server error occurred."
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
+
 app.UseCors("AllowAll");
 
 // Cache-busting middleware for Swagger

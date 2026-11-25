@@ -548,7 +548,7 @@ function getFarmerApiError(error, operation = 'request') {
   if (status === 502 || status === 503 || status === 504) {
     return {
       headline: 'Cannot connect to backend server (502)',
-      detail: 'The ASP.NET Core backend is not running or unreachable on port 5147. Please start the backend (run-backend.bat) and click Retry.',
+      detail: 'The ASP.NET Core backend or ngrok tunnel is currently offline or unreachable. Please ensure the backend (run-backend.bat) and ngrok tunnel (run-ngrok.bat) are running, then click Retry.',
     }
   }
   if (status === 0 || (!error.response && error.request))
