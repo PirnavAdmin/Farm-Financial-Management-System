@@ -116,6 +116,18 @@ function postalOfficeMandal(postOffice) {
   return block.toUpperCase() === 'NA' ? '' : block
 }
 
+function mostCommonPostalOfficeMandal(postOffices) {
+  const counts = new Map()
+  postOffices.forEach(postOffice => {
+    const mandal = postalOfficeMandal(postOffice)
+    if (mandal) counts.set(mandal, (counts.get(mandal) || 0) + 1)
+  })
+
+  const rankedMandals = [...counts.entries()].sort((left, right) => right[1] - left[1])
+  if (!rankedMandals.length || rankedMandals[0][1] === rankedMandals[1]?.[1]) return ''
+  return rankedMandals[0][0]
+}
+
 function formatLeaseDate(value) {
   if (!value) return '—'
   const date = new Date(`${value}T00:00:00`)
@@ -1542,9 +1554,7 @@ export default function Farmers({ profileEmail, profileName }) {
       const state = postOffices.every(office => office.State === firstOffice.State)
         ? firstOffice.State
         : ''
-      const mandal = postOffices.every(office => postalOfficeMandal(office) === postalOfficeMandal(firstOffice))
-        ? postalOfficeMandal(firstOffice)
-        : ''
+      const mandal = mostCommonPostalOfficeMandal(postOffices)
 
       if (postOffices.length > 1) {
         setRentalForm(current => current ? {
