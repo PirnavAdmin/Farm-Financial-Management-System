@@ -1344,6 +1344,7 @@ export function getChildIcon(parentLabel, childLabel) {
         return FarmersIcon
       case 'Farms':
         return FarmsIcon
+      case 'Crop Management':
       case 'Crops':
       case 'Crop Master':
         return CropsIcon

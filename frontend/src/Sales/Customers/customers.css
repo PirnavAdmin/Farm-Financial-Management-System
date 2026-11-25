@@ -1,1 +1,99 @@
 @import '../Sales/sales.css';
+
+/* ── Customers Page: Single-Screen Fit (No Horizontal / Vertical Scrolling) ── */
+.customers-page-container {
+  gap: 12px;
+}
+
+.customers-page-container .users-title-row {
+  margin-bottom: 0;
+}
+
+.customers-page-container .users-title-row h1 {
+  font-size: 20px;
+  margin: 1px 0 2px;
+}
+
+.customers-page-container .users-title-row p {
+  font-size: 11.5px;
+}
+
+.customers-page-container .sales-stats-grid {
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.customers-page-container .sales-stat-card {
+  padding: 10px 14px;
+  gap: 10px;
+}
+
+.customers-page-container .sales-stat-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+.customers-page-container .sales-stat-info small {
+  font-size: 10px;
+}
+
+.customers-page-container .sales-stat-info strong {
+  font-size: 14px;
+}
+
+.customers-page-container .sales-stat-info span {
+  font-size: 10.5px;
+}
+
+.customers-page-container .users-panel {
+  border-radius: 8px;
+}
+
+.customers-page-container .sales-toolbar {
+  padding: 8px 14px;
+}
+
+.customers-page-container .sales-toolbar .sales-search {
+  flex: 0 1 280px;
+  width: 280px;
+}
+
+/* Eliminate horizontal scrollbar: fit 100% in panel */
+.customers-page-container .customers-table-wrap {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.customers-page-container .customers-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.customers-page-container .customers-table th {
+  padding: 9px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.customers-page-container .customers-table td {
+  padding: 8px 8px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.customers-page-container .customers-table td .sales-code-badge {
+  padding: 2px 6px;
+  font-size: 10.5px;
+}
+
+.customers-page-container .users-table-footer {
+  padding: 8px 14px;
+  font-size: 11.5px;
+}
