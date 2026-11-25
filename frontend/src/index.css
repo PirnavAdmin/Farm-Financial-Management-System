@@ -9,7 +9,7 @@
   font-optical-sizing: auto;
   font-weight: 400;
   color: #26332d;
-  background: #f6f8f5;
+  background: var(--ag-bg);
   font-size: 14px;
   --sans: 'DM Sans', 'Segoe UI', sans-serif;
 }
