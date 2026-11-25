@@ -185,7 +185,7 @@ public class RentalLandsController : ControllerBase
     [HttpPost("{id:int}/documents")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxDocumentSize + 1024 * 1024)]
-    public async Task<ActionResult<RentalLandDocument>> UploadDocument(int id, [FromForm] IFormFile file)
+    public async Task<ActionResult<RentalLandDocument>> UploadDocument([FromRoute] int id, IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
