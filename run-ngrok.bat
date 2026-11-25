@@ -4,5 +4,5 @@ echo ===================================================
 echo Starting Ngrok Tunnel forwarding to port 5147...
 echo Public URL: https://travel-daringly-tapering.ngrok-free.dev
 echo ===================================================
-ngrok http 5147
+ngrok http --url=travel-daringly-tapering.ngrok-free.dev 5147
 pause
