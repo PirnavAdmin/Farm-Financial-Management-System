@@ -532,6 +532,9 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
+    // Resolve duplicate schema IDs across different namespaces (e.g. PagedResult<T>, ServiceResult<T>)
+    c.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
+
     c.DocumentFilter<NgrokServerDocumentFilter>();
     c.OperationFilter<NgrokHeaderOperationFilter>();
 
