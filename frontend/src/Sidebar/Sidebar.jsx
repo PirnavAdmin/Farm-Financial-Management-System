@@ -59,18 +59,7 @@ export const defaultSidebarMenuGroups = [
     label: 'Sales',
     children: ['Sales', 'Customers', 'Receivables']
   },
-  {
-    label: 'Reports',
-    children: [
-      'Income Report',
-      'Expense Report',
-      'Crop Profit',
-      'Farm Profit',
-      'Cash Flow',
-      'P&L',
-      'Dashboard Reports'
-    ]
-  },
+  { label: 'Reports' },
   { label: 'Notifications' },
   {
     label: 'Settings',
@@ -158,7 +147,7 @@ export default function Sidebar({
           const MainIcon = getMainIcon(group.label)
 
           // Direct match or one of its children is active
-          const isDirectActive = active === group.label
+          const isDirectActive = active === group.label || (group.label === 'Reports' && (active === 'Reports' || active.startsWith('Reports') || active.includes('Report') || active === 'Profit & Loss' || active === 'P&L' || active === 'Cash Flow' || active === 'Receivables' || active === 'Payables'))
           const hasActiveChild = hasChildren && group.children.some(isMatchActive)
 
           // State classes
