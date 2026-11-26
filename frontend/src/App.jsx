@@ -11,6 +11,7 @@ import ExpenseCategories from './Masters/Expense Categories/expense categories.j
 import IncomeCategories from './Masters/Income Categories/income categories.jsx'
 import Suppliers from './Masters/Suppliers/index.jsx'
 import Machinery from './Masters/Machinery/index.jsx'
+import Products from './Masters/Products/index.jsx'
 import { authRequest } from './auth.js'
 
 import Crops from './Masters/Crops/index.jsx'
@@ -425,8 +426,8 @@ function App() {
               <Loans />
             ) : active === 'Bank Accounts' ? (
               <BankAccounts />
-            ) : active === 'Product Master' ? (
-              <ProductMaster />
+            ) : active === 'Product Master' || active === 'Products' ? (
+              <Products onNavigate={selectItem} />
             ) : active === 'Purchases' ? (
               <Purchases />
             ) : active === 'Stock In' ? (

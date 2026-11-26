@@ -144,6 +144,7 @@ public class CreateProductDto
 
 public class UpdateProductDto
 {
+<<<<<<< Updated upstream
     private string _name = string.Empty;
     private bool _nameSet;
     private decimal _reorderLevel = 0;
@@ -166,6 +167,10 @@ public class UpdateProductDto
     } // Frontend alias
 
     [Required(ErrorMessage = "CategoryId is required.")]
+=======
+    public string? Code { get; set; }
+    public string Name { get; set; } = string.Empty;
+>>>>>>> Stashed changes
     public int CategoryId { get; set; }
 
     [Required(ErrorMessage = "UnitId is required.")]
