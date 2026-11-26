@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { farmerService } from '../../services/farmerService'
 import { farmerAddressService } from '../../services/farmerAddressService'
@@ -23,6 +23,7 @@ const EMPTY = {
 
 const EMPTY_RENTAL_LAND = {
   tenantName: '',
+  tenantCountryCode: '+91',
   tenantMobile: '',
   surveyNumber: '',
   landArea: '',
@@ -30,35 +31,101 @@ const EMPTY_RENTAL_LAND = {
   village: '',
   mandal: '',
   district: '',
+  state: '',
+  pinCode: '',
   rentAmount: '',
   rentFrequency: 'Monthly',
   leaseStartDate: '',
   leaseEndDate: '',
   status: 'Active',
   remarks: '',
+  documents: [],
 }
+
+const RENTAL_DOCUMENT_MAX_FILES = 5
+const RENTAL_DOCUMENT_MAX_SIZE = 10 * 1024 * 1024
+const RENTAL_DOCUMENT_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'])
+const RENTAL_PHONE_COUNTRY_CODES = [
+  { code: '+91', country: 'India', maxDigits: 10 },
+  { code: '+1', country: 'US / Canada', maxDigits: 10 },
+  { code: '+44', country: 'United Kingdom', maxDigits: 10 },
+  { code: '+61', country: 'Australia', maxDigits: 9 },
+  { code: '+971', country: 'UAE', maxDigits: 9 },
+  { code: '+65', country: 'Singapore', maxDigits: 8 },
+  { code: '+94', country: 'Sri Lanka', maxDigits: 9 },
+  { code: '+977', country: 'Nepal', maxDigits: 10 },
+  { code: '+880', country: 'Bangladesh', maxDigits: 10 },
+  { code: '+92', country: 'Pakistan', maxDigits: 10 },
+  { code: '+966', country: 'Saudi Arabia', maxDigits: 9 },
+]
 
 function mapRentalLand(record) {
   const rawStatus = String(record.status ?? record.Status ?? 'Active').trim().toLowerCase()
+  const documents = record.documents ?? record.Documents ?? []
+  const savedMobile = String(record.tenantMobile ?? record.TenantMobile ?? record.mobile ?? record.Mobile ?? '')
+  const savedCountryCode = record.tenantCountryCode ?? record.TenantCountryCode
+  const matchedCountry = RENTAL_PHONE_COUNTRY_CODES.find(({ code }) => savedMobile.startsWith(code))
+  const tenantCountryCode = matchedCountry?.code || savedCountryCode || '+91'
+  const tenantMobile = savedMobile.startsWith(tenantCountryCode)
+    ? savedMobile.slice(tenantCountryCode.length).replace(/\D/g, '')
+    : savedMobile.replace(/\D/g, '')
+  const tenantPhoneNumber = tenantMobile.slice(0, maxLocalPhoneDigits(tenantCountryCode))
 
   return {
     id: record.id ?? record.Id,
     farmerId: record.farmerId ?? record.FarmerId,
     tenantName: record.tenantName ?? record.TenantName ?? '',
-    tenantMobile: record.tenantMobile ?? record.TenantMobile ?? '',
+    tenantCountryCode,
+    tenantMobile: tenantPhoneNumber ? `${tenantCountryCode} ${tenantPhoneNumber}` : '',
+    tenantPhoneNumber,
     surveyNumber: record.surveyNumber ?? record.SurveyNumber ?? '',
     landArea: String(record.landArea ?? record.LandArea ?? ''),
     areaUnit: record.areaUnit ?? record.AreaUnit ?? 'Acres',
     village: record.village ?? record.Village ?? '',
     mandal: record.mandal ?? record.Mandal ?? '',
     district: record.district ?? record.District ?? '',
+    state: record.state ?? record.State ?? '',
+    pinCode: String(record.pinCode ?? record.PinCode ?? '').replace(/\D/g, '').slice(0, 6),
     rentAmount: String(record.rentAmount ?? record.RentAmount ?? ''),
     rentFrequency: record.rentFrequency ?? record.RentFrequency ?? 'Monthly',
     leaseStartDate: String(record.leaseStartDate ?? record.LeaseStartDate ?? '').slice(0, 10),
     leaseEndDate: String(record.leaseEndDate ?? record.LeaseEndDate ?? '').slice(0, 10),
     status: rawStatus === 'inactive' ? 'Inactive' : 'Active',
     remarks: record.remarks ?? record.Remarks ?? '',
+    documents: Array.isArray(documents) ? documents.map(document => ({
+      id: document.id ?? document.Id,
+      fileName: document.fileName ?? document.FileName ?? '',
+      fileSize: Number(document.fileSize ?? document.FileSize ?? 0),
+      uploadedAt: document.uploadedAt ?? document.UploadedAt ?? '',
+    })) : [],
   }
+}
+
+function formatFileSize(fileSize) {
+  if (!fileSize) return '0 KB'
+  if (fileSize < 1024 * 1024) return `${Math.max(1, Math.round(fileSize / 1024))} KB`
+  return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function maxLocalPhoneDigits(countryCode) {
+  return RENTAL_PHONE_COUNTRY_CODES.find(({ code }) => code === countryCode)?.maxDigits ?? 10
+}
+
+function postalOfficeMandal(postOffice) {
+  const block = String(postOffice?.Block || '').trim()
+  return block.toUpperCase() === 'NA' ? '' : block
+}
+
+function mostCommonPostalOfficeMandal(postOffices) {
+  const counts = new Map()
+  postOffices.forEach(postOffice => {
+    const mandal = postalOfficeMandal(postOffice)
+    if (mandal) counts.set(mandal, (counts.get(mandal) || 0) + 1)
+  })
+
+  const rankedMandals = [...counts.entries()].sort((left, right) => right[1] - left[1])
+  if (!rankedMandals.length || rankedMandals[0][1] === rankedMandals[1]?.[1]) return ''
+  return rankedMandals[0][0]
 }
 
 function formatLeaseDate(value) {
@@ -120,7 +187,7 @@ function loadRentalCropAllocations(record) {
   }
 }
 
-function RentalLandDetails({ record, records, farmer, onClose }) {
+function RentalLandDetails({ record, records, farmer, onClose, onDownloadDocument }) {
   const [cropAllocationState, setCropAllocationState] = useState(() => loadRentalCropAllocations(record))
   const [editingCropAllocation, setEditingCropAllocation] = useState(false)
   const [cropAllocationDraft, setCropAllocationDraft] = useState([])
@@ -152,11 +219,12 @@ function RentalLandDetails({ record, records, farmer, onClose }) {
     ['Village', record.village],
     ['Mandal', record.mandal],
     ['District', record.district],
+    ['State', record.state],
+    ['PIN Code', record.pinCode],
     ['Rent', `₹${Number(record.rentAmount).toLocaleString('en-IN')} / ${record.rentFrequency}`],
     ['Lease period', `${formatLeaseDate(record.leaseStartDate)} – ${formatLeaseDate(record.leaseEndDate)}`],
     ['Duration', getLeaseDuration(record.leaseStartDate, record.leaseEndDate)],
     ['Status', record.status],
-    ['Remarks', record.remarks],
   ]
 
   function startCropAllocationEdit() {
@@ -213,6 +281,22 @@ function RentalLandDetails({ record, records, farmer, onClose }) {
               </div>
             ))}
           </section>
+
+          {record.documents?.length > 0 && (
+            <section className="fm-rental-documents" aria-label="Rental agreement documents">
+              <h3>Rental agreements</h3>
+              <div className="fm-rental-document-list">
+                {record.documents.map(document => (
+                  <div className="fm-rental-document-item" key={document.id}>
+                    <span>{document.fileName} <small>{formatFileSize(document.fileSize)}</small></span>
+                    <button type="button" onClick={() => onDownloadDocument(record.id, document)}>
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="fm-tenant-charts">
             <section className="fm-tenant-chart-card">
@@ -548,7 +632,7 @@ function getFarmerApiError(error, operation = 'request') {
   if (status === 502 || status === 503 || status === 504) {
     return {
       headline: 'Cannot connect to backend server (502)',
-      detail: 'The ASP.NET Core backend is not running or unreachable on port 5147. Please start the backend (run-backend.bat) and click Retry.',
+      detail: 'The ASP.NET Core backend or ngrok tunnel is currently offline or unreachable. Please ensure the backend (run-backend.bat) and ngrok tunnel (run-ngrok.bat) are running, then click Retry.',
     }
   }
   if (status === 0 || (!error.response && error.request))
@@ -1094,8 +1178,11 @@ export default function Farmers({ profileEmail, profileName }) {
   const [toast, setToast]                 = useState(null)
   const [rentalModal, setRentalModal]     = useState(null)
   const [rentalForm, setRentalForm]       = useState(null)
+  const [rentalFiles, setRentalFiles]     = useState([])
   const [selectedRentalDetail, setSelectedRentalDetail] = useState(null)
   const [rentalError, setRentalError]     = useState('')
+  const [rentalPinLookupStatus, setRentalPinLookupStatus] = useState(null)
+  const [rentalPinPostOffices, setRentalPinPostOffices] = useState([])
   const [savingRental, setSavingRental]   = useState(false)
   const [rentalLands, setRentalLands]     = useState([])
   const [rentalLoading, setRentalLoading] = useState(false)
@@ -1105,6 +1192,7 @@ export default function Farmers({ profileEmail, profileName }) {
   const [openRentalMenuId, setOpenRentalMenuId] = useState(null)
   const [rentalMenuPosition, setRentalMenuPosition] = useState(null)
   const [deletingRentalId, setDeletingRentalId] = useState(null)
+  const rentalPinLookupRequest = useRef(0)
   const [profileFarmSummary, setProfileFarmSummary] = useState(null)
   const selectedProfileId = localStorage.getItem(profileStorageKey)
     || localStorage.getItem(profileNameStorageKey)
@@ -1130,6 +1218,49 @@ export default function Farmers({ profileEmail, profileName }) {
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  function handleRentalDocumentSelection(event) {
+    const selectedFiles = Array.from(event.currentTarget.files || [])
+    event.currentTarget.value = ''
+    const invalidFile = selectedFiles.find(file => {
+      const extension = file.name.split('.').pop()?.toLowerCase()
+      return !extension
+        || !RENTAL_DOCUMENT_EXTENSIONS.has(extension)
+        || file.size === 0
+        || file.size > RENTAL_DOCUMENT_MAX_SIZE
+    })
+
+    if (rentalFiles.length + selectedFiles.length > RENTAL_DOCUMENT_MAX_FILES) {
+      setRentalError(`Choose no more than ${RENTAL_DOCUMENT_MAX_FILES} agreement files.`)
+      return
+    }
+    if (invalidFile) {
+      setRentalError(`${invalidFile.name} is not supported. Choose a PDF, Word, JPG, or PNG file up to 10 MB.`)
+      return
+    }
+
+    setRentalError('')
+    setRentalFiles(current => [...current, ...selectedFiles])
+  }
+
+  async function handleDownloadRentalDocument(rentalLandId, rentalDocument) {
+    try {
+      const response = await api.get(
+        `/api/RentalLands/${rentalLandId}/documents/${rentalDocument.id}`,
+        { responseType: 'blob' }
+      )
+      const downloadUrl = window.URL.createObjectURL(response.data)
+      const link = window.document.createElement('a')
+      link.href = downloadUrl
+      link.download = rentalDocument.fileName || 'rental-agreement'
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000)
+    } catch (error) {
+      showToast(errorText(error, 'download rental agreement'), 'error')
+    }
   }
 
   // ── Fetch list via GET /api/Farmers ──────────────────────────────────────
@@ -1357,18 +1488,147 @@ export default function Farmers({ profileEmail, profileName }) {
   }
 
   function openRentalLandForm(record = null, mode = 'add') {
+    rentalPinLookupRequest.current += 1
+    setRentalPinLookupStatus(null)
+    setRentalPinPostOffices([])
+    const pinCode = String(record ? record.pinCode || '' : currentFarmer?.pin || '').replace(/\D/g, '').slice(0, 6)
+    const village = record ? record.village || '' : currentFarmer?.village || ''
+    const mandal = record ? record.mandal || '' : currentFarmer?.mandal || ''
+    const district = record ? record.district || '' : currentFarmer?.district || ''
+    const state = record ? record.state || '' : currentFarmer?.state || ''
     setRentalForm(record ? {
       ...EMPTY_RENTAL_LAND,
       ...record,
+      tenantMobile: record.tenantPhoneNumber || '',
+      village,
+      mandal,
+      district,
+      state,
+      pinCode,
       remarks: record.remarks || '',
     } : {
       ...EMPTY_RENTAL_LAND,
-      village: currentFarmer?.village || '',
-      mandal: currentFarmer?.mandal || '',
-      district: currentFarmer?.district || '',
+      village,
+      mandal,
+      district,
+      state,
+      pinCode,
     })
+    setRentalFiles([])
     setRentalError('')
     setRentalModal({ mode, id: record?.id || null })
+
+    if (pinCode.length === 6 && (!village || !mandal || !district || !state)) {
+      const requestId = rentalPinLookupRequest.current
+      setRentalPinLookupStatus({ type: 'loading', message: 'Looking up location…' })
+      void lookupRentalPinCode(pinCode, requestId)
+    }
+  }
+
+  async function lookupRentalPinCode(pinCode, requestId) {
+    try {
+      const response = await fetch(`https://api.postalpincode.in/pincode/${encodeURIComponent(pinCode)}`, { cache: 'no-store' })
+      if (!response.ok) throw new Error(`PIN lookup failed with status ${response.status}.`)
+
+      const results = await response.json()
+      const result = Array.isArray(results) ? results[0] : null
+      const postOffices = result?.Status === 'Success'
+        ? result.PostOffice?.filter(office => office?.Name && office?.District && office?.State) || []
+        : []
+
+      if (requestId !== rentalPinLookupRequest.current) return
+      if (!postOffices.length) {
+        setRentalError('PIN code not found. Enter the location details manually.')
+        setRentalPinLookupStatus({
+          type: 'error',
+          message: 'PIN code not found. Enter the location details manually.',
+        })
+        return
+      }
+
+      setRentalPinPostOffices(postOffices)
+      const firstOffice = postOffices[0]
+      const district = postOffices.every(office => office.District === firstOffice.District)
+        ? firstOffice.District
+        : ''
+      const state = postOffices.every(office => office.State === firstOffice.State)
+        ? firstOffice.State
+        : ''
+      const mandal = mostCommonPostalOfficeMandal(postOffices)
+
+      if (postOffices.length > 1) {
+        setRentalForm(current => current ? {
+          ...current,
+          village: firstOffice.Name,
+          mandal,
+          district,
+          state,
+        } : current)
+        setRentalPinLookupStatus({
+          type: 'choice',
+          message: 'This PIN has multiple post offices. Choose the correct village.',
+        })
+        return
+      }
+
+      const postOffice = firstOffice
+      setRentalForm(current => current ? {
+        ...current,
+        village: postOffice.Name,
+        mandal: postalOfficeMandal(postOffice),
+        district: postOffice.District,
+        state: postOffice.State,
+      } : current)
+      setRentalPinLookupStatus(null)
+    } catch (error) {
+      if (requestId !== rentalPinLookupRequest.current) return
+      console.warn('[RentalLand] PIN lookup failed:', error)
+      setRentalError('PIN lookup is unavailable. Enter the location details manually.')
+      setRentalPinLookupStatus({
+        type: 'error',
+        message: 'PIN lookup is unavailable. Enter the location details manually.',
+      })
+    }
+  }
+
+  function handleRentalPinCodeChange(event) {
+    const pinCode = event.target.value.replace(/\D/g, '').slice(0, 6)
+    const requestId = ++rentalPinLookupRequest.current
+    setRentalForm(current => current ? {
+      ...current,
+      pinCode,
+      village: '',
+      mandal: '',
+      district: '',
+      state: '',
+    } : current)
+    setRentalPinPostOffices([])
+    setRentalPinLookupStatus(null)
+    setRentalError('')
+
+    if (pinCode.length === 6) {
+      setRentalPinLookupStatus({ type: 'loading', message: 'Looking up location…' })
+      void lookupRentalPinCode(pinCode, requestId)
+    }
+  }
+
+  function handleRentalVillageChange(event) {
+    const village = event.target.value
+    const selectedOffice = rentalPinPostOffices.find(office => (
+      office.Name.toLocaleLowerCase() === village.trim().toLocaleLowerCase()
+    ))
+
+    setRentalForm(current => current ? {
+      ...current,
+      village,
+      ...(selectedOffice ? {
+        mandal: postalOfficeMandal(selectedOffice),
+        district: selectedOffice.District,
+        state: selectedOffice.State,
+      } : {}),
+    } : current)
+
+    if (selectedOffice) setRentalPinLookupStatus(null)
   }
 
   async function handleRentalLandSubmit(event) {
@@ -1381,17 +1641,22 @@ export default function Farmers({ profileEmail, profileName }) {
 
     setSavingRental(true)
     setRentalError('')
+    let savedRecordId = rentalModal.id
+    let rentalRecordSaved = false
     try {
       const payload = {
         farmerId: Number(currentFarmer.id),
         tenantName: String(rentalForm.tenantName || '').trim(),
-        tenantMobile: String(rentalForm.tenantMobile || '').trim(),
+        tenantCountryCode: rentalForm.tenantCountryCode || '+91',
+        tenantMobile: `${rentalForm.tenantCountryCode || '+91'} ${String(rentalForm.tenantMobile || '').replace(/\D/g, '')}`.trim(),
         surveyNumber: String(rentalForm.surveyNumber || '').trim(),
         landArea: Number(rentalForm.landArea || 0),
         areaUnit: rentalForm.areaUnit || 'Acres',
         village: String(rentalForm.village || '').trim(),
         mandal: String(rentalForm.mandal || '').trim(),
         district: String(rentalForm.district || '').trim(),
+        state: String(rentalForm.state || '').trim(),
+        pinCode: String(rentalForm.pinCode || '').trim(),
         rentAmount: Number(rentalForm.rentAmount || 0),
         rentFrequency: rentalForm.rentFrequency || 'Monthly',
         leaseStartDate: rentalForm.leaseStartDate || '',
@@ -1402,16 +1667,53 @@ export default function Farmers({ profileEmail, profileName }) {
 
       if (rentalModal.mode === 'edit') {
         await api.put(`/api/RentalLands/${rentalModal.id}`, payload)
+        rentalRecordSaved = true
       } else {
-        await api.post('/api/RentalLands', payload)
+        const response = await api.post('/api/RentalLands', payload)
+        savedRecordId = response.data?.id ?? response.data?.Id
+        if (!savedRecordId) throw new Error('Rental land was saved, but the API did not return its record ID.')
+        rentalRecordSaved = true
+        setRentalModal({ mode: 'edit', id: savedRecordId })
+      }
+
+      for (const file of rentalFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await api.post(
+          `/api/RentalLands/${savedRecordId}/documents`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+          }
+        )
+        const uploadedDocument = response.data
+        setRentalForm(current => current ? {
+          ...current,
+          documents: [...(current.documents || []), {
+            id: uploadedDocument.id ?? uploadedDocument.Id,
+            fileName: uploadedDocument.fileName ?? uploadedDocument.FileName ?? file.name,
+            fileSize: Number(uploadedDocument.fileSize ?? uploadedDocument.FileSize ?? file.size),
+            uploadedAt: uploadedDocument.uploadedAt ?? uploadedDocument.UploadedAt ?? '',
+          }],
+        } : current)
+        setRentalFiles(current => current.filter(pendingFile => pendingFile !== file))
       }
 
       setRentalModal(null)
       setRentalForm(null)
-      showToast(rentalModal.mode === 'edit' ? 'Rental land updated successfully.' : 'Rental land saved successfully.')
+      setRentalFiles([])
+      showToast(
+        rentalFiles.length
+          ? 'Rental land and agreement documents saved successfully.'
+          : rentalModal.mode === 'edit' ? 'Rental land updated successfully.' : 'Rental land saved successfully.'
+      )
       await fetchRentalLands()
     } catch (error) {
-      setRentalError(errorText(error, 'save rental land'))
+      const message = errorText(error, 'save rental land')
+      setRentalError(rentalRecordSaved
+        ? `Rental details were saved, but an agreement could not be uploaded. ${message}`
+        : message)
     } finally {
       setSavingRental(false)
     }
@@ -1794,6 +2096,7 @@ export default function Farmers({ profileEmail, profileName }) {
           records={rentalLands}
           farmer={currentFarmer}
           onClose={() => setSelectedRentalDetail(null)}
+          onDownloadDocument={handleDownloadRentalDocument}
         />
       )}
       {deleteTarget && (
@@ -1830,14 +2133,53 @@ export default function Farmers({ profileEmail, profileName }) {
             <form className="fm-form" onSubmit={handleRentalLandSubmit}>
               <div className="fm-form-body">
                 <div className="fm-section-label">Tenant / Receiver</div>
-                <div className="fm-row">
+                <div className="fm-row fm-rental-two-field-row">
                   <div className="fm-field">
                     <label htmlFor="rental-tenant-name">Tenant / Receiver Name <span className="fm-req">*</span></label>
                     <input id="rental-tenant-name" name="tenantName" value={rentalForm.tenantName} onChange={event => setRentalForm({ ...rentalForm, tenantName: event.target.value })} required maxLength={150} readOnly={rentalReadOnly} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-tenant-mobile">Mobile Number <span className="fm-req">*</span></label>
-                    <input id="rental-tenant-mobile" name="tenantMobile" type="tel" value={rentalForm.tenantMobile} onChange={event => setRentalForm({ ...rentalForm, tenantMobile: event.target.value })} required maxLength={20} pattern="^\+?[0-9\s()-]{7,20}$" readOnly={rentalReadOnly} />
+                    <div className="fm-phone-input-wrap">
+                      <select
+                        id="rental-tenant-country-code"
+                        name="tenantCountryCode"
+                        className="fm-phone-country-code"
+                        value={rentalForm.tenantCountryCode || '+91'}
+                        onChange={event => {
+                          const tenantCountryCode = event.target.value
+                          setRentalForm(current => ({
+                            ...current,
+                            tenantCountryCode,
+                            tenantMobile: current.tenantMobile.slice(0, maxLocalPhoneDigits(tenantCountryCode)),
+                          }))
+                        }}
+                        aria-label="Country calling code"
+                        disabled={rentalReadOnly}
+                      >
+                        {RENTAL_PHONE_COUNTRY_CODES.map(({ code, country }) => (
+                          <option key={code} value={code}>{code} {country.split(/[ /]/)[0].slice(0, 3)}</option>
+                        ))}
+                      </select>
+                      <input
+                        id="rental-tenant-mobile"
+                        name="tenantMobile"
+                        className="fm-phone-number"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        value={rentalForm.tenantMobile}
+                        onChange={event => setRentalForm({
+                          ...rentalForm,
+                          tenantMobile: event.target.value.replace(/\D/g, '').slice(0, maxLocalPhoneDigits(rentalForm.tenantCountryCode)),
+                        })}
+                        required
+                        maxLength={maxLocalPhoneDigits(rentalForm.tenantCountryCode)}
+                        pattern={`[0-9]{6,${maxLocalPhoneDigits(rentalForm.tenantCountryCode)}}`}
+                        title={`Enter 6 to ${maxLocalPhoneDigits(rentalForm.tenantCountryCode)} digits after the country code.`}
+                        readOnly={rentalReadOnly}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1861,15 +2203,73 @@ export default function Farmers({ profileEmail, profileName }) {
                 <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-village">Village <span className="fm-req">*</span></label>
-                    <input id="rental-village" name="village" value={rentalForm.village} onChange={event => setRentalForm({ ...rentalForm, village: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
+                    <input
+                      id="rental-village"
+                      name="village"
+                      list={rentalPinPostOffices.length > 1 ? 'rental-pin-village-options' : undefined}
+                      value={rentalForm.village}
+                      onChange={handleRentalVillageChange}
+                      title={rentalPinPostOffices.length > 1 ? 'This PIN matches multiple post offices. Choose the correct village from the suggestions if needed.' : undefined}
+                      required
+                      maxLength={100}
+                      readOnly={rentalReadOnly || rentalPinLookupStatus?.type === 'loading'}
+                    />
+                    {rentalPinPostOffices.length > 1 && (
+                      <datalist id="rental-pin-village-options">
+                        {rentalPinPostOffices.map((office, index) => (
+                          <option key={`${office.Name}-${index}`} value={office.Name} />
+                        ))}
+                      </datalist>
+                    )}
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-mandal">Mandal <span className="fm-req">*</span></label>
-                    <input id="rental-mandal" name="mandal" value={rentalForm.mandal} onChange={event => setRentalForm({ ...rentalForm, mandal: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
+                    <input id="rental-mandal" name="mandal" value={rentalForm.mandal} onChange={event => setRentalForm({ ...rentalForm, mandal: event.target.value })} required maxLength={100} readOnly={rentalReadOnly || rentalPinLookupStatus?.type === 'loading'} />
                   </div>
                   <div className="fm-field">
                     <label htmlFor="rental-district">District <span className="fm-req">*</span></label>
-                    <input id="rental-district" name="district" value={rentalForm.district} onChange={event => setRentalForm({ ...rentalForm, district: event.target.value })} required maxLength={100} readOnly={rentalReadOnly} />
+                    <input id="rental-district" name="district" value={rentalForm.district} onChange={event => setRentalForm({ ...rentalForm, district: event.target.value })} required maxLength={100} readOnly={rentalReadOnly || rentalPinLookupStatus?.type === 'loading'} />
+                  </div>
+                </div>
+                <div className="fm-row">
+                  <div className="fm-field">
+                    <label htmlFor="rental-state">State <span className="fm-req">*</span></label>
+                    <input
+                      id="rental-state"
+                      name="state"
+                      value={rentalForm.state}
+                      onChange={event => setRentalForm({ ...rentalForm, state: event.target.value })}
+                      required
+                      maxLength={100}
+                      readOnly={rentalReadOnly || rentalPinLookupStatus?.type === 'loading'}
+                    />
+                  </div>
+                  <div className="fm-field">
+                    <label htmlFor="rental-pin-code">PIN Code <span className="fm-req">*</span></label>
+                    <input
+                      id="rental-pin-code"
+                      name="pinCode"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      value={rentalForm.pinCode}
+                      onChange={handleRentalPinCodeChange}
+                      required
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      title="Enter a 6-digit PIN code."
+                      readOnly={rentalReadOnly}
+                      aria-describedby={rentalPinLookupStatus ? 'rental-pin-lookup-status' : undefined}
+                    />
+                    {rentalPinLookupStatus && (
+                      <span
+                        id="rental-pin-lookup-status"
+                        className="fm-rental-pin-status-sr-only"
+                        role={rentalPinLookupStatus.type === 'error' ? 'alert' : 'status'}
+                      >
+                        {rentalPinLookupStatus.message}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="fm-row">
@@ -1888,7 +2288,7 @@ export default function Farmers({ profileEmail, profileName }) {
                     <input id="rental-lease-start" name="leaseStartDate" type="date" value={rentalForm.leaseStartDate} onChange={event => setRentalForm({ ...rentalForm, leaseStartDate: event.target.value })} required disabled={rentalReadOnly} />
                   </div>
                 </div>
-                <div className="fm-row fm-row-2">
+                <div className="fm-row">
                   <div className="fm-field">
                     <label htmlFor="rental-lease-end">Lease End Date <span className="fm-req">*</span></label>
                     <input id="rental-lease-end" name="leaseEndDate" type="date" value={rentalForm.leaseEndDate} onChange={event => setRentalForm({ ...rentalForm, leaseEndDate: event.target.value })} required min={rentalForm.leaseStartDate || undefined} disabled={rentalReadOnly} />
@@ -1900,10 +2300,69 @@ export default function Farmers({ profileEmail, profileName }) {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
-                  <div className="fm-field">
-                    <label htmlFor="rental-remarks">Remarks</label>
-                    <textarea id="rental-remarks" name="remarks" value={rentalForm.remarks} onChange={event => setRentalForm({ ...rentalForm, remarks: event.target.value })} maxLength={500} readOnly={rentalReadOnly} rows={2} />
-                  </div>
+                </div>
+
+                <div className="fm-section-label">Rental Agreement Documents</div>
+                <div className="fm-field fm-rental-document-field">
+                  <label htmlFor="rental-agreement-files">Agreements (Optional)</label>
+                  {!rentalReadOnly && (
+                    <>
+                      <div className="fm-rental-file-picker">
+                        <input
+                          id="rental-agreement-files"
+                          className="fm-rental-file-input"
+                          type="file"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          multiple
+                          onChange={handleRentalDocumentSelection}
+                          disabled={savingRental}
+                        />
+                        <label className="fm-rental-file-button" htmlFor="rental-agreement-files">Choose Files</label>
+                        {rentalFiles.length ? (
+                          <div className="fm-rental-file-selected-list" aria-live="polite">
+                            {rentalFiles.map((file, index) => (
+                              <div className="fm-rental-file-selected-item" key={`${file.name}-${file.size}-${file.lastModified}-${index}`}>
+                                <span title={file.name}>
+                                  {file.name} <small>{formatFileSize(file.size)}</small>
+                                </span>
+                                <button
+                                  type="button"
+                                  aria-label={`Remove ${file.name}`}
+                                  onClick={() => setRentalFiles(current => current.filter((_, fileIndex) => fileIndex !== index))}
+                                  disabled={savingRental}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="fm-rental-file-selected" aria-live="polite">No files selected</span>
+                        )}
+                      </div>
+                      <span className="fm-rental-document-help">
+                        PDF, Word, JPG, or PNG · Up to {RENTAL_DOCUMENT_MAX_FILES} files · 10 MB maximum each
+                      </span>
+                    </>
+                  )}
+                  {rentalForm.documents?.length > 0 && (
+                    <div className="fm-rental-document-list">
+                      {rentalForm.documents.map(document => (
+                        <div className="fm-rental-document-item" key={document.id}>
+                          <span>{document.fileName} <small>{formatFileSize(document.fileSize)}</small></span>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadRentalDocument(rentalForm.id || rentalModal.id, document)}
+                          >
+                            Download
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {rentalReadOnly && !rentalForm.documents?.length && (
+                    <span className="fm-rental-document-help">No rental agreements attached.</span>
+                  )}
                 </div>
               </div>
               <footer className="fm-modal-foot">

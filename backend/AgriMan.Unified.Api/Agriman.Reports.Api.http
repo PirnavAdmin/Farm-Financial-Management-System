@@ -1,0 +1,44 @@
+@host = http://localhost:5147
+
+### Reports Catalog (26 Reports)
+GET {{host}}/api/Reports/catalog
+
+### ---------------- FINANCIAL REPORTS (1-10) ----------------
+GET {{host}}/api/Reports/financial/daily-income
+GET {{host}}/api/Reports/financial/daily-expense
+GET {{host}}/api/Reports/financial/monthly-income?year=2026
+GET {{host}}/api/Reports/financial/monthly-expense?year=2026
+GET {{host}}/api/Reports/financial/annual-income
+GET {{host}}/api/Reports/financial/annual-expense
+GET {{host}}/api/Reports/financial/profit-loss
+GET {{host}}/api/Reports/financial/cash-flow
+GET {{host}}/api/Reports/financial/receivables
+GET {{host}}/api/Reports/financial/payables
+
+### ---------------- AGRICULTURE REPORTS (11-21) ----------------
+GET {{host}}/api/Reports/agriculture/crop-income
+GET {{host}}/api/Reports/agriculture/crop-expense
+GET {{host}}/api/Reports/agriculture/crop-profit
+GET {{host}}/api/Reports/agriculture/farm-profit
+GET {{host}}/api/Reports/agriculture/season-profit
+GET {{host}}/api/Reports/agriculture/acre-cost
+GET {{host}}/api/Reports/agriculture/acre-revenue
+GET {{host}}/api/Reports/agriculture/yield
+GET {{host}}/api/Reports/agriculture/labour-cost
+GET {{host}}/api/Reports/agriculture/input-cost
+GET {{host}}/api/Reports/agriculture/machinery-cost
+
+### ---------------- INVENTORY REPORTS (22-26) ----------------
+GET {{host}}/api/Reports/inventory/stock
+GET {{host}}/api/Reports/inventory/stock-ledger?page=1&pageSize=20
+GET {{host}}/api/Reports/inventory/purchases
+GET {{host}}/api/Reports/inventory/consumption
+GET {{host}}/api/Reports/inventory/low-stock
+
+### ---------------- CSV EXPORTS ----------------
+GET {{host}}/api/Reports/export/daily-income
+GET {{host}}/api/Reports/export/pnl
+GET {{host}}/api/Reports/export/receivables
+GET {{host}}/api/Reports/export/crop-profit
+GET {{host}}/api/Reports/export/stock
+GET {{host}}/api/Reports/export/low-stock

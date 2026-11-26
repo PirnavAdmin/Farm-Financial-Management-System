@@ -164,21 +164,21 @@ export default function Receivables({ onNavigate }) {
 
   // Open Record Payment Modal with screen-matching fields
   const openRecordPaymentModal = (preselectedSale = null) => {
-    const targetSale = preselectedSale || receivables[0];
+    const targetSale = preselectedSale || null;
     const total = targetSale ? Number(targetSale.totalSalesAmount ?? targetSale.netAmount) || 0 : 0;
     const received = targetSale ? Number(targetSale.amountReceived) || 0 : 0;
     const outstanding = targetSale ? targetSale.outstandingAmount : 0;
-    const status = targetSale ? targetSale.computedStatus || 'Pending' : 'Pending';
+    const status = targetSale ? targetSale.computedStatus || 'Pending' : '';
 
     setFormData({
-      buyer: targetSale?.buyer || buyers[0]?.buyerName || '',
+      buyer: targetSale?.buyer || '',
       salesNo: targetSale?.salesNo || '',
-      salesDate: targetSale?.salesDate ? targetSale.salesDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      salesDate: targetSale?.salesDate ? targetSale.salesDate.slice(0, 10) : '',
       totalSalesAmount: total || '',
       amountReceived: received || '',
-      outstandingAmount: outstanding,
-      paymentStatus: status,
-      paymentMode: 'Bank',
+      outstandingAmount: outstanding || '',
+      paymentStatus: status || '',
+      paymentMode: targetSale ? 'Bank' : '',
       referenceNo: '',
       remarks: targetSale ? `Payment received for sale #${targetSale.salesNo}` : ''
     });
@@ -427,7 +427,21 @@ export default function Receivables({ onNavigate }) {
         {/* Filters Toolbar */}
         <div className="sales-toolbar">
           <div className="sales-search">
-            <span>⌕</span>
+            <svg
+              className="sales-search-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="text"
               placeholder={
@@ -440,56 +454,56 @@ export default function Receivables({ onNavigate }) {
             />
           </div>
 
-          <select
-            value={buyerFilter}
-            onChange={(e) => setBuyerFilter(e.target.value)}
-            title="Filter by Buyer"
-          >
-            <option value="All">All Buyers</option>
-            {buyers.map((b) => (
-              <option key={b.id || b.buyerCode} value={b.buyerName}>
-                {b.buyerName}
-              </option>
-            ))}
-          </select>
-
-          {activeTab === 'receivables' ? (
+          <div className="sales-toolbar-filters">
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              title="Filter by payment status"
+              value={buyerFilter}
+              onChange={(e) => setBuyerFilter(e.target.value)}
+              title="Filter by Buyer"
             >
-              <option value="All">All Payment Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Partially Paid">Partially Paid</option>
-              <option value="Paid">Paid</option>
+              <option value="All">All Buyers</option>
+              {buyers.map((b) => (
+                <option key={b.id || b.buyerCode} value={b.buyerName}>
+                  {b.buyerName}
+                </option>
+              ))}
             </select>
-          ) : (
-            <>
+
+            {activeTab === 'receivables' ? (
               <select
-                value={modeFilter}
-                onChange={(e) => setModeFilter(e.target.value)}
-                title="Filter by payment mode"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                title="Filter by payment status"
               >
-                <option value="All">All Payment Modes</option>
-                <option value="Bank">Bank Transfer</option>
-                <option value="UPI">UPI</option>
-                <option value="Cash">Cash</option>
+                <option value="All">All Payment Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Partially Paid">Partially Paid</option>
+                <option value="Paid">Paid</option>
               </select>
+            ) : (
+              <>
+                <select
+                  value={modeFilter}
+                  onChange={(e) => setModeFilter(e.target.value)}
+                  title="Filter by payment mode"
+                >
+                  <option value="All">All Payment Modes</option>
+                  <option value="Bank">Bank Transfer</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cash">Cash</option>
+                </select>
 
-              <div className="sales-date-filter-group">
-                <span>Date:</span>
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  title="Filter by payment date"
-                />
-              </div>
-            </>
-          )}
-
-
+                <div className="sales-date-filter-group">
+                  <span>Date:</span>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    title="Filter by payment date"
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Dynamic Table Content */}
@@ -861,6 +875,7 @@ export default function Receivables({ onNavigate }) {
                       onChange={handleFormChange}
                       required
                     >
+                      <option value="">Select Payment Status</option>
                       <option value="Paid">Paid</option>
                       <option value="Partially Paid">Partially Paid</option>
                       <option value="Pending">Pending</option>
@@ -882,6 +897,7 @@ export default function Receivables({ onNavigate }) {
                       value={formData.paymentMode}
                       onChange={handleFormChange}
                     >
+                      <option value="">Select Payment Mode</option>
                       <option value="Bank">Bank Transfer</option>
                       <option value="UPI">UPI</option>
                       <option value="Cash">Cash</option>

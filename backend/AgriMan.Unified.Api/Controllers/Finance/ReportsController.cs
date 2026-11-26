@@ -1,217 +1,226 @@
+using FarmManagementApi.DTOs.Reports;
+using FarmManagementApi.Services.Reports;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FarmManagementApi.Data;
-using AgriMan.Expenses.Api.Data;
-using SalesApi.Data;
 
-namespace FarmManagementApi.Controllers
+namespace FarmManagementApi.Controllers;
+
+/// <summary>
+/// Module 19 - Reports Module: Comprehensive Financial, Agriculture, and Inventory Reports + CSV Export.
+/// </summary>
+[ApiController]
+[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[Produces("application/json")]
+public class ReportsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Tags("11. Finance, Bank Accounts & Reports (Module 11)")]
-    public class ReportsController : ControllerBase
+    private readonly IReportsService _reportsService;
+
+    public ReportsController(IReportsService reportsService)
     {
-        private readonly FarmDbContext _farmDb;
-        private readonly ExpenseDbContext _expenseDb;
-        private readonly SalesDbContext _salesDb;
-
-        public ReportsController(FarmDbContext farmDb, ExpenseDbContext expenseDb, SalesDbContext salesDb)
-        {
-            _farmDb = farmDb;
-            _expenseDb = expenseDb;
-            _salesDb = salesDb;
-        }
-
-        // GET: api/Reports/pnl
-        [HttpGet("pnl")]
-        public async Task<IActionResult> GetProfitAndLoss([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
-        {
-            var salesQuery = _salesDb.Sales.AsQueryable();
-            var incomeQuery = _farmDb.IncomeTransactions.AsQueryable();
-            var expenseQuery = _expenseDb.ExpenseTransactions.AsQueryable();
-
-            if (fromDate.HasValue)
-            {
-                salesQuery = salesQuery.Where(s => s.SalesDate >= fromDate.Value);
-                incomeQuery = incomeQuery.Where(i => i.IncomeDate >= fromDate.Value);
-                expenseQuery = expenseQuery.Where(e => e.ExpenseDate >= fromDate.Value);
-            }
-            if (toDate.HasValue)
-            {
-                salesQuery = salesQuery.Where(s => s.SalesDate <= toDate.Value);
-                incomeQuery = incomeQuery.Where(i => i.IncomeDate <= toDate.Value);
-                expenseQuery = expenseQuery.Where(e => e.ExpenseDate <= toDate.Value);
-            }
-
-            var totalSales = await salesQuery.SumAsync(s => s.NetAmount);
-            var otherIncome = await incomeQuery.SumAsync(i => i.NetAmount);
-            var totalRevenue = totalSales + otherIncome;
-
-            var totalOperatingExpenses = await expenseQuery.SumAsync(e => e.Amount);
-            var totalLabourCost = await _farmDb.LabourPayments.SumAsync(l => l.AmountPaid);
-            var totalExpenses = totalOperatingExpenses + totalLabourCost;
-
-            var netProfit = totalRevenue - totalExpenses;
-            var marginPercent = totalRevenue > 0 ? Math.Round((netProfit / totalRevenue) * 100, 2) : 0;
-
-            return Ok(new
-            {
-                TotalRevenue = totalRevenue,
-                CropSalesRevenue = totalSales,
-                OtherFarmIncome = otherIncome,
-                TotalExpenses = totalExpenses,
-                OperatingExpenses = totalOperatingExpenses,
-                LabourWages = totalLabourCost,
-                NetProfit = netProfit,
-                ProfitMarginPercent = marginPercent,
-                Period = new { From = fromDate, To = toDate }
-            });
-        }
-
-        // GET: api/Reports/cash-flow
-        [HttpGet("cash-flow")]
-        public async Task<IActionResult> GetCashFlow([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
-        {
-            var receiptsQuery = _farmDb.FinanceReceipts.AsNoTracking().AsQueryable();
-            var paymentsQuery = _farmDb.FinancePayments.AsNoTracking().AsQueryable();
-
-            if (fromDate.HasValue)
-            {
-                receiptsQuery = receiptsQuery.Where(r => r.Date >= fromDate.Value.Date);
-                paymentsQuery = paymentsQuery.Where(p => p.Date >= fromDate.Value.Date);
-            }
-            if (toDate.HasValue)
-            {
-                var endExclusive = toDate.Value.Date.AddDays(1);
-                receiptsQuery = receiptsQuery.Where(r => r.Date < endExclusive);
-                paymentsQuery = paymentsQuery.Where(p => p.Date < endExclusive);
-            }
-
-            var receipts = await receiptsQuery.OrderByDescending(r => r.Date).ToListAsync();
-            var payments = await paymentsQuery.OrderByDescending(p => p.Date).ToListAsync();
-
-            var totalInflow = receipts
-                .Where(r => string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase))
-                .Sum(r => r.FinalAmount > 0 ? r.FinalAmount : r.Amount);
-
-            var totalOutflow = payments
-                .Where(p => string.Equals(p.Status, "Completed", StringComparison.OrdinalIgnoreCase))
-                .Sum(p => p.TotalAmount > 0 ? p.TotalAmount : p.Amount);
-
-            var pendingInflow = receipts
-                .Where(r => string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(r.Status, "Processing", StringComparison.OrdinalIgnoreCase))
-                .Sum(r => r.FinalAmount > 0 ? r.FinalAmount : r.Amount);
-
-            var pendingOutflow = payments
-                .Where(p => string.Equals(p.Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(p.Status, "Processing", StringComparison.OrdinalIgnoreCase))
-                .Sum(p => p.TotalAmount > 0 ? p.TotalAmount : p.Amount);
-
-            var netCashFlow = Math.Round(totalInflow - totalOutflow, 2);
-
-            var recentReceipts = receipts
-                .Where(r => !string.Equals(r.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                .Take(10)
-                .ToList();
-
-            var recentPayments = payments
-                .Where(p => !string.Equals(p.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                .Take(10)
-                .ToList();
-
-            return Ok(new
-            {
-                TotalCashInflow = Math.Round(totalInflow, 2),
-                TotalCashOutflow = Math.Round(totalOutflow, 2),
-                NetCashFlow = netCashFlow,
-                PendingCashInflow = Math.Round(pendingInflow, 2),
-                PendingCashOutflow = Math.Round(pendingOutflow, 2),
-                RecentReceipts = recentReceipts,
-                RecentPayments = recentPayments
-            });
-        }
-
-        // GET: api/Reports/crop-profit
-        [HttpGet("crop-profit")]
-        public async Task<IActionResult> GetCropProfit()
-        {
-            // Revenue by crop from sales
-            var cropSales = await _salesDb.Sales
-                .GroupBy(s => s.Crop)
-                .Select(g => new { Crop = g.Key, Revenue = g.Sum(s => s.NetAmount) })
-                .ToListAsync();
-
-            // Expenses by crop from expense transactions
-            var cropExpenses = await _expenseDb.ExpenseTransactions
-                .Where(e => !string.IsNullOrEmpty(e.Crop))
-                .GroupBy(e => e.Crop)
-                .Select(g => new { Crop = g.Key, Expenses = g.Sum(e => e.Amount) })
-                .ToListAsync();
-
-            var allCrops = cropSales.Select(s => s.Crop)
-                .Union(cropExpenses.Select(e => e.Crop))
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .Distinct()
-                .ToList();
-
-            var result = allCrops.Select(crop =>
-            {
-                var rev = cropSales.FirstOrDefault(s => s.Crop == crop)?.Revenue ?? 0;
-                var exp = cropExpenses.FirstOrDefault(e => e.Crop == crop)?.Expenses ?? 0;
-                var profit = rev - exp;
-                var margin = rev > 0 ? Math.Round((profit / rev) * 100, 2) : 0;
-                return new
-                {
-                    Crop = crop,
-                    Revenue = rev,
-                    Expenses = exp,
-                    NetProfit = profit,
-                    ProfitMarginPercent = margin
-                };
-            }).OrderByDescending(c => c.NetProfit).ToList();
-
-            return Ok(result);
-        }
-
-        // GET: api/Reports/farm-profit
-        [HttpGet("farm-profit")]
-        public async Task<IActionResult> GetFarmProfit()
-        {
-            var farmSales = await _salesDb.Sales
-                .GroupBy(s => s.Farm)
-                .Select(g => new { Farm = g.Key, Revenue = g.Sum(s => s.NetAmount) })
-                .ToListAsync();
-
-            var farmExpenses = await _expenseDb.ExpenseTransactions
-                .Where(e => !string.IsNullOrEmpty(e.Farm))
-                .GroupBy(e => e.Farm)
-                .Select(g => new { Farm = g.Key, Expenses = g.Sum(e => e.Amount) })
-                .ToListAsync();
-
-            var allFarms = farmSales.Select(s => s.Farm)
-                .Union(farmExpenses.Select(e => e.Farm))
-                .Where(f => !string.IsNullOrWhiteSpace(f))
-                .Distinct()
-                .ToList();
-
-            var result = allFarms.Select(farm =>
-            {
-                var rev = farmSales.FirstOrDefault(s => s.Farm == farm)?.Revenue ?? 0;
-                var exp = farmExpenses.FirstOrDefault(e => e.Farm == farm)?.Expenses ?? 0;
-                var profit = rev - exp;
-                var margin = rev > 0 ? Math.Round((profit / rev) * 100, 2) : 0;
-                return new
-                {
-                    Farm = farm,
-                    Revenue = rev,
-                    Expenses = exp,
-                    NetProfit = profit,
-                    ProfitMarginPercent = margin
-                };
-            }).OrderByDescending(f => f.NetProfit).ToList();
-
-            return Ok(result);
-        }
+        _reportsService = reportsService;
     }
+
+    // =========================================================================
+    // CATALOG & UNIFIED EXPORT
+    // =========================================================================
+
+    /// <summary>
+    /// List all 26 available reports in Module 19 with their endpoints and descriptions.
+    /// </summary>
+    [HttpGet("catalog")]
+    [ProducesResponseType(typeof(List<ReportCatalogItemDto>), StatusCodes.Status200OK)]
+    public IActionResult GetCatalog()
+    {
+        return Ok(_reportsService.GetCatalog());
+    }
+
+    /// <summary>
+    /// Export any Module 19 report as a UTF-8 CSV file by report key (e.g. daily-income, pnl, receivables, crop-profit, stock, low-stock).
+    /// </summary>
+    [HttpGet("export/{reportKey}")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportCsv(string reportKey, [FromQuery] ReportQueryParameters query)
+    {
+        var exported = await _reportsService.ExportReportCsvAsync(reportKey, query);
+        if (exported == null)
+        {
+            return NotFound(new { message = $"Unknown report key '{reportKey}'. Call GET /api/Reports/catalog for valid keys." });
+        }
+
+        return File(exported.Value.Content, "text/csv", exported.Value.FileName);
+    }
+
+    // =========================================================================
+    // A. FINANCIAL REPORTS (1 - 10)
+    // =========================================================================
+
+    /// <summary>1. Daily Income Report (Crop Sales + Farm Income grouped by day).</summary>
+    [HttpGet("financial/daily-income")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodIncomeSummaryDto, PeriodIncomeRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDailyIncome([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetDailyIncomeReportAsync(query));
+
+    /// <summary>2. Daily Expense Report (Operating expenses, labour, machinery, and input purchases grouped by day).</summary>
+    [HttpGet("financial/daily-expense")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodExpenseSummaryDto, PeriodExpenseRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDailyExpense([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetDailyExpenseReportAsync(query));
+
+    /// <summary>3. Monthly Income Report with month-over-month growth.</summary>
+    [HttpGet("financial/monthly-income")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodIncomeSummaryDto, PeriodIncomeRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMonthlyIncome([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetMonthlyIncomeReportAsync(query));
+
+    /// <summary>4. Monthly Expense Report with month-over-month change.</summary>
+    [HttpGet("financial/monthly-expense")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodExpenseSummaryDto, PeriodExpenseRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMonthlyExpense([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetMonthlyExpenseReportAsync(query));
+
+    /// <summary>5. Annual Income Report with year-over-year growth and top crop/farm.</summary>
+    [HttpGet("financial/annual-income")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodIncomeSummaryDto, PeriodIncomeRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAnnualIncome([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetAnnualIncomeReportAsync(query));
+
+    /// <summary>6. Annual Expense Report with year-over-year comparison and top category.</summary>
+    [HttpGet("financial/annual-expense")]
+    [ProducesResponseType(typeof(ReportResponse<PeriodExpenseSummaryDto, PeriodExpenseRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAnnualExpense([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetAnnualExpenseReportAsync(query));
+
+    /// <summary>7. Profit &amp; Loss Statement (supports both /pnl and /financial/profit-loss).</summary>
+    [HttpGet("pnl")]
+    [HttpGet("financial/profit-loss")]
+    [ProducesResponseType(typeof(ProfitAndLossReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProfitAndLoss([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetProfitAndLossReportAsync(query));
+
+    /// <summary>8. Cash Flow Report (supports both /cash-flow and /financial/cash-flow).</summary>
+    [HttpGet("cash-flow")]
+    [HttpGet("financial/cash-flow")]
+    [ProducesResponseType(typeof(CashFlowReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCashFlow([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetCashFlowReportAsync(query));
+
+    /// <summary>9. Receivables Report with aging buckets and buyer breakdown.</summary>
+    [HttpGet("financial/receivables")]
+    [ProducesResponseType(typeof(ReportResponse<ReceivablesReportSummaryDto, ReceivableRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReceivables([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetReceivablesReportAsync(query));
+
+    /// <summary>10. Payables Report (Purchases, Supplier Ledger, Expenses, Labour, and Loans) with aging buckets.</summary>
+    [HttpGet("financial/payables")]
+    [ProducesResponseType(typeof(ReportResponse<PayablesReportSummaryDto, PayableRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPayables([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetPayablesReportAsync(query));
+
+    // =========================================================================
+    // B. AGRICULTURE REPORTS (11 - 21)
+    // =========================================================================
+
+    /// <summary>11. Crop-wise Income Report.</summary>
+    [HttpGet("agriculture/crop-income")]
+    [ProducesResponseType(typeof(ReportResponse<CropIncomeSummaryDto, CropIncomeRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCropIncome([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetCropIncomeReportAsync(query));
+
+    /// <summary>12. Crop-wise Expense Report.</summary>
+    [HttpGet("agriculture/crop-expense")]
+    [ProducesResponseType(typeof(ReportResponse<CropExpenseSummaryDto, CropExpenseRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCropExpense([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetCropExpenseReportAsync(query));
+
+    /// <summary>13. Crop-wise Profit Report (supports both /crop-profit and /agriculture/crop-profit).</summary>
+    [HttpGet("crop-profit")]
+    [HttpGet("agriculture/crop-profit")]
+    [ProducesResponseType(typeof(List<CropProfitRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCropProfit([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetCropProfitReportAsync(query));
+
+    /// <summary>14. Farm-wise Profit Report (supports both /farm-profit and /agriculture/farm-profit).</summary>
+    [HttpGet("farm-profit")]
+    [HttpGet("agriculture/farm-profit")]
+    [ProducesResponseType(typeof(List<FarmProfitRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetFarmProfit([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetFarmProfitReportAsync(query));
+
+    /// <summary>15. Season-wise Profit Report across crop seasons.</summary>
+    [HttpGet("agriculture/season-profit")]
+    [ProducesResponseType(typeof(ReportResponse<SeasonProfitSummaryDto, SeasonProfitRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSeasonProfit([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetSeasonProfitReportAsync(query));
+
+    /// <summary>16. Acre-wise Cost Report normalized per acre across farms and crops.</summary>
+    [HttpGet("agriculture/acre-cost")]
+    [ProducesResponseType(typeof(ReportResponse<AcreMetricSummaryDto, AcreCostRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAcreCost([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetAcreCostReportAsync(query));
+
+    /// <summary>17. Acre-wise Revenue Report normalized per acre across farms and crops.</summary>
+    [HttpGet("agriculture/acre-revenue")]
+    [ProducesResponseType(typeof(ReportResponse<AcreMetricSummaryDto, AcreRevenueRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAcreRevenue([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetAcreRevenueReportAsync(query));
+
+    /// <summary>18. Crop Yield Report comparing expected vs. actual yield and sold quantity.</summary>
+    [HttpGet("agriculture/yield")]
+    [ProducesResponseType(typeof(ReportResponse<YieldReportSummaryDto, YieldReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetYield([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetYieldReportAsync(query));
+
+    /// <summary>19. Labour Cost Report (wages earned vs. paid, work type, farm, and crop breakdown).</summary>
+    [HttpGet("agriculture/labour-cost")]
+    [ProducesResponseType(typeof(LabourCostReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLabourCost([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetLabourCostReportAsync(query));
+
+    /// <summary>20. Input Cost Report (purchases, direct input expenses, and stock consumption).</summary>
+    [HttpGet("agriculture/input-cost")]
+    [ProducesResponseType(typeof(InputCostReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInputCost([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetInputCostReportAsync(query));
+
+    /// <summary>21. Machinery Cost Report (fleet values and operating expenses by machine and type).</summary>
+    [HttpGet("agriculture/machinery-cost")]
+    [ProducesResponseType(typeof(MachineryCostReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMachineryCost([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetMachineryCostReportAsync(query));
+
+    // =========================================================================
+    // C. INVENTORY REPORTS (22 - 26)
+    // =========================================================================
+
+    /// <summary>22. Inventory Stock Report (current/reserved/available stock and valuation).</summary>
+    [HttpGet("inventory/stock")]
+    [ProducesResponseType(typeof(ReportResponse<StockReportSummaryDto, StockReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStockReport([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetStockReportAsync(query));
+
+    /// <summary>23. Stock Ledger Report (paginated movement audit trail with running balance).</summary>
+    [HttpGet("inventory/stock-ledger")]
+    [ProducesResponseType(typeof(ReportResponse<StockLedgerReportSummaryDto, StockLedgerReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStockLedgerReport([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetStockLedgerReportAsync(query));
+
+    /// <summary>24. Purchase Report (input purchase orders, supplier totals, and balance due).</summary>
+    [HttpGet("inventory/purchases")]
+    [ProducesResponseType(typeof(ReportResponse<PurchaseReportSummaryDto, PurchaseReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPurchaseReport([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetPurchaseReportAsync(query));
+
+    /// <summary>25. Consumption Report (stock-out and field consumption quantities and cost).</summary>
+    [HttpGet("inventory/consumption")]
+    [ProducesResponseType(typeof(ReportResponse<ConsumptionReportSummaryDto, ConsumptionReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetConsumptionReport([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetConsumptionReportAsync(query));
+
+    /// <summary>26. Low Stock Report (below-reorder items, deficit quantity, and estimated reorder cost).</summary>
+    [HttpGet("inventory/low-stock")]
+    [ProducesResponseType(typeof(ReportResponse<LowStockReportSummaryDto, LowStockReportRowDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLowStockReport([FromQuery] ReportQueryParameters query) =>
+        Ok(await _reportsService.GetLowStockReportAsync(query));
 }

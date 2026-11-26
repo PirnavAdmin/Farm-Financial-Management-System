@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
-const DEFAULT_API_BASE_URL = 'http://localhost:5147'
+const DEFAULT_API_BASE_URL = 'https://travel-daringly-tapering.ngrok-free.dev'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {

@@ -14,8 +14,7 @@ export const defaultSidebarMenuGroups = [
     children: [
       'Farmers',
       'Farms',
-      'Crop Master',
-      'Crop Varieties',
+      'Crops',
       'Expense Categories',
       'Income Categories',
       'Products',

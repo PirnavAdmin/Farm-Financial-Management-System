@@ -17,7 +17,7 @@ html, body {
   max-width: 100vw;
   display: flex;
   color: #26332d;
-  background: #f6f8f5;
+  background: var(--ag-bg);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -77,7 +77,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f6f8f5;
+  background: var(--ag-bg);
   box-sizing: border-box;
 }
 

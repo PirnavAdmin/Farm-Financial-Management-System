@@ -62,18 +62,18 @@ export default function Sales({ onNavigate }) {
   // Form state
   const initialForm = {
     salesNo: '',
-    salesDate: new Date().toISOString().slice(0, 10),
+    salesDate: '',
     buyer: '',
     farm: '',
     crop: '',
     quantity: '',
-    unit: 'Quintals',
+    unit: '',
     rate: '',
     grossAmount: 0,
-    commission: 0,
-    transport: 0,
+    commission: '',
+    transport: '',
     netAmount: 0,
-    paymentStatus: 'Pending'
+    paymentStatus: ''
   };
   const [formData, setFormData] = useState(initialForm);
   const [formErrors, setFormErrors] = useState({});
@@ -145,9 +145,6 @@ export default function Sales({ onNavigate }) {
 
   // Open Add Modal
   const openAddModal = () => {
-    const defaultBuyer = buyers[0]?.buyerName || '';
-    const defaultFarm = farms[0] || '';
-    const defaultCrop = crops[0] || '';
     const year = new Date().getFullYear();
 
     const existingSeq = sales
@@ -161,11 +158,18 @@ export default function Sales({ onNavigate }) {
     setFormData({
       ...initialForm,
       salesNo: generatedNo,
-      salesDate: new Date().toISOString().slice(0, 10),
-      buyer: defaultBuyer,
-      farm: defaultFarm,
-      crop: defaultCrop,
-      unit: 'Quintals'
+      salesDate: '',
+      buyer: '',
+      farm: '',
+      crop: '',
+      quantity: '',
+      unit: '',
+      rate: '',
+      grossAmount: 0,
+      commission: '',
+      transport: '',
+      netAmount: 0,
+      paymentStatus: ''
     });
     setFormErrors({});
     setSaleModal({ isEdit: false });
@@ -199,6 +203,7 @@ export default function Sales({ onNavigate }) {
     if (!formData.buyer?.trim()) errors.buyer = 'Buyer is required.';
     if (!formData.farm?.trim()) errors.farm = 'Farm is required.';
     if (!formData.crop?.trim()) errors.crop = 'Crop is required.';
+    if (!formData.unit?.trim()) errors.unit = 'Unit is required.';
     if (!formData.salesDate) errors.salesDate = 'Sales Date is required.';
 
     const qty = parseFloat(formData.quantity);
@@ -371,7 +376,21 @@ export default function Sales({ onNavigate }) {
         {/* Filters Toolbar */}
         <div className="sales-toolbar">
           <div className="sales-search">
-            <span>⌕</span>
+            <svg
+              className="sales-search-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="text"
               placeholder="Search by Sales No, Buyer, Farm, Crop..."
@@ -380,8 +399,9 @@ export default function Sales({ onNavigate }) {
             />
           </div>
 
-          {/* Unified "Filters" Dropdown */}
-          <div className="sales-filters-dropdown-wrap" ref={filterDropdownRef}>
+          <div className="sales-toolbar-filters">
+            {/* Unified "Filters" Dropdown */}
+            <div className="sales-filters-dropdown-wrap" ref={filterDropdownRef}>
             <button
               type="button"
               className={`sales-filters-btn ${isFilterOpen ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-active' : ''}`}
@@ -390,25 +410,19 @@ export default function Sales({ onNavigate }) {
               aria-haspopup="true"
               aria-expanded={isFilterOpen}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
               <span>Filters</span>
               {activeFiltersCount > 0 && (
                 <span className="sales-filters-count-badge">{activeFiltersCount}</span>
               )}
               <svg
                 className={`sales-filters-chevron ${isFilterOpen ? 'rotated' : ''}`}
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                width="10"
+                height="10"
+                viewBox="0 0 12 12"
+                fill="currentColor"
+                aria-hidden="true"
               >
-                <polyline points="6 9 12 15 18 9" />
+                <path d="M2.4 4.5h7.2a.5.5 0 0 1 .38.83l-3.6 4.1a.5.5 0 0 1-.76 0l-3.6-4.1a.5.5 0 0 1 .38-.83z" />
               </svg>
             </button>
 
@@ -546,9 +560,8 @@ export default function Sales({ onNavigate }) {
               </div>
             )}
           </div>
-
-
         </div>
+      </div>
 
         {/* Data Table */}
         <div className="sales-table-wrap">
@@ -819,12 +832,14 @@ export default function Sales({ onNavigate }) {
                       onChange={handleFormChange}
                       required
                     >
+                      <option value="">Select Unit</option>
                       <option value="Quintals">Quintals</option>
                       <option value="kg">kg</option>
                       <option value="Ton">Ton</option>
                       <option value="Bags">Bags</option>
                       <option value="Litre">Litre</option>
                     </select>
+                    {formErrors.unit && <small className="field-error">{formErrors.unit}</small>}
                   </label>
 
                   <label>
@@ -901,6 +916,7 @@ export default function Sales({ onNavigate }) {
                       value={formData.paymentStatus}
                       onChange={handleFormChange}
                     >
+                      <option value="">Select Payment Status</option>
                       <option value="Pending">Pending (Unpaid)</option>
                       <option value="Partially Paid">Partially Paid</option>
                       <option value="Paid">Paid (Full Settlement)</option>

@@ -95,6 +95,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IInventoryService, FarmManagementApi.Services.InventoryService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IPaymentReceiptService, FarmManagementApi.Services.PaymentReceiptService>();
+builder.Services.AddScoped<FarmManagementApi.Services.Reports.IReportsService, FarmManagementApi.Services.Reports.ReportsService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -300,9 +301,16 @@ builder.Services.AddSwaggerGen(c =>
 
     c.SwaggerDoc("payments-receipts", new OpenApiInfo
     {
-        Title = "17. Payment & Receipt Management API - Farmersdb",
+        Title = "17. Payment & Receipt Management API - agriman_db",
         Version = "v1",
-        Description = "Module 17: Outgoing payments, incoming receipts, printable vouchers, 12-dimension outflow/collection analytics, CSV exports, bank balance auto-sync, and audit trail in `Farmersdb`."
+        Description = "Module 17: Outgoing payments, incoming receipts, printable vouchers, 12-dimension outflow/collection analytics, CSV exports, bank balance auto-sync, and audit trail in `agriman_db`."
+    });
+
+    c.SwaggerDoc("reports", new OpenApiInfo
+    {
+        Title = "19. Reports Module API - agriman_db",
+        Version = "v1",
+        Description = "Module 19: Financial Reports (10), Agriculture Reports (11), Inventory Reports (5), and unified CSV export."
     });
 
     // Filter endpoints into dropdown views
@@ -380,6 +388,10 @@ builder.Services.AddSwaggerGen(c =>
         {
             return name.StartsWith("FinancePayment") || name.StartsWith("FinanceReceipt");
         }
+        if (docName == "reports")
+        {
+            return name.StartsWith("Report");
+        }
 
         return false;
     });
@@ -449,11 +461,23 @@ builder.Services.AddSwaggerGen(c =>
         // 10. Labour Management
         if (controllerName.StartsWith("Labour", StringComparison.OrdinalIgnoreCase)) return new[] { "10. Labour - Workers, Attendance & Daily Wages (Module 10)" };
 
-        // 11. Finance, Bank Accounts & Reports (Module 11)
-        if (controllerName.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase) ||
-            controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
+        // 11. Finance & Bank Accounts (Module 11)
+        if (controllerName.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { "11. Finance, Bank Accounts & Reports (Module 11)" };
+            return new[] { "11. Finance & Bank Accounts (Module 11)" };
+        }
+
+        // 19. Reports Module (Module 19)
+        if (controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
+        {
+            var relPath = apiDesc.RelativePath ?? string.Empty;
+            if (relPath.Contains("/financial/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Financial (Module 19)" };
+            if (relPath.Contains("/agriculture/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Agriculture (Module 19)" };
+            if (relPath.Contains("/inventory/", StringComparison.OrdinalIgnoreCase))
+                return new[] { "19. Reports - Inventory (Module 19)" };
+            return new[] { "19. Reports - Catalog, Core & CSV Export (Module 19)" };
         }
 
         // 13. Machinery & Equipment (Module 13)
@@ -616,6 +640,25 @@ using (var scope = app.Services.CreateScope())
 // -----------------------------------------------------------------------------
 app.UseForwardedHeaders();
 
+// Resilient Global Exception Handler: returns clean JSON instead of dropping TCP socket (prevents ngrok 502 Bad Gateway)
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var ex = exceptionHandlerPathFeature?.Error;
+        var response = new
+        {
+            status = 500,
+            title = "Internal Server Error",
+            message = ex?.Message ?? "An unexpected server error occurred."
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
+
 app.UseCors("AllowAll");
 
 // Cache-busting middleware for Swagger
@@ -655,6 +698,7 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/suppliers/swagger.json", "15. Supplier Management (Module 15)");
     c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management (Module 16)");
     c.SwaggerEndpoint("/swagger/payments-receipts/swagger.json", "17. Payment & Receipt Management (Module 17)");
+    c.SwaggerEndpoint("/swagger/reports/swagger.json", "19. Reports Module - Financial, Agriculture & Inventory (Module 19)");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";
