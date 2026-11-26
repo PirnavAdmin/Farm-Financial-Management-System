@@ -302,7 +302,9 @@ function writeStorage(key, data) {
 
 // ─── 3. FORMATTING & NORMALIZATION HELPERS ───────────────────────────────────
 export function formatCurrency(amount) {
-  const num = Number(amount) || 0;
+  if (amount === undefined || amount === null || amount === '') return '₹0';
+  const clean = typeof amount === 'number' ? amount : Number(String(amount).replace(/[^\d.-]/g, ''));
+  const num = Number.isFinite(clean) ? clean : 0;
   return '₹' + num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 }
 

@@ -96,6 +96,7 @@
   display: grid;
   place-items: center;
   font-size: 18px;
+  font-weight: 700;
   flex-shrink: 0;
 }
 

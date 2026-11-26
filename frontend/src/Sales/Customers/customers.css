@@ -32,6 +32,7 @@
   width: 36px;
   height: 36px;
   font-size: 16px;
+  font-weight: 700;
 }
 
 .customers-page-container .sales-stat-info small {
@@ -59,33 +60,61 @@
   width: 280px;
 }
 
-/* Eliminate horizontal scrollbar: fit 100% in panel */
+/* Fit table cleanly in panel with responsive scroll fallback */
 .customers-page-container .customers-table-wrap {
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .customers-page-container .customers-table {
   width: 100%;
+  min-width: 960px;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
 .customers-page-container .customers-table th {
-  padding: 9px 8px;
+  padding: 9px 10px;
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
 }
 
 .customers-page-container .customers-table td {
-  padding: 8px 8px;
+  padding: 9px 10px;
   font-size: 11.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
+  text-align: left;
+}
+
+/* Actions Header & Cell: Clearly visible, never cut off or truncated */
+.customers-page-container .customers-table th.actions-col,
+.customers-page-container .customers-table th:last-child {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  padding: 9px 4px !important;
+}
+
+.customers-page-container .customers-table td.actions-col,
+.customers-page-container .customers-table td:last-child {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  text-align: center !important;
+  padding: 8px 4px !important;
+}
+
+/* Opening balance alignment */
+.customers-page-container .customers-table th.opening-balance-col,
+.customers-page-container .customers-table td.opening-balance-col {
+  text-align: left !important;
+  padding-left: 10px !important;
 }
 
 .customers-page-container .customers-table td .sales-code-badge {

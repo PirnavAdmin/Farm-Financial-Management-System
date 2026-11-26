@@ -627,8 +627,8 @@ export default function Sales({ onNavigate }) {
                       <td>{sale.unit}</td>
                       <td>{formatCurrency(sale.rate)}</td>
                       <td>{formatCurrency(sale.grossAmount)}</td>
-                      <td>{Number(sale.commission) ? formatCurrency(sale.commission) : '₹0'}</td>
-                      <td>{Number(sale.transport) ? formatCurrency(sale.transport) : '₹0'}</td>
+                      <td>{formatCurrency(sale.commission || 0)}</td>
+                      <td>{formatCurrency(sale.transport || 0)}</td>
                       <td className="sales-bold-amount">{formatCurrency(sale.netAmount)}</td>
                       <td>
                         <span

@@ -331,14 +331,14 @@ export default function Customers({ onNavigate }) {
           <table className="sales-table customers-table">
             <thead>
               <tr>
-                <th style={{ width: '10%' }}>BUYER CODE</th>
+                <th style={{ width: '8%' }}>BUYER CODE</th>
                 <th style={{ width: '16%' }}>BUYER NAME</th>
-                <th style={{ width: '11%' }}>MOBILE</th>
-                <th style={{ width: '20%' }}>ADDRESS</th>
-                <th style={{ width: '16%' }}>BUSINESS NAME</th>
-                <th style={{ width: '12%' }}>GSTIN</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>OPENING BALANCE</th>
-                <th style={{ width: '4%', textAlign: 'center' }}>ACTIONS</th>
+                <th style={{ width: '10%' }}>MOBILE</th>
+                <th style={{ width: '22%' }}>ADDRESS</th>
+                <th style={{ width: '15%' }}>BUSINESS NAME</th>
+                <th style={{ width: '11%' }}>GSTIN</th>
+                <th style={{ width: '10%' }} className="opening-balance-col">OPENING BALANCE</th>
+                <th style={{ width: '8%', textAlign: 'center' }} className="actions-col">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -384,8 +384,8 @@ export default function Customers({ onNavigate }) {
                         '—'
                       )}
                     </td>
-                    <td className="sales-bold-amount" style={{ textAlign: 'right' }}>{formatCurrency(buyer.openingBalance || 0)}</td>
-                    <td>
+                    <td className="sales-bold-amount opening-balance-col">{formatCurrency(buyer.openingBalance || 0)}</td>
+                    <td className="actions-col">
                       <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
                         <TableActionMenu
                           items={[

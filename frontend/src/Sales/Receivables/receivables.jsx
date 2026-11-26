@@ -1,5 +1,5 @@
 import TableActionMenu from '../../TableActionMenu';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import salesService, { formatCurrency, formatDate } from '../../services/salesService';
 import './receivables.css';
 
@@ -21,6 +21,33 @@ export default function Receivables({ onNavigate }) {
   const [modeFilter, setModeFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('');
 
+  // Unified Filters Dropdown State
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!isFilterOpen) return undefined;
+    const handleOutsideClick = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  }, [isFilterOpen]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (buyerFilter !== 'All') count++;
+    if (activeTab === 'receivables') {
+      if (statusFilter !== 'All') count++;
+    } else {
+      if (modeFilter !== 'All') count++;
+      if (dateFilter) count++;
+    }
+    return count;
+  }, [buyerFilter, statusFilter, modeFilter, dateFilter, activeTab]);
+
   // Pagination
   const [page, setPage] = useState(1);
   const pageSize = 8;
@@ -31,20 +58,23 @@ export default function Receivables({ onNavigate }) {
   const [viewSale, setViewSale] = useState(null); // null | sale object
   const [deleteConfirm, setDeleteConfirm] = useState(null); // null | payment object
 
-  // Form matching EXACT screen fields:
-  // 1. Buyer, 2. Sales Number, 3. Sales Date, 4. Total Sales Amount, 5. Amount Received, 6. Outstanding Amount, 7. Payment Status
+  // Form matching EXACT screen fields dynamically for both tabs
   const initialForm = {
+    // Payment History Records screen fields:
+    paymentNo: '',
+    paymentDate: new Date().toISOString().slice(0, 10),
     buyer: '',
     salesNo: '',
+    paymentAmount: '',
+    paymentMode: 'Bank',
+    referenceNo: '',
+    remarks: '',
+    // Receivables & Outstanding Balances screen fields:
     salesDate: new Date().toISOString().slice(0, 10),
     totalSalesAmount: '',
     amountReceived: '',
     outstandingAmount: 0,
-    paymentStatus: 'Pending',
-    // Optional payment ledger details
-    paymentMode: 'Bank',
-    referenceNo: '',
-    remarks: ''
+    paymentStatus: 'Pending'
   };
   const [formData, setFormData] = useState(initialForm);
   const [formErrors, setFormErrors] = useState({});
@@ -162,52 +192,107 @@ export default function Receivables({ onNavigate }) {
   const currentPage = Math.min(page, pageCount);
   const pageRows = currentItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Open Record Payment Modal with screen-matching fields
-  const openRecordPaymentModal = (preselectedSale = null) => {
-    const targetSale = preselectedSale || null;
-    const total = targetSale ? Number(targetSale.totalSalesAmount ?? targetSale.netAmount) || 0 : 0;
-    const received = targetSale ? Number(targetSale.amountReceived) || 0 : 0;
-    const outstanding = targetSale ? targetSale.outstandingAmount : 0;
-    const status = targetSale ? targetSale.computedStatus || 'Pending' : '';
-
-    setFormData({
-      buyer: targetSale?.buyer || '',
-      salesNo: targetSale?.salesNo || '',
-      salesDate: targetSale?.salesDate ? targetSale.salesDate.slice(0, 10) : '',
-      totalSalesAmount: total || '',
-      amountReceived: received || '',
-      outstandingAmount: outstanding || '',
-      paymentStatus: status || '',
-      paymentMode: targetSale ? 'Bank' : '',
-      referenceNo: '',
-      remarks: targetSale ? `Payment received for sale #${targetSale.salesNo}` : ''
+  // Auto-generate next Payment Voucher Number (e.g. SPAY-2026-002)
+  const generateNextPaymentNo = () => {
+    const currentYear = new Date().getFullYear();
+    const prefix = `SPAY-${currentYear}-`;
+    let maxSeq = 0;
+    payments.forEach((p) => {
+      if (p.paymentNo && p.paymentNo.startsWith(prefix)) {
+        const num = parseInt(p.paymentNo.replace(prefix, ''), 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
     });
-    setFormErrors({});
-    setPaymentModal({ targetSale });
+    return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
   };
 
-  // When Sales Number changes in modal, auto-fill all 7 screen fields
+  // Available sales filtered for buyer or all receivables
+  const availableSalesForBuyer = useMemo(() => {
+    if (!formData.buyer) return receivables;
+    const filtered = receivables.filter((r) => r.buyer === formData.buyer);
+    return filtered.length > 0 ? filtered : receivables;
+  }, [receivables, formData.buyer]);
+
+  // Open Record Payment Modal with screen-matching fields for the active tab
+  const openRecordPaymentModal = (preselectedSale = null) => {
+    const targetSale = preselectedSale || null;
+    const isPaymentTab = activeTab === 'payments';
+
+    if (isPaymentTab) {
+      const defaultPaymentNo = generateNextPaymentNo();
+      const defaultAmount = targetSale
+        ? (Number(targetSale.outstandingAmount) || Number(targetSale.totalSalesAmount) || '')
+        : '';
+
+      setFormData({
+        paymentNo: defaultPaymentNo,
+        paymentDate: new Date().toISOString().slice(0, 10),
+        buyer: targetSale?.buyer || '',
+        salesNo: targetSale?.salesNo || '',
+        paymentAmount: defaultAmount,
+        paymentMode: 'Bank',
+        referenceNo: '',
+        remarks: targetSale?.salesNo ? `Payment received for sale #${targetSale.salesNo}` : ''
+      });
+    } else {
+      const total = targetSale ? Number(targetSale.totalSalesAmount ?? targetSale.netAmount) || 0 : 0;
+      const received = targetSale ? Number(targetSale.amountReceived) || 0 : 0;
+      const outstanding = targetSale ? targetSale.outstandingAmount : 0;
+      const status = targetSale ? targetSale.computedStatus || 'Pending' : 'Pending';
+
+      setFormData({
+        buyer: targetSale?.buyer || '',
+        salesNo: targetSale?.salesNo || '',
+        salesDate: targetSale?.salesDate ? targetSale.salesDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        totalSalesAmount: total || '',
+        amountReceived: received || '',
+        outstandingAmount: outstanding || 0,
+        paymentStatus: status || 'Pending'
+      });
+    }
+
+    setFormErrors({});
+    setPaymentModal({ targetSale, tab: activeTab });
+  };
+
+  // When Reference Sales Number changes in modal
   const handleSaleSelect = (e) => {
     const selectedSalesNo = e.target.value;
     const selected = receivables.find((r) => r.salesNo === selectedSalesNo);
-    if (selected) {
-      const total = Number(selected.totalSalesAmount ?? selected.netAmount) || 0;
-      const received = Number(selected.amountReceived) || 0;
-      const outstanding = Math.max(0, Math.round((total - received) * 100) / 100);
-
-      setFormData((prev) => ({
-        ...prev,
-        salesNo: selectedSalesNo,
-        buyer: selected.buyer || prev.buyer,
-        salesDate: (selected.salesDate || '').slice(0, 10) || prev.salesDate,
-        totalSalesAmount: total,
-        amountReceived: received,
-        outstandingAmount: outstanding,
-        paymentStatus: selected.computedStatus || (outstanding === 0 ? 'Paid' : received > 0 ? 'Partially Paid' : 'Pending'),
-        remarks: `Payment received for sale #${selectedSalesNo}`
-      }));
+    if (activeTab === 'payments') {
+      if (selected) {
+        const balance = Number(selected.outstandingAmount) || 0;
+        setFormData((prev) => ({
+          ...prev,
+          salesNo: selectedSalesNo,
+          buyer: selected.buyer || prev.buyer,
+          paymentAmount: balance > 0 ? balance : Number(selected.totalSalesAmount) || prev.paymentAmount,
+          remarks: `Payment for sale #${selectedSalesNo}`
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, salesNo: selectedSalesNo }));
+      }
     } else {
-      setFormData((prev) => ({ ...prev, salesNo: selectedSalesNo }));
+      if (selected) {
+        const total = Number(selected.totalSalesAmount ?? selected.netAmount) || 0;
+        const received = Number(selected.amountReceived) || 0;
+        const outstanding = Math.max(0, Math.round((total - received) * 100) / 100);
+
+        setFormData((prev) => ({
+          ...prev,
+          salesNo: selectedSalesNo,
+          buyer: selected.buyer || prev.buyer,
+          salesDate: (selected.salesDate || '').slice(0, 10) || prev.salesDate,
+          totalSalesAmount: total,
+          amountReceived: received,
+          outstandingAmount: outstanding,
+          paymentStatus: selected.computedStatus || (outstanding === 0 ? 'Paid' : received > 0 ? 'Partially Paid' : 'Pending')
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, salesNo: selectedSalesNo }));
+      }
     }
     if (formErrors.salesNo) setFormErrors((prev) => ({ ...prev, salesNo: '' }));
   };
@@ -216,23 +301,39 @@ export default function Receivables({ onNavigate }) {
   const handleBuyerSelect = (e) => {
     const selectedBuyer = e.target.value;
     const matchingSale = receivables.find((r) => r.buyer === selectedBuyer);
-    if (matchingSale) {
-      const total = Number(matchingSale.totalSalesAmount ?? matchingSale.netAmount) || 0;
-      const received = Number(matchingSale.amountReceived) || 0;
-      const outstanding = Math.max(0, Math.round((total - received) * 100) / 100);
-      setFormData((prev) => ({
-        ...prev,
-        buyer: selectedBuyer,
-        salesNo: matchingSale.salesNo,
-        salesDate: (matchingSale.salesDate || '').slice(0, 10),
-        totalSalesAmount: total,
-        amountReceived: received,
-        outstandingAmount: outstanding,
-        paymentStatus: matchingSale.computedStatus
-      }));
+    if (activeTab === 'payments') {
+      if (matchingSale) {
+        const balance = Number(matchingSale.outstandingAmount) || 0;
+        setFormData((prev) => ({
+          ...prev,
+          buyer: selectedBuyer,
+          salesNo: matchingSale.salesNo,
+          paymentAmount: balance > 0 ? balance : Number(matchingSale.totalSalesAmount) || prev.paymentAmount,
+          remarks: `Payment for sale #${matchingSale.salesNo}`
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, buyer: selectedBuyer }));
+      }
     } else {
-      setFormData((prev) => ({ ...prev, buyer: selectedBuyer }));
+      if (matchingSale) {
+        const total = Number(matchingSale.totalSalesAmount ?? matchingSale.netAmount) || 0;
+        const received = Number(matchingSale.amountReceived) || 0;
+        const outstanding = Math.max(0, Math.round((total - received) * 100) / 100);
+        setFormData((prev) => ({
+          ...prev,
+          buyer: selectedBuyer,
+          salesNo: matchingSale.salesNo,
+          salesDate: (matchingSale.salesDate || '').slice(0, 10),
+          totalSalesAmount: total,
+          amountReceived: received,
+          outstandingAmount: outstanding,
+          paymentStatus: matchingSale.computedStatus
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, buyer: selectedBuyer }));
+      }
     }
+    if (formErrors.buyer) setFormErrors((prev) => ({ ...prev, buyer: '' }));
   };
 
   // Re-calculate Outstanding Amount and Payment Status dynamically when amounts change
@@ -292,16 +393,24 @@ export default function Receivables({ onNavigate }) {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.buyer?.trim()) errors.buyer = 'Buyer is required.';
-    if (!formData.salesNo?.trim()) errors.salesNo = 'Sales Number is required.';
-    if (!formData.salesDate) errors.salesDate = 'Sales Date is required.';
+    if (activeTab === 'payments') {
+      if (!formData.paymentDate) errors.paymentDate = 'Payment Date is required.';
+      if (!formData.buyer?.trim()) errors.buyer = 'Buyer is required.';
+      if (!formData.salesNo?.trim()) errors.salesNo = 'Reference Sales Number is required.';
+      const amt = parseFloat(formData.paymentAmount);
+      if (isNaN(amt) || amt <= 0) errors.paymentAmount = 'Enter a valid payment amount greater than 0.';
+      if (!formData.paymentMode?.trim()) errors.paymentMode = 'Payment Mode is required.';
+    } else {
+      if (!formData.buyer?.trim()) errors.buyer = 'Buyer is required.';
+      if (!formData.salesNo?.trim()) errors.salesNo = 'Sales Number is required.';
+      if (!formData.salesDate) errors.salesDate = 'Sales Date is required.';
 
-    const total = parseFloat(formData.totalSalesAmount);
-    if (isNaN(total) || total < 0) errors.totalSalesAmount = 'Enter a valid Total Sales Amount.';
+      const total = parseFloat(formData.totalSalesAmount);
+      if (isNaN(total) || total < 0) errors.totalSalesAmount = 'Enter a valid Total Sales Amount.';
 
-    const rec = parseFloat(formData.amountReceived);
-    if (isNaN(rec) || rec < 0) errors.amountReceived = 'Enter a valid Amount Received.';
-
+      const rec = parseFloat(formData.amountReceived);
+      if (isNaN(rec) || rec < 0) errors.amountReceived = 'Enter a valid Amount Received.';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -312,12 +421,27 @@ export default function Receivables({ onNavigate }) {
 
     setSaving(true);
     try {
-      await salesService.updateReceivable(formData);
-      setToast(`Receivables & payment for ${formData.salesNo} updated.`);
+      if (activeTab === 'payments') {
+        const finalPaymentNo = formData.paymentNo?.trim() || generateNextPaymentNo();
+        await salesService.recordPayment({
+          paymentNo: finalPaymentNo,
+          paymentDate: formData.paymentDate,
+          buyer: formData.buyer,
+          salesNo: formData.salesNo,
+          paymentAmount: parseFloat(formData.paymentAmount),
+          paymentMode: formData.paymentMode || 'Bank',
+          referenceNo: formData.referenceNo?.trim() || null,
+          remarks: formData.remarks?.trim() || null
+        });
+        setToast(`Payment voucher #${finalPaymentNo} recorded successfully.`);
+      } else {
+        await salesService.updateReceivable(formData);
+        setToast(`Receivables & payment for ${formData.salesNo} updated.`);
+      }
       setPaymentModal(null);
       await loadData();
     } catch (err) {
-      setToast(err.friendlyMessage || err.message || 'Failed to save payment & receivable details.');
+      setToast(err.friendlyMessage || err.message || 'Failed to save details.');
     } finally {
       setSaving(false);
     }
@@ -455,54 +579,128 @@ export default function Receivables({ onNavigate }) {
           </div>
 
           <div className="sales-toolbar-filters">
-            <select
-              value={buyerFilter}
-              onChange={(e) => setBuyerFilter(e.target.value)}
-              title="Filter by Buyer"
-            >
-              <option value="All">All Buyers</option>
-              {buyers.map((b) => (
-                <option key={b.id || b.buyerCode} value={b.buyerName}>
-                  {b.buyerName}
-                </option>
-              ))}
-            </select>
-
-            {activeTab === 'receivables' ? (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                title="Filter by payment status"
+            {/* Unified "Filters" Dropdown Button */}
+            <div className="sales-filters-dropdown-wrap" ref={filterDropdownRef}>
+              <button
+                type="button"
+                className={`sales-filters-btn ${isFilterOpen ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-active' : ''}`}
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+                title={activeTab === 'receivables' ? 'Filter by Buyer and Payment Status' : 'Filter by Buyer, Payment Mode and Payment Date'}
+                aria-haspopup="true"
+                aria-expanded={isFilterOpen}
               >
-                <option value="All">All Payment Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Partially Paid">Partially Paid</option>
-                <option value="Paid">Paid</option>
-              </select>
-            ) : (
-              <>
-                <select
-                  value={modeFilter}
-                  onChange={(e) => setModeFilter(e.target.value)}
-                  title="Filter by payment mode"
+                <span>Filters</span>
+                {activeFiltersCount > 0 && (
+                  <span className="sales-filters-count-badge">{activeFiltersCount}</span>
+                )}
+                <svg
+                  className={`sales-filters-chevron ${isFilterOpen ? 'rotated' : ''}`}
+                  width="10"
+                  height="10"
+                  viewBox="0 0 12 12"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <option value="All">All Payment Modes</option>
-                  <option value="Bank">Bank Transfer</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Cash">Cash</option>
-                </select>
+                  <path d="M2.4 4.5h7.2a.5.5 0 0 1 .38.83l-3.6 4.1a.5.5 0 0 1-.76 0l-3.6-4.1a.5.5 0 0 1 .38-.83z" />
+                </svg>
+              </button>
 
-                <div className="sales-date-filter-group">
-                  <span>Date:</span>
-                  <input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    title="Filter by payment date"
-                  />
+              {isFilterOpen && (
+                <div className="sales-filters-dropdown-menu">
+                  <div className="sales-filters-dropdown-header">
+                    <div className="sales-filters-header-title">
+                      <span>Filters</span>
+                    </div>
+                    {activeFiltersCount > 0 && (
+                      <button
+                        type="button"
+                        className="sales-filters-clear-btn"
+                        onClick={() => {
+                          setBuyerFilter('All');
+                          setStatusFilter('All');
+                          setModeFilter('All');
+                          setDateFilter('');
+                        }}
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="sales-filters-dropdown-body">
+                    {/* Option 1: Buyer */}
+                    <div className="sales-filter-group">
+                      <label className="sales-filter-group-label">Buyer</label>
+                      <select
+                        value={buyerFilter}
+                        onChange={(e) => setBuyerFilter(e.target.value)}
+                        title="Filter by Buyer"
+                      >
+                        <option value="All">All Buyers</option>
+                        {buyers.map((b) => (
+                          <option key={b.id || b.buyerCode} value={b.buyerName}>
+                            {b.buyerName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Option 2: Payment Status */}
+                    {activeTab === 'receivables' ? (
+                      <div className="sales-filter-group">
+                        <label className="sales-filter-group-label">Payment Status</label>
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          title="Filter by payment status"
+                        >
+                          <option value="All">All Payment Statuses</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Partially Paid">Partially Paid</option>
+                          <option value="Paid">Paid</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="sales-filter-group">
+                          <label className="sales-filter-group-label">Payment Mode</label>
+                          <select
+                            value={modeFilter}
+                            onChange={(e) => setModeFilter(e.target.value)}
+                            title="Filter by payment mode"
+                          >
+                            <option value="All">All Payment Modes</option>
+                            <option value="Bank">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cash">Cash</option>
+                          </select>
+                        </div>
+
+                        <div className="sales-filter-group">
+                          <label className="sales-filter-group-label">Payment Date</label>
+                          <input
+                            type="date"
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            title="Filter by payment date"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="sales-filters-dropdown-footer">
+                    <button
+                      type="button"
+                      className="sales-filters-apply-action"
+                      onClick={() => setIsFilterOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -738,210 +936,329 @@ export default function Receivables({ onNavigate }) {
         </div>
       </section>
 
-      {/* RECORD PAYMENT MODAL — EXACT SCREEN FIELDS */}
+      {/* RECORD PAYMENT / RECEIVABLE MODAL — EXACT SCREEN FIELDS */}
       {paymentModal && (
         <div
           className="dialog-backdrop"
           onMouseDown={(e) => e.target === e.currentTarget && setPaymentModal(null)}
         >
           <form className="user-modal sales-modal-large" style={{ maxWidth: '620px' }} onSubmit={handleSavePayment}>
-            <header className="modal-header">
-              <div>
-                <span>SALES / RECORD PAYMENT</span>
-                <h2>Record Payment & Receivable Details</h2>
-                <p>Fields match the screen columns: Buyer, Sales No, Date, Amounts, and Status.</p>
-              </div>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setPaymentModal(null)}
-              >
-                ×
-              </button>
-            </header>
+            {activeTab === 'payments' ? (
+              /* TAB 2: EXACT PAYMENT HISTORY RECORDS SCREEN COLUMNS ONLY */
+              <>
+                <header className="modal-header">
+                  <div>
+                    <span>SALES / RECORD PAYMENT</span>
+                    <h2>Record Payment</h2>
+                    <p>Fields match the screen columns: Payment Number, Payment Date, Buyer, Reference Sales No, Payment Amount, Payment Mode, Reference No, Remarks.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="modal-close"
+                    onClick={() => setPaymentModal(null)}
+                  >
+                    ×
+                  </button>
+                </header>
 
-            <div className="modal-body" style={{ padding: 0 }}>
-              <div className="sales-form-section">
-                {/* 1. Buyer & 2. Sales Number */}
-                <div className="sales-form-grid-2">
-                  <label>
-                    Buyer *
-                    <select
-                      name="buyer"
-                      value={formData.buyer}
-                      onChange={handleBuyerSelect}
-                      required
-                    >
-                      <option value="">Select Buyer</option>
-                      {buyers.map((b) => (
-                        <option key={b.id || b.buyerCode} value={b.buyerName}>
-                          {b.buyerName} ({b.buyerCode})
-                        </option>
-                      ))}
-                    </select>
-                    {formErrors.buyer && <small className="field-error">{formErrors.buyer}</small>}
-                  </label>
+                <div className="modal-body" style={{ padding: 0 }}>
+                  <div className="sales-form-section">
+                    {/* 1. Payment Number & 2. Payment Date */}
+                    <div className="sales-form-grid-2">
+                      <label>
+                        Payment Number
+                        <input
+                          type="text"
+                          name="paymentNo"
+                          value={formData.paymentNo || ''}
+                          onChange={handleFormChange}
+                          placeholder="e.g. SPAY-2026-002"
+                        />
+                      </label>
 
-                  <label>
-                    Sales Number *
-                    <select
-                      name="salesNo"
-                      value={formData.salesNo}
-                      onChange={handleSaleSelect}
-                      required
-                    >
-                      <option value="">Select Sales Number</option>
-                      {receivables.map((r) => (
-                        <option key={r.salesNo} value={r.salesNo}>
-                          {r.salesNo} — {r.buyer} ({formatCurrency(r.totalSalesAmount)})
-                        </option>
-                      ))}
-                    </select>
-                    {formErrors.salesNo && <small className="field-error">{formErrors.salesNo}</small>}
-                  </label>
+                      <label>
+                        Payment Date *
+                        <input
+                          type="date"
+                          name="paymentDate"
+                          value={formData.paymentDate || ''}
+                          onChange={handleFormChange}
+                          required
+                        />
+                        {formErrors.paymentDate && <small className="field-error">{formErrors.paymentDate}</small>}
+                      </label>
+                    </div>
+
+                    {/* 3. Buyer & 4. Reference Sales No */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Buyer *
+                        <select
+                          name="buyer"
+                          value={formData.buyer || ''}
+                          onChange={handleBuyerSelect}
+                          required
+                        >
+                          <option value="">Select Buyer</option>
+                          {buyers.map((b) => (
+                            <option key={b.id || b.buyerCode} value={b.buyerName}>
+                              {b.buyerName} ({b.buyerCode})
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.buyer && <small className="field-error">{formErrors.buyer}</small>}
+                      </label>
+
+                      <label>
+                        Reference Sales No *
+                        <select
+                          name="salesNo"
+                          value={formData.salesNo || ''}
+                          onChange={handleSaleSelect}
+                          required
+                        >
+                          <option value="">Select Reference Sales No</option>
+                          {availableSalesForBuyer.map((r) => (
+                            <option key={r.salesNo} value={r.salesNo}>
+                              {r.salesNo} — {r.buyer} ({formatCurrency(r.outstandingAmount > 0 ? r.outstandingAmount : r.totalSalesAmount)})
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.salesNo && <small className="field-error">{formErrors.salesNo}</small>}
+                      </label>
+                    </div>
+
+                    {/* 5. Payment Amount & 6. Payment Mode */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Payment Amount (₹) *
+                        <input
+                          type="number"
+                          name="paymentAmount"
+                          step="any"
+                          min="0.01"
+                          placeholder="Enter payment amount"
+                          value={formData.paymentAmount ?? ''}
+                          onChange={handleFormChange}
+                          required
+                        />
+                        {formErrors.paymentAmount && <small className="field-error">{formErrors.paymentAmount}</small>}
+                      </label>
+
+                      <label>
+                        Payment Mode *
+                        <select
+                          name="paymentMode"
+                          value={formData.paymentMode || 'Bank'}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          <option value="Bank">Bank Transfer</option>
+                          <option value="UPI">UPI</option>
+                          <option value="Cash">Cash</option>
+                        </select>
+                        {formErrors.paymentMode && <small className="field-error">{formErrors.paymentMode}</small>}
+                      </label>
+                    </div>
+
+                    {/* 7. Reference No & 8. Remarks */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Reference No
+                        <input
+                          type="text"
+                          name="referenceNo"
+                          placeholder="UTR / Cheque No"
+                          value={formData.referenceNo || ''}
+                          onChange={handleFormChange}
+                        />
+                      </label>
+
+                      <label>
+                        Remarks
+                        <input
+                          type="text"
+                          name="remarks"
+                          placeholder="Payment remarks"
+                          value={formData.remarks || ''}
+                          onChange={handleFormChange}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 3. Sales Date & 4. Total Sales Amount */}
-                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
-                  <label>
-                    Sales Date *
-                    <input
-                      type="date"
-                      name="salesDate"
-                      value={formData.salesDate}
-                      onChange={handleFormChange}
-                      required
-                    />
-                    {formErrors.salesDate && <small className="field-error">{formErrors.salesDate}</small>}
-                  </label>
+                <footer className="modal-footer">
+                  <span style={{ fontSize: '13px', color: '#475569', fontWeight: 600 }}>
+                    {formData.paymentAmount ? `Payment Amount: ${formatCurrency(formData.paymentAmount)}` : ''}
+                  </span>
+                  <div>
+                    <button type="button" onClick={() => setPaymentModal(null)}>
+                      Cancel
+                    </button>
+                    <button className="save-button" type="submit" disabled={saving}>
+                      {saving ? 'Saving...' : 'Record Payment'}
+                    </button>
+                  </div>
+                </footer>
+              </>
+            ) : (
+              /* TAB 1: EXACT RECEIVABLES SCREEN COLUMNS ONLY */
+              <>
+                <header className="modal-header">
+                  <div>
+                    <span>SALES / RECORD PAYMENT</span>
+                    <h2>Record Payment & Receivable Details</h2>
+                    <p>Fields match the screen columns: Buyer, Sales No, Sales Date, Amounts, and Status.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="modal-close"
+                    onClick={() => setPaymentModal(null)}
+                  >
+                    ×
+                  </button>
+                </header>
 
-                  <label>
-                    Total Sales Amount (₹) *
-                    <input
-                      type="number"
-                      name="totalSalesAmount"
-                      step="any"
-                      min="0"
-                      placeholder="e.g. 220000"
-                      value={formData.totalSalesAmount}
-                      onChange={handleTotalSalesAmountChange}
-                      required
-                    />
-                    {formErrors.totalSalesAmount && <small className="field-error">{formErrors.totalSalesAmount}</small>}
-                  </label>
+                <div className="modal-body" style={{ padding: 0 }}>
+                  <div className="sales-form-section">
+                    {/* 1. Buyer & 2. Sales Number */}
+                    <div className="sales-form-grid-2">
+                      <label>
+                        Buyer *
+                        <select
+                          name="buyer"
+                          value={formData.buyer || ''}
+                          onChange={handleBuyerSelect}
+                          required
+                        >
+                          <option value="">Select Buyer</option>
+                          {buyers.map((b) => (
+                            <option key={b.id || b.buyerCode} value={b.buyerName}>
+                              {b.buyerName} ({b.buyerCode})
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.buyer && <small className="field-error">{formErrors.buyer}</small>}
+                      </label>
+
+                      <label>
+                        Sales Number *
+                        <select
+                          name="salesNo"
+                          value={formData.salesNo || ''}
+                          onChange={handleSaleSelect}
+                          required
+                        >
+                          <option value="">Select Sales Number</option>
+                          {receivables.map((r) => (
+                            <option key={r.salesNo} value={r.salesNo}>
+                              {r.salesNo} — {r.buyer} ({formatCurrency(r.totalSalesAmount)})
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.salesNo && <small className="field-error">{formErrors.salesNo}</small>}
+                      </label>
+                    </div>
+
+                    {/* 3. Sales Date & 4. Total Sales Amount */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Sales Date *
+                        <input
+                          type="date"
+                          name="salesDate"
+                          value={formData.salesDate || ''}
+                          onChange={handleFormChange}
+                          required
+                        />
+                        {formErrors.salesDate && <small className="field-error">{formErrors.salesDate}</small>}
+                      </label>
+
+                      <label>
+                        Total Sales Amount (₹) *
+                        <input
+                          type="number"
+                          name="totalSalesAmount"
+                          step="any"
+                          min="0"
+                          placeholder="e.g. 220000"
+                          value={formData.totalSalesAmount ?? ''}
+                          onChange={handleTotalSalesAmountChange}
+                          required
+                        />
+                        {formErrors.totalSalesAmount && <small className="field-error">{formErrors.totalSalesAmount}</small>}
+                      </label>
+                    </div>
+
+                    {/* 5. Amount Received & 6. Outstanding Amount */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Amount Received (₹) *
+                        <input
+                          type="number"
+                          name="amountReceived"
+                          step="any"
+                          min="0"
+                          placeholder="Enter amount received"
+                          value={formData.amountReceived ?? ''}
+                          onChange={handleAmountReceivedChange}
+                          required
+                        />
+                        {formErrors.amountReceived && <small className="field-error">{formErrors.amountReceived}</small>}
+                      </label>
+
+                      <label>
+                        Outstanding Amount (₹)
+                        <input
+                          type="number"
+                          name="outstandingAmount"
+                          value={formData.outstandingAmount ?? ''}
+                          readOnly
+                          style={{
+                            background: '#f8fafc',
+                            fontWeight: 750,
+                            color: Number(formData.outstandingAmount) > 0 ? '#b91c1c' : '#15803d'
+                          }}
+                          title="Auto-calculated: Total Sales Amount − Amount Received"
+                        />
+                      </label>
+                    </div>
+
+                    {/* 7. Payment Status */}
+                    <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
+                      <label>
+                        Payment Status *
+                        <select
+                          name="paymentStatus"
+                          value={formData.paymentStatus || 'Pending'}
+                          onChange={handleFormChange}
+                          required
+                        >
+                          <option value="Paid">Paid</option>
+                          <option value="Partially Paid">Partially Paid</option>
+                          <option value="Pending">Pending</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 5. Amount Received & 6. Outstanding Amount */}
-                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
-                  <label>
-                    Amount Received (₹) *
-                    <input
-                      type="number"
-                      name="amountReceived"
-                      step="any"
-                      min="0"
-                      placeholder="Enter amount received"
-                      value={formData.amountReceived}
-                      onChange={handleAmountReceivedChange}
-                      required
-                    />
-                    {formErrors.amountReceived && <small className="field-error">{formErrors.amountReceived}</small>}
-                  </label>
-
-                  <label>
-                    Outstanding Amount (₹)
-                    <input
-                      type="number"
-                      name="outstandingAmount"
-                      value={formData.outstandingAmount}
-                      readOnly
-                      style={{
-                        background: '#f8fafc',
-                        fontWeight: 750,
-                        color: Number(formData.outstandingAmount) > 0 ? '#b91c1c' : '#15803d'
-                      }}
-                      title="Auto-calculated: Total Sales Amount − Amount Received"
-                    />
-                  </label>
-                </div>
-
-                {/* 7. Payment Status */}
-                <div className="sales-form-grid-2" style={{ marginTop: '10px' }}>
-                  <label>
-                    Payment Status *
-                    <select
-                      name="paymentStatus"
-                      value={formData.paymentStatus}
-                      onChange={handleFormChange}
-                      required
-                    >
-                      <option value="">Select Payment Status</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Partially Paid">Partially Paid</option>
-                      <option value="Pending">Pending</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              {/* Optional Payment Ledger Details */}
-              <div className="sales-form-section" style={{ background: '#fafbfa' }}>
-                <div className="sales-section-title" style={{ fontSize: '11px', color: '#64748b' }}>
-                  Payment Method Details (Optional)
-                </div>
-                <div className="sales-form-grid-3">
-                  <label>
-                    Payment Mode
-                    <select
-                      name="paymentMode"
-                      value={formData.paymentMode}
-                      onChange={handleFormChange}
-                    >
-                      <option value="">Select Payment Mode</option>
-                      <option value="Bank">Bank Transfer</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Cash">Cash</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    Reference No
-                    <input
-                      type="text"
-                      name="referenceNo"
-                      placeholder="UTR / Cheque No"
-                      value={formData.referenceNo}
-                      onChange={handleFormChange}
-                    />
-                  </label>
-
-                  <label>
-                    Remarks / Notes
-                    <input
-                      type="text"
-                      name="remarks"
-                      placeholder="Notes"
-                      value={formData.remarks}
-                      onChange={handleFormChange}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <footer className="modal-footer">
-              <span>
-                Outstanding Amount = {formatCurrency(formData.totalSalesAmount || 0)} − {formatCurrency(formData.amountReceived || 0)} = {formatCurrency(formData.outstandingAmount || 0)}
-              </span>
-              <div>
-                <button type="button" onClick={() => setPaymentModal(null)}>
-                  Cancel
-                </button>
-                <button className="save-button" type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : 'Record Payment'}
-                </button>
-              </div>
-            </footer>
+                <footer className="modal-footer">
+                  <span>
+                    Outstanding Amount = {formatCurrency(formData.totalSalesAmount || 0)} − {formatCurrency(formData.amountReceived || 0)} = {formatCurrency(formData.outstandingAmount || 0)}
+                  </span>
+                  <div>
+                    <button type="button" onClick={() => setPaymentModal(null)}>
+                      Cancel
+                    </button>
+                    <button className="save-button" type="submit" disabled={saving}>
+                      {saving ? 'Saving...' : 'Record Payment'}
+                    </button>
+                  </div>
+                </footer>
+              </>
+            )}
           </form>
         </div>
       )}
