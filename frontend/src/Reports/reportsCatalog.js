@@ -33,8 +33,8 @@ export const REPORTS_CATALOG = [
     category: 'financial',
     iconName: 'TrendingUp',
     description: 'Audit day-by-day farm earnings, crop sales, and operational receipts with payment mode breakdown.',
-    endpoint: '/api/income',
-    fallbackReason: 'Connected to live /api/income. Filtered by selected date.',
+    endpoint: '/api/Reports/financial/daily-income',
+    fallbackReason: 'Connected to live /api/Reports/financial/daily-income and /api/income. Filtered by selected date.',
     defaultFilters: {
       date: new Date().toISOString().slice(0, 10),
       farm: 'All Farms',
