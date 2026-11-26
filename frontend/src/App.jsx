@@ -142,7 +142,7 @@ function App() {
       || 'User'
   })
   const [active, setActive] = useState('Dashboard')
-  const [expanded, setExpanded] = useState({ Finance: true })
+  const [expanded, setExpanded] = useState({})
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifMenu, setShowNotifMenu] = useState(false)
   const [publicRoute, setPublicRoute] = useState(() => {

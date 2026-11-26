@@ -157,15 +157,6 @@ export default function Dashboard({ onNavigate, userName }) {
           ========================================================================= */}
       <div className="financial-summary-header">
         <div className="header-left-title-group">
-          <div className="header-icon-badge" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#245438" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <ellipse cx="12" cy="7" rx="8" ry="3" />
-              <path d="M4 7v5c0 1.66 3.58 3 8 3s8-1.34 8-3V7" />
-              <path d="M4 12v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
-              <path d="M12 12V3" />
-              <path d="M12 3c3 0 4 2 4 4" />
-            </svg>
-          </div>
           <div>
             <h1 className="financial-summary-title">Financial Summary</h1>
             <p className="financial-summary-sub">A quick look at your numbers for this season</p>

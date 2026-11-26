@@ -200,9 +200,6 @@ function RentalLandDetails({ record, records, farmer, onClose, onDownloadDocumen
   const activeRentalRecords = records.filter(item => item.status === 'Active')
   const activelyLeasedAcres = activeRentalRecords
     .reduce((total, item) => total + areaInAcres(item.landArea, item.areaUnit), 0)
-  const activeTenantNames = [...new Set(activeRentalRecords
-    .map(item => String(item.tenantName || '').trim())
-    .filter(Boolean))]
   const chartLeasedAcres = Math.min(activelyLeasedAcres, totalFarmAcres)
   const farmAllocation = totalFarmAcres > 0
     ? [
@@ -402,7 +399,9 @@ function RentalLandDetails({ record, records, farmer, onClose, onDownloadDocumen
                         label={labelProps => {
                           const labelLines = [
                             `${Number(labelProps.value).toLocaleString('en-IN', { maximumFractionDigits: 2 })} acres`,
-                            ...(labelProps.name === 'Actively leased' ? activeTenantNames : []),
+                            ...(labelProps.name === 'Actively leased' && record.tenantName
+                              ? [record.tenantName]
+                              : []),
                           ]
 
                           return (
