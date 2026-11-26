@@ -887,3 +887,31 @@ html, body {
   transform: scale(1.012) translateY(6px);
   pointer-events: none;
 }
+
+/* ── Global Print Engine Overrides ────────────────────────────────────────── */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .app-shell,
+  .main-content,
+  .page-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+}

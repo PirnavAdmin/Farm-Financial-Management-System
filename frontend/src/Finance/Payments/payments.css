@@ -1175,15 +1175,16 @@
   font-size: 11px;
 }
 
-/* Print Media Override */
+/* Print Media Override — Scoped to voucher modal so it doesn't affect other pages */
 @media print {
-  body * {
+  body:has(.pay-voucher-paper) * {
     visibility: hidden;
   }
   .no-print {
     display: none !important;
   }
-  .pay-voucher-paper, .pay-voucher-paper * {
+  body:has(.pay-voucher-paper) .pay-voucher-paper,
+  body:has(.pay-voucher-paper) .pay-voucher-paper * {
     visibility: visible;
   }
   .pay-voucher-container {

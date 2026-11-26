@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Search,
   Calendar,
+  CalendarDays,
   AlertTriangle,
   Plus,
   Download,
@@ -21,8 +22,13 @@ import {
   ArrowLeft,
   Layers,
   CheckCircle2,
-  HelpCircle
-} from './MachineryIcons.jsx';
+  HelpCircle,
+  SprayCan,
+  Cog,
+  BatteryCharging,
+  Wheat,
+  EllipsisVertical
+} from 'lucide-react';
 import {
   machineryService,
   normalizeMachine,
@@ -75,6 +81,24 @@ const formatDateTime = (dateTimeStr) => {
   } catch {
     return String(dateTimeStr);
   }
+};
+
+// ─── Machinery & Fuel Lucide Icon Mappings ──────────────────────────────────
+const getMachineryIcon = (type = '') => {
+  const t = String(type).toLowerCase();
+  if (t.includes('rotavator') || t.includes('implement')) return Cog;
+  if (t.includes('sprayer')) return SprayCan;
+  if (t.includes('weeder')) return Cog;
+  if (t.includes('harvester')) return Wheat;
+  if (t.includes('tiller') || t.includes('tractor')) return Tractor;
+  return Wrench;
+};
+
+const getFuelIcon = (fuelType = '') => {
+  const f = String(fuelType).toLowerCase();
+  if (f.includes('electric') || f.includes('battery')) return BatteryCharging;
+  if (f.includes('pto')) return Settings;
+  return Fuel;
 };
 
 const getNowISO = () => new Date().toISOString().slice(0, 16);
@@ -1036,13 +1060,13 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             WORKSPACE <span>/</span> AGRICULTURE <span>/</span> MACHINERY MODULE
           </div>
           <h1 className="mch-title">
-            {currentScreen === 'hub' && 'Machinery and Equipments'}
+            {currentScreen === 'hub' && 'Machinery & Equipment'}
             {currentScreen === 'rentals' && 'Farmer Machinery Rental'}
             {currentScreen === 'expenses' && 'Machinery Expenses'}
             {currentScreen === 'details' && 'Machinery Details'}
           </h1>
           <p className="mch-subtitle">
-            {currentScreen === 'hub' && 'Manage farmer machinery rentals, operating expenses, and agricultural equipment fleet details.'}
+            {currentScreen === 'hub' && 'Manage farm machinery records, rental bookings, maintenance, and operating expenses in one place.'}
             {currentScreen === 'rentals' && 'Schedule, book, and audit farmer equipment assignments, land acreage, rates, and conflict checks.'}
             {currentScreen === 'expenses' && 'Track fuel refills, servicing, breakdown repairs, workshop bills, and machinery maintenance.'}
             {currentScreen === 'details' && 'Add, view, audit, and maintain farm equipment specifications, valuation, photos, and operational status.'}
@@ -1053,7 +1077,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           {currentScreen === 'hub' && (
             <>
               <button className="mch-btn-secondary" type="button" onClick={() => navigateTo('details')}>
-                <span>⚙</span> View Fleet ({metrics.totalMachines})
+                <Tractor size={15} style={{ marginRight: 6 }} /> View Fleet ({metrics.totalMachines})
               </button>
               <button className="mch-btn-primary" type="button" onClick={() => handleOpenAddRental()}>
                 <Plus size={15} /> Book Rental
@@ -1109,11 +1133,21 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
         </button>
 
         <button
+          className={`mch-tab-btn ${currentScreen === 'details' ? 'active' : ''}`}
+          type="button"
+          onClick={() => navigateTo('details')}
+        >
+          <Tractor size={15} style={{ marginRight: 6 }} />
+          <span>Machinery Details</span>
+          <span className="mch-tab-badge">{machineryList.length}</span>
+        </button>
+
+        <button
           className={`mch-tab-btn ${currentScreen === 'rentals' ? 'active' : ''}`}
           type="button"
           onClick={() => navigateTo('rentals')}
         >
-          <Calendar size={15} style={{ marginRight: 6 }} />
+          <CalendarDays size={15} style={{ marginRight: 6 }} />
           <span>Farmer Machinery Rental</span>
           <span className="mch-tab-badge">{rentalsList.length}</span>
         </button>
@@ -1126,16 +1160,6 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           <Receipt size={15} style={{ marginRight: 6 }} />
           <span>Machinery Expenses</span>
           <span className="mch-tab-badge">{expensesList.length}</span>
-        </button>
-
-        <button
-          className={`mch-tab-btn ${currentScreen === 'details' ? 'active' : ''}`}
-          type="button"
-          onClick={() => navigateTo('details')}
-        >
-          <Tractor size={15} style={{ marginRight: 6 }} />
-          <span>Machinery Details</span>
-          <span className="mch-tab-badge">{machineryList.length}</span>
         </button>
       </div>
 
@@ -1204,9 +1228,9 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
         <div className="mch-hub-container">
           <div className="mch-hub-intro">
             <div className="mch-hub-intro-text">
-              <h2>Select a Machinery and Equipments Option</h2>
+              <h2>Select a Machinery & Equipment Option</h2>
               <p>
-                Choose one of the three core workflows below to manage farmer equipment rental bookings, track maintenance and operating costs, or update machinery master profiles and valuation.
+                Choose one of the three core workflows below to manage machinery master records, farmer equipment rentals, and operating or maintenance expenses.
               </p>
             </div>
             <button className="mch-btn-primary" type="button" onClick={() => handleOpenAddRental()}>
@@ -1215,17 +1239,64 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
           </div>
 
           <div className="mch-hub-grid">
-            {/* OPTION 1: Farmer Machinery Rental */}
-            <div className="mch-hub-card" onClick={() => navigateTo('rentals')}>
+            {/* OPTION 1: Machinery Details */}
+            <div className="mch-hub-card" onClick={() => navigateTo('details')}>
               <div className="mch-hub-card-header">
-                <div className="mch-hub-icon-wrap rentals">
-                  <Calendar size={20} />
+                <div className="mch-hub-icon-wrap details">
+                  <Tractor size={22} />
                 </div>
                 <span className="mch-hub-badge">Option 1</span>
               </div>
+              <h3 className="mch-hub-card-title">Machinery Details</h3>
+              <p className="mch-hub-card-desc">
+                Register, view, edit, and maintain machinery master records.
+              </p>
+              <ul className="mch-hub-features">
+                <li><CheckCircle2 size={13} /> Complete machinery master directory & specs</li>
+                <li><CheckCircle2 size={13} /> Status tracking: Available, Rented, Under Repair</li>
+                <li><CheckCircle2 size={13} /> Purchase cost & book valuation tracking</li>
+                <li><CheckCircle2 size={13} /> Multi-photo galleries and service history</li>
+              </ul>
+              <div className="mch-hub-stats-row">
+                <div className="mch-hub-stat-item">
+                  <strong>{metrics.totalMachines}</strong>
+                  <span>Total Fleet</span>
+                </div>
+                <div className="mch-hub-stat-item">
+                  <strong>{formatINR(metrics.totalAssetVal)}</strong>
+                  <span>Book Value</span>
+                </div>
+              </div>
+              <div className="mch-hub-actions" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="mch-hub-btn-open"
+                  onClick={() => navigateTo('details')}
+                >
+                  Open Details <ArrowRight size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="mch-hub-btn-quick"
+                  onClick={handleOpenAddMachine}
+                  title="Add new machine immediately"
+                >
+                  <Plus size={13} /> Add
+                </button>
+              </div>
+            </div>
+
+            {/* OPTION 2: Farmer Machinery Rental */}
+            <div className="mch-hub-card" onClick={() => navigateTo('rentals')}>
+              <div className="mch-hub-card-header">
+                <div className="mch-hub-icon-wrap rentals">
+                  <CalendarDays size={22} />
+                </div>
+                <span className="mch-hub-badge">Option 2</span>
+              </div>
               <h3 className="mch-hub-card-title">Farmer Machinery Rental</h3>
               <p className="mch-hub-card-desc">
-                Create and manage equipment assignments, rental schedules, land acreage, hourly or daily rates, and date overlap prevention.
+                Manage machinery rental bookings, schedules, assignments, and rental charges.
               </p>
               <ul className="mch-hub-features">
                 <li><CheckCircle2 size={13} /> Farmer ID, Name & Contact linkage</li>
@@ -1262,17 +1333,17 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
               </div>
             </div>
 
-            {/* OPTION 2: Machinery Expenses */}
+            {/* OPTION 3: Machinery Expenses */}
             <div className="mch-hub-card" onClick={() => navigateTo('expenses')}>
               <div className="mch-hub-card-header">
                 <div className="mch-hub-icon-wrap expenses">
-                  <Receipt size={20} />
+                  <Receipt size={22} />
                 </div>
-                <span className="mch-hub-badge">Option 2</span>
+                <span className="mch-hub-badge">Option 3</span>
               </div>
               <h3 className="mch-hub-card-title">Machinery Expenses</h3>
               <p className="mch-hub-card-desc">
-                Record and audit machine-specific operational costs, fuel refills, servicing, workshop repairs, and spare parts bills.
+                Record fuel, repair, service, maintenance, operator, and rental-related expenses.
               </p>
               <ul className="mch-hub-features">
                 <li><CheckCircle2 size={13} /> Fuel, Repair, Service, Maintenance & Other</li>
@@ -1305,53 +1376,6 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                   title="Record expense immediately"
                 >
                   <Plus size={13} /> Record
-                </button>
-              </div>
-            </div>
-
-            {/* OPTION 3: Machinery Details */}
-            <div className="mch-hub-card" onClick={() => navigateTo('details')}>
-              <div className="mch-hub-card-header">
-                <div className="mch-hub-icon-wrap details">
-                  <Tractor size={20} />
-                </div>
-                <span className="mch-hub-badge">Option 3</span>
-              </div>
-              <h3 className="mch-hub-card-title">Machinery Details</h3>
-              <p className="mch-hub-card-desc">
-                Add, view, and edit machinery master records with technical specs, fuel type, asset valuation, status, and photos.
-              </p>
-              <ul className="mch-hub-features">
-                <li><CheckCircle2 size={13} /> 20+ Agricultural equipment types + custom</li>
-                <li><CheckCircle2 size={13} /> Status: Available, Rented, Under Repair, Retired</li>
-                <li><CheckCircle2 size={13} /> Purchase cost & book valuation tracking</li>
-                <li><CheckCircle2 size={13} /> Multi-photo galleries and service history</li>
-              </ul>
-              <div className="mch-hub-stats-row">
-                <div className="mch-hub-stat-item">
-                  <strong>{metrics.totalMachines}</strong>
-                  <span>Total Fleet</span>
-                </div>
-                <div className="mch-hub-stat-item">
-                  <strong>{formatINR(metrics.totalAssetVal)}</strong>
-                  <span>Book Value</span>
-                </div>
-              </div>
-              <div className="mch-hub-actions" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  className="mch-hub-btn-open"
-                  onClick={() => navigateTo('details')}
-                >
-                  Open Details <ArrowRight size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="mch-hub-btn-quick"
-                  onClick={handleOpenAddMachine}
-                  title="Add new machine immediately"
-                >
-                  <Plus size={13} /> Add
                 </button>
               </div>
             </div>
@@ -1856,7 +1880,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
       )}
 
       {/* ──────────────────────────────────────────────────────────────────── */}
-      {/* ── SCREEN 3: MACHINERY DETAILS (FLEET DIRECTORY) ─────────────────── */}
+      {/* ── SCREEN 4: MACHINERY DETAILS (FLEET DIRECTORY) ─────────────────── */}
       {/* ──────────────────────────────────────────────────────────────────── */}
       {currentScreen === 'details' && (
         <section className="mch-panel">
@@ -1866,7 +1890,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
               <input
                 type="text"
                 className="mch-search-input"
-                placeholder="Search machinery by name, registration number, type, model..."
+                placeholder="Search Machinery by name, registration number, code..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1874,7 +1898,7 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                 }}
               />
               {searchQuery && (
-                <button type="button" className="mch-search-clear" onClick={() => setSearchQuery('')}>
+                <button type="button" className="mch-search-clear" onClick={() => setSearchQuery('')} aria-label="Clear search">
                   <X size={14} />
                 </button>
               )}
@@ -1921,33 +1945,62 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
             </div>
           </div>
 
-          <div className="mch-table-responsive">
-            <table className="mch-table">
+          <div className="mch-table-wrap">
+            <table className="mch-table mch-fleet-table">
+              <colgroup>
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '280px' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '160px' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '90px' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={{ width: '110px', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSort('code')}>
-                    Code {sortColumn === 'code' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  <th
+                    className="mch-th-code"
+                    onClick={() => handleSort('code')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    title="Sort by Machine Code"
+                  >
+                    CODE {sortColumn === 'code' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                   </th>
-                  <th style={{ width: '250px', textAlign: 'left', cursor: 'pointer' }} onClick={() => handleSort('name')}>
-                    Machine Name {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  <th
+                    className="mch-th-name"
+                    onClick={() => handleSort('name')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    title="Sort by Machine Name"
+                  >
+                    MACHINE NAME {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                   </th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>Type</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>Registration No</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>Purchase Date</th>
-                  <th style={{ width: '140px', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('cost')}>
-                    Purchase Cost {sortColumn === 'cost' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  <th className="mch-th-type">TYPE</th>
+                  <th className="mch-th-reg">REGISTRATION NO</th>
+                  <th className="mch-th-date">PURCHASE DATE</th>
+                  <th
+                    className="mch-th-cost"
+                    onClick={() => handleSort('cost')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    title="Sort by Purchase Cost"
+                  >
+                    PURCHASE COST {sortColumn === 'cost' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                   </th>
-                  <th style={{ width: '140px', textAlign: 'right' }}>Current Value</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>Fuel Type</th>
-                  <th style={{ width: '140px', textAlign: 'center' }}>Status</th>
-                  <th style={{ width: '70px', textAlign: 'center' }}>Actions</th>
+                  <th className="mch-th-val">CURRENT VALUE</th>
+                  <th className="mch-th-fuel">FUEL TYPE</th>
+                  <th className="mch-th-status">STATUS</th>
+                  <th className="mch-th-actions">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingMachinery ? (
                   <tr>
-                    <td colSpan="10" style={{ textAlign: 'center', padding: '36px' }}>
-                      Loading machinery directory...
+                    <td colSpan="10" className="mch-empty-state">
+                      <div className="mch-empty-icon"><Tractor size={32} /></div>
+                      <strong>Loading machinery directory...</strong>
+                      <p>Fetching equipment fleet records...</p>
                     </td>
                   </tr>
                 ) : currentMachineryItems.length === 0 ? (
@@ -1964,91 +2017,105 @@ export default function Machinery({ initialTab = 'hub', onNavigate: _onNavigate 
                     </td>
                   </tr>
                 ) : (
-                  currentMachineryItems.map((m) => (
-                    <tr key={m.id}>
-                      {/* 1. Code */}
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="mch-code-pill">{m.machineCode}</span>
-                      </td>
+                  currentMachineryItems.map((m) => {
+                    const MachineryIcon = getMachineryIcon(m.machineType);
+                    const FuelIcon = getFuelIcon(m.fuelType);
 
-                      {/* 2. Name & Avatar */}
-                      <td style={{ textAlign: 'left' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img
-                            src={m.photos?.[0] || SAMPLE_PHOTOS.tractor}
-                            alt=""
-                            className="mch-thumb-preview"
-                            onClick={() => setLightboxImage(m.photos?.[0] || SAMPLE_PHOTOS.tractor)}
-                            title="Click to view machine photo"
-                          />
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 600, color: '#1e3325' }}>{m.machineName}</span>
-                            <span style={{ fontSize: '11px', color: '#64748b' }}>
-                              {m.manufacturer || m.modelNumber || 'Agricultural Asset'}
-                            </span>
+                    return (
+                      <tr key={m.id}>
+                        {/* 1. CODE - Center aligned */}
+                        <td className="mch-td-code">
+                          <span className="mch-code-badge">{m.machineCode}</span>
+                        </td>
+
+                        {/* 2. MACHINE NAME - Heading centered, body left-aligned with 44x44 avatar */}
+                        <td className="mch-td-name">
+                          <div className="mch-name-cell">
+                            <div className="mch-avatar">
+                              <MachineryIcon size={20} strokeWidth={1.8} />
+                            </div>
+                            <div className="mch-name-info">
+                              <strong title={m.machineName}>{m.machineName}</strong>
+                              {m.modelNumber && m.modelNumber !== m.machineName ? (
+                                <span className="mch-name-sub">{m.modelNumber}</span>
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* 3. Type */}
-                      <td style={{ textAlign: 'center', fontWeight: 500 }}>{m.machineType}</td>
+                        {/* 3. TYPE - Center aligned */}
+                        <td className="mch-td-type">
+                          <span className="mch-type-tag">{m.machineType || 'Tractor'}</span>
+                        </td>
 
-                      {/* 4. Registration No */}
-                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '12px' }}>
-                        {m.registrationNo || '—'}
-                      </td>
+                        {/* 4. REGISTRATION NO - Center aligned, clean readable font */}
+                        <td className="mch-td-reg">
+                          <span className={m.registrationNo ? 'mch-reg-text' : 'mch-unregistered'}>
+                            {m.registrationNo || '—'}
+                          </span>
+                        </td>
 
-                      {/* 5. Purchase Date */}
-                      <td style={{ textAlign: 'center', fontSize: '12px' }}>{formatDate(m.purchaseDate)}</td>
+                        {/* 5. PURCHASE DATE - Center aligned */}
+                        <td className="mch-td-date">
+                          <span>{formatDate(m.purchaseDate)}</span>
+                        </td>
 
-                      {/* 6. Purchase Cost */}
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatINR(m.purchaseCost)}</td>
+                        {/* 6. PURCHASE COST - Center aligned */}
+                        <td className="mch-td-cost">
+                          <span className="mch-amount">{formatINR(m.purchaseCost)}</span>
+                        </td>
 
-                      {/* 7. Current Value */}
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: '#166534' }}>{formatINR(m.currentValue)}</td>
+                        {/* 7. CURRENT VALUE - Center aligned */}
+                        <td className="mch-td-val">
+                          <span className="mch-amount val-amount">{formatINR(m.currentValue)}</span>
+                        </td>
 
-                      {/* 8. Fuel Type */}
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="mch-fuel-badge">
-                          <Fuel size={12} />
-                          {m.fuelType}
-                        </span>
-                      </td>
+                        {/* 8. FUEL TYPE - Center aligned with Lucide icon */}
+                        <td className="mch-td-fuel">
+                          <span className="mch-fuel-tag">
+                            <FuelIcon size={14} strokeWidth={1.8} className="mch-fuel-lucide" />
+                            <span>{m.fuelType || 'Diesel'}</span>
+                          </span>
+                        </td>
 
-                      {/* 9. Status */}
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`mch-status-pill ${m.status.toLowerCase().replace(/[^a-z]/g, '-')}`}>
-                          {m.status}
-                        </span>
-                      </td>
+                        {/* 9. STATUS - Center aligned */}
+                        <td className="mch-td-status">
+                          <span className={`mch-status-pill ${String(m.status || 'available').toLowerCase().replace(/[^a-z]/g, '-')}`}>
+                            <span className="mch-status-dot" />
+                            {m.status}
+                          </span>
+                        </td>
 
-                      {/* 10. Actions */}
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
-                          <TableActionMenu
-                            items={[
-                              {
-                                label: 'View Details',
-                                icon: 'view',
-                                onClick: () => setViewingMachine(m)
-                              },
-                              {
-                                label: 'Edit Record',
-                                icon: 'edit',
-                                onClick: () => handleOpenEditMachine(m)
-                              },
-                              {
-                                label: 'Delete Machinery',
-                                icon: 'delete',
-                                danger: true,
-                                onClick: () => setDeleteConfirm({ type: 'machine', item: m })
-                              }
-                            ]}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        {/* 10. ACTIONS - Center aligned */}
+                        <td className="mch-td-actions">
+                          <div className="mch-actions">
+                            <TableActionMenu
+                              items={[
+                                {
+                                  label: 'View Details',
+                                  icon: 'view',
+                                  onClick: () => setViewingMachine(m)
+                                },
+                                {
+                                  label: 'Edit Record',
+                                  icon: 'edit',
+                                  onClick: () => handleOpenEditMachine(m)
+                                },
+                                {
+                                  label: 'Delete Machinery',
+                                  icon: 'delete',
+                                  danger: true,
+                                  onClick: () => setDeleteConfirm({ type: 'machine', item: m })
+                                }
+                              ]}
+                            >
+                              <EllipsisVertical size={16} strokeWidth={1.8} />
+                            </TableActionMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
