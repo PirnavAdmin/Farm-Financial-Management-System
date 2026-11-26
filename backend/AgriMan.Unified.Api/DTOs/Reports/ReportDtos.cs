@@ -5,6 +5,7 @@ namespace FarmManagementApi.DTOs.Reports;
 /// </summary>
 public class ReportQueryParameters
 {
+    public DateTime? Date { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public int? Year { get; set; }
@@ -16,6 +17,7 @@ public class ReportQueryParameters
     public string? Party { get; set; }
     public string? Location { get; set; }
     public string? Status { get; set; }
+    public string? PaymentMode { get; set; }
     public string? TransactionType { get; set; }
     public int? ProductId { get; set; }
     public string? Search { get; set; }

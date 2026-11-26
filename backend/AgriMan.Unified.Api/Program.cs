@@ -605,15 +605,19 @@ using (var scope = app.Services.CreateScope())
         logger.LogWarning("[agriman_db] 2c. Module 17 notice: " + ex.Message);
     }
 
-    // 3. Expenses Database Tables -> Farmersdb
+    // 3. Expenses Database Tables -> agriman_db
     try
     {
         var expenseDb = services.GetRequiredService<ExpenseDbContext>();
-        logger.LogInformation("[Farmersdb] 3. Expenses module ready.");
+        if (expenseDb.Database.IsRelational())
+        {
+            await expenseDb.Database.MigrateAsync();
+        }
+        logger.LogInformation("[agriman_db] 3. Expenses module ready.");
     }
     catch (Exception ex)
     {
-        logger.LogWarning("[Farmersdb] 3. Expenses notice: " + ex.Message);
+        logger.LogWarning("[agriman_db] 3. Expenses notice: " + ex.Message);
     }
 
     // 4. Sales Database Tables (Module 10: Buyers, Sales, SalesItems, SalesPayments) -> agriman_db
@@ -632,6 +636,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var machineryDb = services.GetRequiredService<MachineryDbContext>();
+        if (machineryDb.Database.IsRelational())
+        {
+            await machineryDb.Database.MigrateAsync();
+        }
         logger.LogInformation("[agriman_db] 5. Machinery & Operating Expenses module ready.");
     }
     catch (Exception ex)

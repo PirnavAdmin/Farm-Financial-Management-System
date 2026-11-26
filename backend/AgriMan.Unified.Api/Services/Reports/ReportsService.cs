@@ -83,6 +83,12 @@ public class ReportsService : IReportsService
         DateTime? from = query.FromDate;
         DateTime? to = query.ToDate;
 
+        if (query.Date.HasValue)
+        {
+            from ??= query.Date.Value.Date;
+            to ??= query.Date.Value.Date.AddDays(1).AddTicks(-1);
+        }
+
         if (query.Year.HasValue && query.Year.Value > 0)
         {
             var y = query.Year.Value;

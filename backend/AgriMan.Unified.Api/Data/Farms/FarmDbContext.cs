@@ -943,16 +943,12 @@ CREATE TABLE IF NOT EXISTS `bank_accounts` (
                 // Add missing columns to income_categories safely
                 try
                 {
-                    var colCheck = @"
-                    SELECT COUNT(*) FROM information_schema.COLUMNS 
-                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'income_categories' AND COLUMN_NAME = 'Code'";
-                    var count = await context.Database.SqlQueryRaw<int>(colCheck).FirstOrDefaultAsync();
-                    if (count == 0)
-                    {
-                        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `income_categories` ADD COLUMN `Code` VARCHAR(50) NULL AFTER `Id`");
-                        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `income_categories` ADD COLUMN `Source` VARCHAR(150) NULL AFTER `Name`");
-                        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `income_categories` ADD COLUMN `Status` VARCHAR(30) NOT NULL DEFAULT 'Active' AFTER `IsActive`");
-                    }
+                    await EnsureColumnExistsAsync(context, "income_categories", "Code", "ALTER TABLE `income_categories` ADD COLUMN `Code` VARCHAR(50) NULL AFTER `Id`");
+                    await EnsureColumnExistsAsync(context, "income_categories", "Source", "ALTER TABLE `income_categories` ADD COLUMN `Source` VARCHAR(150) NULL AFTER `Name`");
+                    await EnsureColumnExistsAsync(context, "income_categories", "Status", "ALTER TABLE `income_categories` ADD COLUMN `Status` VARCHAR(30) NOT NULL DEFAULT 'Active' AFTER `IsActive`");
+                    await EnsureColumnExistsAsync(context, "income_categories", "CreatedAt", "ALTER TABLE `income_categories` ADD COLUMN `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+                    await context.Database.ExecuteSqlRawAsync("UPDATE `income_categories` SET `Code` = CONCAT('INC-CAT-', `Id`) WHERE `Code` IS NULL OR `Code` = ''");
+                    await context.Database.ExecuteSqlRawAsync("UPDATE `income_categories` SET `Status` = 'Active' WHERE `Status` IS NULL OR `Status` = ''");
                 }
                 catch { }
 
