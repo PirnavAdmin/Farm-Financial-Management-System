@@ -1306,6 +1306,125 @@ WHERE `FinalAmount` = 0 AND `Amount` > 0;");
             }
         }
 
+        public static async Task EnsureCropProfitabilitySchemaAsync(FarmDbContext context)
+        {
+            try
+            {
+                // 1. Align farms table with Farm.cs model (fixes Unknown column 'f.Pincode' / 'f.State' / 'f.UpdatedAt')
+                var farmCols = new (string Col, string AlterSql)[]
+                {
+                    ("State", "ALTER TABLE `farms` ADD COLUMN `State` VARCHAR(100) NOT NULL DEFAULT 'Andhra Pradesh'"),
+                    ("Pincode", "ALTER TABLE `farms` ADD COLUMN `Pincode` VARCHAR(10) NULL"),
+                    ("UpdatedAt", "ALTER TABLE `farms` ADD COLUMN `UpdatedAt` DATETIME NULL")
+                };
+                foreach (var (col, sql) in farmCols)
+                    await EnsureColumnExistsAsync(context, "farms", col, sql);
+
+                // 2. Align income_categories with IncomeCategory.cs model
+                var incCatCols = new (string Col, string AlterSql)[]
+                {
+                    ("Code", "ALTER TABLE `income_categories` ADD COLUMN `Code` VARCHAR(50) NULL"),
+                    ("Name", "ALTER TABLE `income_categories` ADD COLUMN `Name` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("Source", "ALTER TABLE `income_categories` ADD COLUMN `Source` VARCHAR(150) NULL"),
+                    ("IsActive", "ALTER TABLE `income_categories` ADD COLUMN `IsActive` TINYINT(1) NOT NULL DEFAULT 1"),
+                    ("Status", "ALTER TABLE `income_categories` ADD COLUMN `Status` VARCHAR(30) NOT NULL DEFAULT 'Active'"),
+                    ("CreatedAt", "ALTER TABLE `income_categories` ADD COLUMN `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP")
+                };
+                foreach (var (col, sql) in incCatCols)
+                    await EnsureColumnExistsAsync(context, "income_categories", col, sql);
+
+                // 2b. Align farm_land_details with FarmLandDetail.cs model
+                var landCols = new (string Col, string AlterSql)[]
+                {
+                    ("BoundariesNorth", "ALTER TABLE `farm_land_details` ADD COLUMN `BoundariesNorth` VARCHAR(200) NULL"),
+                    ("BoundariesSouth", "ALTER TABLE `farm_land_details` ADD COLUMN `BoundariesSouth` VARCHAR(200) NULL"),
+                    ("BoundariesEast", "ALTER TABLE `farm_land_details` ADD COLUMN `BoundariesEast` VARCHAR(200) NULL"),
+                    ("BoundariesWest", "ALTER TABLE `farm_land_details` ADD COLUMN `BoundariesWest` VARCHAR(200) NULL"),
+                    ("Remarks", "ALTER TABLE `farm_land_details` ADD COLUMN `Remarks` VARCHAR(500) NULL"),
+                    ("UpdatedAt", "ALTER TABLE `farm_land_details` ADD COLUMN `UpdatedAt` DATETIME NULL")
+                };
+                foreach (var (col, sql) in landCols)
+                    await EnsureColumnExistsAsync(context, "farm_land_details", col, sql);
+
+                try
+                {
+                    var hasLegacyCatName = await context.Database.SqlQueryRaw<int>(
+                        "SELECT CAST(COUNT(*) AS SIGNED) AS Value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'income_categories' AND COLUMN_NAME = 'CategoryName'").FirstOrDefaultAsync();
+                    if (hasLegacyCatName > 0)
+                        await context.Database.ExecuteSqlRawAsync("UPDATE `income_categories` SET `Name` = `CategoryName` WHERE `Name` = ''");
+                }
+                catch { }
+
+                // 3. Align income_transactions with IncomeTransaction.cs model
+                var incTxCols = new (string Col, string AlterSql)[]
+                {
+                    ("Farm", "ALTER TABLE `income_transactions` ADD COLUMN `Farm` VARCHAR(150) NOT NULL DEFAULT ''"),
+                    ("Crop", "ALTER TABLE `income_transactions` ADD COLUMN `Crop` VARCHAR(100) NULL"),
+                    ("Buyer", "ALTER TABLE `income_transactions` ADD COLUMN `Buyer` VARCHAR(150) NOT NULL DEFAULT ''"),
+                    ("GrossAmount", "ALTER TABLE `income_transactions` ADD COLUMN `GrossAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00"),
+                    ("Discount", "ALTER TABLE `income_transactions` ADD COLUMN `Discount` DECIMAL(18,2) NOT NULL DEFAULT 0.00"),
+                    ("OtherCharges", "ALTER TABLE `income_transactions` ADD COLUMN `OtherCharges` DECIMAL(18,2) NOT NULL DEFAULT 0.00"),
+                    ("NetAmount", "ALTER TABLE `income_transactions` ADD COLUMN `NetAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00"),
+                    ("Status", "ALTER TABLE `income_transactions` ADD COLUMN `Status` VARCHAR(30) NOT NULL DEFAULT 'Completed'")
+                };
+                foreach (var (col, sql) in incTxCols)
+                    await EnsureColumnExistsAsync(context, "income_transactions", col, sql);
+
+                // 4. Align expense_transactions with ExpenseTransaction.cs (snake_case EF mapping)
+                var expTxCols = new (string Col, string AlterSql)[]
+                {
+                    ("expense_no", "ALTER TABLE `expense_transactions` ADD COLUMN `expense_no` VARCHAR(50) NOT NULL DEFAULT ''"),
+                    ("expense_date", "ALTER TABLE `expense_transactions` ADD COLUMN `expense_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+                    ("farmer", "ALTER TABLE `expense_transactions` ADD COLUMN `farmer` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("farm", "ALTER TABLE `expense_transactions` ADD COLUMN `farm` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("crop", "ALTER TABLE `expense_transactions` ADD COLUMN `crop` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("category_id", "ALTER TABLE `expense_transactions` ADD COLUMN `category_id` INT NULL"),
+                    ("expense_category", "ALTER TABLE `expense_transactions` ADD COLUMN `expense_category` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("supplier", "ALTER TABLE `expense_transactions` ADD COLUMN `supplier` VARCHAR(150) NOT NULL DEFAULT ''"),
+                    ("payment_mode", "ALTER TABLE `expense_transactions` ADD COLUMN `payment_mode` VARCHAR(50) NOT NULL DEFAULT 'Cash'"),
+                    ("reference_no", "ALTER TABLE `expense_transactions` ADD COLUMN `reference_no` VARCHAR(100) NULL"),
+                    ("status", "ALTER TABLE `expense_transactions` ADD COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'Paid'"),
+                    ("receipt_attachment_url", "ALTER TABLE `expense_transactions` ADD COLUMN `receipt_attachment_url` VARCHAR(500) NULL"),
+                    ("created_at", "ALTER TABLE `expense_transactions` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+                    ("updated_at", "ALTER TABLE `expense_transactions` ADD COLUMN `updated_at` DATETIME NULL")
+                };
+                foreach (var (col, sql) in expTxCols)
+                    await EnsureColumnExistsAsync(context, "expense_transactions", col, sql);
+
+                // 5. Align expense_categories with ExpenseCategory.cs model
+                var expCatCols = new (string Col, string AlterSql)[]
+                {
+                    ("code", "ALTER TABLE `expense_categories` ADD COLUMN `code` VARCHAR(50) NOT NULL DEFAULT ''"),
+                    ("name", "ALTER TABLE `expense_categories` ADD COLUMN `name` VARCHAR(100) NOT NULL DEFAULT ''"),
+                    ("is_active", "ALTER TABLE `expense_categories` ADD COLUMN `is_active` TINYINT(1) NOT NULL DEFAULT 1"),
+                    ("created_at", "ALTER TABLE `expense_categories` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP")
+                };
+                foreach (var (col, sql) in expCatCols)
+                    await EnsureColumnExistsAsync(context, "expense_categories", col, sql);
+
+                try
+                {
+                    var hasLegacyExpCat = await context.Database.SqlQueryRaw<int>(
+                        "SELECT CAST(COUNT(*) AS SIGNED) AS Value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'expense_categories' AND COLUMN_NAME = 'CategoryName'").FirstOrDefaultAsync();
+                    if (hasLegacyExpCat > 0)
+                        await context.Database.ExecuteSqlRawAsync("UPDATE `expense_categories` SET `name` = `CategoryName`, `code` = UPPER(REPLACE(`CategoryName`, ' ', '_')) WHERE `name` = ''");
+                }
+                catch { }
+                // 6. Align purchases with Purchase.cs (FarmId, CropId)
+                var purchaseCols = new (string Col, string AlterSql)[]
+                {
+                    ("FarmId", "ALTER TABLE `purchases` ADD COLUMN `FarmId` BIGINT NULL"),
+                    ("CropId", "ALTER TABLE `purchases` ADD COLUMN `CropId` BIGINT NULL")
+                };
+                foreach (var (col, sql) in purchaseCols)
+                    await EnsureColumnExistsAsync(context, "purchases", col, sql);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Crop Profitability Schema Alignment Note]: {ex.Message}");
+            }
+        }
+
         private static async Task EnsureColumnExistsAsync(FarmDbContext context, string tableName, string columnName, string alterSql)
         {
             try

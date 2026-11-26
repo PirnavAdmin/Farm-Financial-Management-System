@@ -94,6 +94,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IInventoryService, FarmManagementApi.Services.InventoryService>();
+builder.Services.AddScoped<AgriMan.Unified.Api.Services.Crops.ICropProfitabilityService, AgriMan.Unified.Api.Services.Crops.CropProfitabilityService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IPaymentReceiptService, FarmManagementApi.Services.PaymentReceiptService>();
 builder.Services.AddScoped<FarmManagementApi.Services.Reports.IReportsService, FarmManagementApi.Services.Reports.ReportsService>();
 builder.Services.AddHttpContextAccessor();
@@ -596,7 +597,8 @@ using (var scope = app.Services.CreateScope())
     {
         farmDb.ChangeTracker.Clear();
         await FarmManagementApi.Data.FarmDbContext.EnsurePaymentReceiptSchemaAsync(farmDb);
-        logger.LogInformation("[agriman_db] 2c. Module 17 (Payment & Receipt Management) verified.");
+        await FarmManagementApi.Data.FarmDbContext.EnsureCropProfitabilitySchemaAsync(farmDb);
+        logger.LogInformation("[agriman_db] 2c. Module 17 (Payment & Receipt) & Crop Profitability schemas verified.");
     }
     catch (Exception ex)
     {

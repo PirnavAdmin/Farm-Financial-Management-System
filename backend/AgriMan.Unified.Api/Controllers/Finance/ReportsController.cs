@@ -1,3 +1,5 @@
+using AgriMan.Unified.Api.DTOs.Crops;
+using AgriMan.Unified.Api.Services.Crops;
 using FarmManagementApi.DTOs.Reports;
 using FarmManagementApi.Services.Reports;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace FarmManagementApi.Controllers;
 
 /// <summary>
-/// Module 19 - Reports Module: Comprehensive Financial, Agriculture, and Inventory Reports + CSV Export.
+/// Module 19 - Reports Module: Comprehensive Financial, Agriculture, and Inventory Reports + CSV Export,
+/// plus Crop Profitability &amp; Unit Economics endpoints.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -14,10 +17,14 @@ namespace FarmManagementApi.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IReportsService _reportsService;
+    private readonly ICropProfitabilityService _cropProfitability;
 
-    public ReportsController(IReportsService reportsService)
+    public ReportsController(
+        IReportsService reportsService,
+        ICropProfitabilityService cropProfitability)
     {
         _reportsService = reportsService;
+        _cropProfitability = cropProfitability;
     }
 
     // =========================================================================
@@ -140,6 +147,55 @@ public class ReportsController : ControllerBase
     [ProducesResponseType(typeof(List<CropProfitRowDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCropProfit([FromQuery] ReportQueryParameters query) =>
         Ok(await _reportsService.GetCropProfitReportAsync(query));
+
+    /// <summary>13b. Crop-wise P&amp;L &amp; Unit Economics overview (supports /crop-wise-pnl and /crop-profitability).</summary>
+    [HttpGet("crop-wise-pnl")]
+    [HttpGet("crop-profitability")]
+    [ProducesResponseType(typeof(CropProfitabilityOverviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetCropProfitability(
+        [FromQuery] CropProfitabilityQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        if (parameters.FromDate.HasValue && parameters.ToDate.HasValue &&
+            parameters.FromDate.Value.Date > parameters.ToDate.Value.Date)
+        {
+            return BadRequest(new { message = "fromDate cannot be later than toDate." });
+        }
+
+        var overview = await _cropProfitability.GetAllCropsProfitabilityAsync(parameters, cancellationToken);
+        return Ok(overview);
+    }
+
+    /// <summary>13c. Crop-wise P&amp;L &amp; Unit Economics for a specific crop name.</summary>
+    [HttpGet("crop-profitability/{cropName}")]
+    [ProducesResponseType(typeof(CropProfitabilityItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCropProfitabilityByName(
+        string cropName,
+        [FromQuery] CropProfitabilityQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(cropName))
+        {
+            return BadRequest(new { message = "Crop name is required." });
+        }
+
+        if (parameters.FromDate.HasValue && parameters.ToDate.HasValue &&
+            parameters.FromDate.Value.Date > parameters.ToDate.Value.Date)
+        {
+            return BadRequest(new { message = "fromDate cannot be later than toDate." });
+        }
+
+        var item = await _cropProfitability.GetCropProfitabilityByNameAsync(cropName, parameters, cancellationToken);
+        if (item == null)
+        {
+            return NotFound(new { message = $"No crop profitability data found for '{cropName.Trim()}'." });
+        }
+
+        return Ok(item);
+    }
 
     /// <summary>14. Farm-wise Profit Report (supports both /farm-profit and /agriculture/farm-profit).</summary>
     [HttpGet("farm-profit")]
