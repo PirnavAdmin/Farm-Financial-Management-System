@@ -1,54 +1,122 @@
 @import '../../Settings/Users/Users.css';
 
+/* ── Standardized Page Header ── */
+.finance-screen .users-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin: 0 0 20px;
+}
+
+.finance-screen .users-title-row h1 {
+  margin: 0 0 4px;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.3px !important;
+  color: #1a2e1e !important;
+}
+
+.finance-screen .users-title-row p {
+  margin: 0;
+  color: #657269 !important;
+  font-size: 14px !important;
+}
+
+.finance-screen .users-eyebrow {
+  color: #245a36 !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 4px;
+}
+
+.finance-screen .users-eyebrow span {
+  color: #a0b2a5;
+  padding: 0 6px;
+}
+
 /* ── View Switch Tabs ── */
-.finance-view-switch {
+.finance-screen .finance-view-switch {
   display: flex;
   gap: 8px;
   margin: 0 0 18px;
   flex-wrap: wrap;
 }
 
-.finance-view-switch button {
+.finance-screen .finance-view-switch button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  height: 38px !important;
+  padding: 0 16px !important;
   border: 1px solid #dcdfdc;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #ffffff;
   color: #526356;
   cursor: pointer;
   font-family: var(--sans, 'DM Sans', 'Segoe UI', sans-serif);
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
   transition: all 0.15s ease;
 }
 
-.finance-view-switch button:hover {
+.finance-screen .finance-view-switch button:hover {
   border-color: #377d4d;
   color: #245233;
   background: #f7faf8;
 }
 
-.finance-view-switch button.selected {
+.finance-screen .finance-view-switch button.selected {
   border-color: #245a36;
   color: #ffffff;
   background: #245a36;
   box-shadow: 0 2px 6px rgba(36, 90, 54, 0.25);
 }
 
-.finance-view-switch button .tab-count {
-  padding: 1px 7px;
+.finance-screen .finance-view-switch button .tab-count {
+  padding: 2px 8px;
   border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
   background: #edf3ee;
   color: #366341;
 }
 
-.finance-view-switch button.selected .tab-count {
+.finance-screen .finance-view-switch button.selected .tab-count {
   background: rgba(255, 255, 255, 0.22);
   color: #ffffff;
+}
+
+/* ── Standardized Action Buttons ── */
+.finance-screen .users-add,
+.finance-screen .save-button {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 18px !important;
+  border: 0;
+  border-radius: 7px;
+  background: #245a36;
+  color: #ffffff;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(36, 90, 54, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+
+.finance-screen .users-add:hover,
+.finance-screen .save-button:hover {
+  background: #1c462a;
+}
+
+.finance-screen .users-add span {
+  font-size: 16px;
+  vertical-align: middle;
 }
 
 /* ── KPI Summary Cards ── */
@@ -63,21 +131,22 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 18px;
+  padding: 18px 20px;
+  min-height: 102px;
   border: 1px solid #e2e8e1;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #ffffff;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .loan-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -95,26 +164,26 @@
 }
 
 .loan-stat-info small {
-  color: #64748b;
-  font-size: 9.5px;
+  color: #657269;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .loan-stat-info strong {
-  color: #0f172a;
-  font-size: 19px;
-  font-weight: 750;
-  line-height: 1.2;
+  color: #1a2e1e;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .loan-stat-info span {
-  color: #94a3b8;
-  font-size: 10px;
+  color: #657269;
+  font-size: 11.5px;
 }
 
 /* ── Table & Badges ── */
@@ -129,7 +198,7 @@
   vertical-align: middle;
 }
 
-.loan-code-chip {
+.finance-screen .loan-code-chip {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 4px;
@@ -137,31 +206,31 @@
   border: 1px solid #e2e8f0;
   color: #334155;
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12.5px !important;
   font-weight: 700;
 }
 
-.loan-type-pill {
+.finance-screen .loan-type-pill {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px !important;
+  font-weight: 600;
   background: #f0fdf4;
   color: #166534;
   border: 1px solid #bbf7d0;
   white-space: nowrap;
 }
 
-.loan-status-badge {
+.finance-screen .loan-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 12px;
-  font-size: 10.5px;
-  font-weight: 650;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px !important;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -214,12 +283,12 @@
 }
 
 /* Installment Status Pills */
-.inst-pill {
+.finance-screen .inst-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px !important;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -249,16 +318,16 @@
 .loan-actions-cell {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
-.loan-btn-action {
+.finance-screen .loan-btn-action {
   border: 1px solid #dcdfdc;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #ffffff;
   cursor: pointer;
-  padding: 5px 8px;
-  font-size: 11px;
+  padding: 6px 10px;
+  font-size: 12.5px !important;
   font-weight: 600;
   color: #475569;
   transition: all 0.15s;
@@ -507,9 +576,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: 6px;
-  font-size: 11.5px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -532,6 +602,229 @@
 .loan-print-btn:hover {
   background: #f8fafc;
   border-color: #94a3b8;
+}
+
+/* ── Standardized Toolbar & Filter Controls ── */
+.finance-screen .users-toolbar {
+  min-height: 58px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px !important;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.finance-screen .user-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px !important;
+  flex: 1;
+  min-width: 200px;
+  padding: 0 12px !important;
+  border: 1px solid #d5ded7;
+  border-radius: 7px;
+  color: #657269;
+  background: #ffffff;
+}
+
+.finance-screen .user-search input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  color: #1a2e1e !important;
+  font-size: 13.5px !important;
+  font-family: var(--sans, 'DM Sans', sans-serif) !important;
+}
+
+.finance-screen .user-search input::placeholder {
+  color: #8c9b90 !important;
+  font-size: 13px !important;
+}
+
+.finance-screen .users-toolbar select {
+  height: 38px !important;
+  min-width: 140px;
+  padding: 0 12px !important;
+  border: 1px solid #d5ded7;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #1a2e1e !important;
+  font-size: 13.5px !important;
+  font-family: var(--sans, 'DM Sans', sans-serif) !important;
+  cursor: pointer;
+}
+
+.finance-screen .reset-button {
+  height: 38px !important;
+  padding: 0 14px !important;
+  border: 1px solid #d5ded7;
+  border-radius: 7px;
+  color: #556658;
+  background: #ffffff;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.finance-screen .reset-button:hover {
+  background: #edf2ee;
+  color: #245a36;
+}
+
+/* ── Panel & Table Sizing Overrides ── */
+.finance-screen .users-panel {
+  border: 1px solid #e0e8e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.finance-screen .users-table th {
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 12px 14px !important;
+  color: #374840 !important;
+  background: #fafbfa !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap;
+}
+
+.finance-screen .users-table td {
+  height: auto !important;
+  min-height: 52px !important;
+  padding: 12px 14px !important;
+  border-top: 1px solid #edf0ed;
+  color: #1a2e1e !important;
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
+  white-space: nowrap;
+}
+
+.finance-screen .users-table td small {
+  font-size: 12px !important;
+  color: #657269 !important;
+}
+
+.finance-screen .users-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px !important;
+  padding: 0 18px !important;
+  border-top: 1px solid #edf0ed;
+  color: #657269 !important;
+  font-size: 13px !important;
+}
+
+.finance-screen .pagination {
+  display: flex;
+  gap: 6px;
+}
+
+.finance-screen .pagination button {
+  min-width: 32px !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  border: 1px solid #d5ded7;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #556658;
+  font-size: 13px !important;
+  cursor: pointer;
+}
+
+.finance-screen .pagination button.current {
+  border-color: #245a36;
+  color: #ffffff;
+  background: #245a36;
+}
+
+/* ── Modal & Form Overrides ── */
+.finance-screen .user-modal,
+.finance-screen .confirm-dialog {
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(20, 33, 24, 0.25);
+}
+
+.finance-screen .modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.finance-screen .modal-header h2 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #1a2e1e !important;
+  margin: 4px 0 2px;
+}
+
+.finance-screen .modal-header p {
+  font-size: 13.5px !important;
+  color: #657269 !important;
+}
+
+.finance-screen .modal-body {
+  padding: 0 24px;
+}
+
+.finance-screen .form-section {
+  padding: 16px 0;
+}
+
+.finance-screen .form-section h3 {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #245a36 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  margin: 0 0 12px;
+}
+
+.finance-screen .form-grid label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #374840 !important;
+  gap: 6px;
+}
+
+.finance-screen .form-grid input,
+.finance-screen .form-grid select {
+  height: 38px !important;
+  border: 1px solid #d5ded7;
+  border-radius: 7px;
+  padding: 0 12px !important;
+  font-size: 13.5px !important;
+  font-family: var(--sans, 'DM Sans', sans-serif) !important;
+  color: #1a2e1e !important;
+}
+
+.finance-screen .form-grid input:focus,
+.finance-screen .form-grid select:focus {
+  border-color: #245a36;
+  box-shadow: 0 0 0 2px rgba(36, 90, 54, 0.15);
+}
+
+.finance-screen .modal-footer {
+  padding: 14px 24px;
+  font-size: 13px !important;
+}
+
+.finance-screen .modal-footer button,
+.finance-screen .dialog-actions button {
+  height: 38px !important;
+  padding: 0 16px !important;
+  border-radius: 7px;
+  font-size: 13px !important;
+  font-weight: 600 !important;
 }
 
 /* ── Document Upload Box ── */

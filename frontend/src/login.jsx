@@ -418,8 +418,8 @@ export default function Login({ onLogin, onBackToHome }) {
                 className="btn-primary-sign-in"
                 disabled={busy}
               >
-                <span>{busy ? 'Signing Inâ€¦' : 'Sign In'}</span>
-                <ArrowRightIcon />
+                <span>{busy ? 'Signing in...' : 'Sign In'}</span>
+                {!busy && <ArrowRightIcon />}
               </button>
 
               {/* Divider */}

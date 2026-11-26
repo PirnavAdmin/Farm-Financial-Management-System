@@ -16,7 +16,44 @@ namespace FarmManagementApi.Data
             {
                 if (await context.Farmers.AnyAsync())
                 {
-                    logger.LogInformation("Database already contains farmer records. Skipping seed.");
+                    if (!await context.Farmers.AnyAsync(f => f.Email == "gprathap922@gmail.com" || f.FarmerName == "Prathap G"))
+                    {
+                        var farmerPrathap = new Farmer
+                        {
+                            FarmerCode = "FARM-2024-000",
+                            FarmerName = "Prathap G",
+                            FatherOrHusbandName = "G. Narayana",
+                            Mobile = "+91 98491 23456",
+                            AlternateMobile = "9849123456",
+                            Email = "gprathap922@gmail.com",
+                            AadhaarNo = "369852147012",
+                            TotalLand = 25.00m,
+                            Status = "Active",
+                            Village = "Kondapur",
+                            Mandal = "Siddipet",
+                            District = "Siddipet",
+                            CreatedAt = DateTime.UtcNow,
+                            Address = new FarmerAddress
+                            {
+                                Address = "Plot 1, Green Fields Agro Tech Road",
+                                Village = "Kondapur",
+                                Mandal = "Siddipet",
+                                District = "Siddipet",
+                                State = "Telangana",
+                                PinCode = "502103"
+                            },
+                            BankAccount = new FarmerBankAccount
+                            {
+                                BankName = "State Bank of India",
+                                AccountNumber = "20394857162",
+                                IFSC = "SBIN0001045"
+                            }
+                        };
+                        context.Farmers.Add(farmerPrathap);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation("Farmer profile for Prathap G ensured.");
+                    }
+                    logger.LogInformation("Database already contains farmer records. Skipping full seed.");
                     return;
                 }
 

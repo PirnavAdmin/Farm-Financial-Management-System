@@ -1,23 +1,52 @@
 import api from '../../services/api'
 
-const config = { baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || api.defaults.baseURL).replace(/\/+$/, '') }
 const root = '/api/Loan'
-const dateTime = (value) => value ? (value.includes('T') ? value : `${value.slice(0, 10)}T00:00:00`) : undefined
+
+const dateTime = (value) => {
+  if (!value) return undefined
+  return value.includes('T') ? value : `${value.slice(0, 10)}T00:00:00`
+}
 
 export const loanService = {
-  async list(params) { return (await api.get(root, { ...config, params })).data },
-  async summary() { return (await api.get(`${root}/summary`, config)).data },
-  async payments(params) { return (await api.get(`${root}/payments`, { ...config, params })).data },
-  async paymentSummary() { return (await api.get(`${root}/payment-summary`, config)).data },
-  async detail(id) { return (await api.get(`${root}/${id}`, config)).data },
+  // 1. GET /api/Loan (list loans with search, status, loanType, bank query filters)
+  async list(params) {
+    const res = await api.get(root, { params })
+    return res.data
+  },
+
+  // 2. GET /api/Loan/summary (KPI summary card figures)
+  async summary() {
+    const res = await api.get(`${root}/summary`)
+    return res.data
+  },
+
+  // 3. GET /api/Loan/payments (list payment vouchers with search, loanNo, paymentMode filters)
+  async payments(params) {
+    const res = await api.get(`${root}/payments`, { params })
+    return res.data
+  },
+
+  // 4. GET /api/Loan/payment-summary (payment summary totals)
+  async paymentSummary() {
+    const res = await api.get(`${root}/payment-summary`)
+    return res.data
+  },
+
+  // 5. GET /api/Loan/{id} (loan details with installments, disbursements, payments, documents)
+  async detail(id) {
+    const res = await api.get(`${root}/${id}`)
+    return res.data
+  },
+
+  // 6. POST /api/Loan & PUT /api/Loan/{id} (create or update loan)
   async save(loan, id) {
     const body = {
       loanId: id ?? 0,
       loanNo: loan.loanNo,
-      loanAccountNo: loan.loanAccountNo || loan.accountNo,
+      loanAccountNo: loan.loanAccountNo || loan.accountNo || undefined,
       bankLender: loan.bankName || loan.bankLender,
       loanType: loan.loanType,
-      loanPurpose: loan.loanPurpose || loan.remarks,
+      loanPurpose: loan.loanPurpose || loan.remarks || undefined,
       sanctionAmount: Number(loan.sanctionAmount) || 0,
       disbursedAmount: loan.disbursedAmount !== undefined && loan.disbursedAmount !== '' ? Number(loan.disbursedAmount) : undefined,
       outstandingAmount: loan.outstandingAmount !== undefined && loan.outstandingAmount !== '' ? Number(loan.outstandingAmount) : undefined,
@@ -30,17 +59,26 @@ export const loanService = {
       endDate: loan.endDate ? dateTime(loan.endDate) : undefined,
       processingFees: Number(loan.processingFees) || 0,
       status: loan.status || 'Active',
-      remarks: loan.remarks || '',
+      remarks: loan.remarks || undefined,
     }
-    return id == null ? api.post(root, body, config) : api.put(`${root}/${id}`, body, config)
+    const res = id == null
+      ? await api.post(root, body)
+      : await api.put(`${root}/${id}`, body)
+    return res.data
   },
-  remove(id) { return api.delete(`${root}/${id}`, config) },
-  recordPayment(loanId, payment) {
+
+  // 7. DELETE /api/Loan/{id} (delete loan)
+  async remove(id) {
+    const res = await api.delete(`${root}/${id}`)
+    return res.data
+  },
+
+  // 8. POST /api/Loan/{loanId}/payments (record loan payment voucher)
+  async recordPayment(loanId, payment) {
     const { id, loanNo: _loanNo, ...fields } = payment
-    return api.post(`${root}/${loanId}/payments`, {
+    const res = await api.post(`${root}/${loanId}/payments`, {
       ...fields,
-      loanId,
-      voucherNo: id || payment.voucherNo,
+      voucherNo: payment.voucherNo || id || undefined,
       paymentDate: dateTime(payment.paymentDate),
       principal: Number(payment.principal) || 0,
       interest: Number(payment.interest) || 0,
@@ -48,41 +86,62 @@ export const loanService = {
       totalPayment: Number(payment.totalPayment) || 0,
       installmentNumber: payment.installmentNumber ? Number(payment.installmentNumber) : undefined,
       paymentType: payment.paymentType || 'Regular EMI',
-    }, config)
+    })
+    return res.data
   },
+
+  // 9. GET /api/Loan/{loanId}/disbursements (list loan tranches)
   async disbursements(loanId) {
-    return (await api.get(`${root}/${loanId}/disbursements`, config)).data
+    const res = await api.get(`${root}/${loanId}/disbursements`)
+    return res.data
   },
+
+  // 10. POST /api/Loan/{loanId}/disbursements (record additional tranche)
   async recordDisbursement(loanId, disbursement) {
-    return (await api.post(`${root}/${loanId}/disbursements`, {
+    const res = await api.post(`${root}/${loanId}/disbursements`, {
       ...disbursement,
       disbursementDate: dateTime(disbursement.disbursementDate),
       disbursedAmount: Number(disbursement.disbursedAmount) || 0,
-    }, config)).data
+    })
+    return res.data
   },
+
+  // 11. GET /api/Loan/{loanId}/schedule (repayment schedule)
   async schedule(loanId) {
-    return (await api.get(`${root}/${loanId}/schedule`, config)).data
+    const res = await api.get(`${root}/${loanId}/schedule`)
+    return res.data
   },
+
+  // 12. POST /api/Loan/{loanId}/recalculate-schedule (recalculate schedule)
   async recalculateSchedule(loanId) {
-    return (await api.post(`${root}/${loanId}/recalculate-schedule`, {}, config)).data
+    const res = await api.post(`${root}/${loanId}/recalculate-schedule`, {})
+    return res.data
   },
+
+  // 13. POST /api/Loan/{loanId}/close (settle and close loan)
   async closeLoan(loanId, closureData) {
-    return (await api.post(`${root}/${loanId}/close`, {
+    const res = await api.post(`${root}/${loanId}/close`, {
       ...closureData,
       closedDate: dateTime(closureData.closedDate),
       finalSettlementAmount: Number(closureData.finalSettlementAmount) || 0,
-    }, config)).data
+    })
+    return res.data
   },
+
+  // 14. GET /api/Loan/reports/{reportType} (all 10 reports with filters)
   async report(reportType, params) {
-    return (await api.get(`${root}/reports/${reportType}`, { ...config, params })).data
+    const res = await api.get(`${root}/reports/${reportType}`, { params })
+    return res.data
   },
+
+  // 15. POST /api/Loan/{loanId}/documents (upload loan documentation)
   async uploadDocument(loanId, file, documentType) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('documentType', documentType || 'Sanction Letter')
-    return (await api.post(`${root}/${loanId}/documents`, formData, {
-      ...config,
-      headers: { ...api.defaults.headers, 'Content-Type': 'multipart/form-data' }
-    })).data
+    const res = await api.post(`${root}/${loanId}/documents`, formData)
+    return res.data
   }
 }
+
+export default loanService

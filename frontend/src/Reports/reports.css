@@ -1,0 +1,1513 @@
+/* ============================================================================
+   AGRIMAN Module 19 — Reports Module Styles
+   Design tokens: DM Sans, AGRIMAN emerald/forest green (#166534 / #31794a),
+   clean card grids, accessible typography scale, and responsive table views.
+   ============================================================================ */
+
+.rpt-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: var(--sans, 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif);
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 1. Breadcrumbs ────────────────────────────────────────────────────────── */
+.rpt-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.rpt-breadcrumb-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #64748b;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.rpt-breadcrumb-link:hover {
+  color: #166534;
+  text-decoration: underline;
+}
+
+.rpt-breadcrumb-sep {
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.rpt-breadcrumb-current {
+  color: #1e3325;
+  font-weight: 700;
+}
+
+/* ── 2. Landing Header ─────────────────────────────────────────────────────── */
+.rpt-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.rpt-header-text {
+  flex: 1 1 320px;
+}
+
+.rpt-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e3325;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+
+.rpt-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  max-width: 680px;
+}
+
+.rpt-search-box {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+}
+
+.rpt-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.rpt-search-input {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 32px 0 36px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e293b;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rpt-search-input:focus {
+  outline: none;
+  border-color: #166534;
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.12);
+}
+
+.rpt-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ── 3. Category Navigation Tabs ───────────────────────────────────────────── */
+.rpt-category-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rpt-category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.rpt-category-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -2px;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.rpt-category-tab:hover {
+  color: #1e3325;
+}
+
+.rpt-category-tab.active {
+  color: #166534;
+  border-bottom-color: #166534;
+}
+
+.rpt-category-icon {
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
+.rpt-category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rpt-category-tab.active .rpt-category-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ── 4. Cards Panel & Grid ─────────────────────────────────────────────────── */
+.rpt-cards-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rpt-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rpt-category-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #164e2a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rpt-count-indicator {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rpt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.rpt-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+  box-sizing: border-box;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.rpt-card:hover,
+.rpt-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: #16a34a;
+  box-shadow: 0 6px 18px -3px rgba(22, 163, 74, 0.12);
+  outline: none;
+}
+
+.rpt-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
+}
+
+.rpt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rpt-card-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rpt-card-icon-wrap.financial {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.rpt-card-icon-wrap.agriculture {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.rpt-card-icon-wrap.inventory {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.rpt-card-index {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.rpt-card-body {
+  flex: 1 1 auto;
+}
+
+.rpt-card-title {
+  margin: 0 0 6px 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+}
+
+.rpt-card-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.rpt-card-footer {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.rpt-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #166534;
+  transition: transform 0.15s ease;
+}
+
+.rpt-card:hover .rpt-card-cta {
+  color: #14532d;
+}
+
+.rpt-card:hover .rpt-card-chevron {
+  transform: translateX(3px);
+}
+
+.rpt-card-chevron {
+  transition: transform 0.15s ease;
+}
+
+/* ── 5. Individual Report Viewer Head ──────────────────────────────────────── */
+.rpt-view-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.rpt-view-head-main {
+  flex: 1 1 400px;
+}
+
+.rpt-btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.rpt-btn-back:hover {
+  color: #166534;
+}
+
+.rpt-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rpt-title-icon-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rpt-title-icon-badge.financial {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1.5px solid #a7f3d0;
+}
+
+.rpt-title-icon-badge.agriculture {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1.5px solid #bbf7d0;
+}
+
+.rpt-title-icon-badge.inventory {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1.5px solid #fed7aa;
+}
+
+.rpt-view-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e3325;
+  line-height: 1.2;
+}
+
+.rpt-view-subtitle {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.rpt-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Standard Button Tokens (Height: 44px, Radius: 10px, Font: 13px DM Sans) ── */
+.rpt-btn-primary,
+.rpt-btn-secondary,
+.rpt-btn-reset,
+.rpt-btn-export,
+.rpt-btn-print {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.15s ease-in-out;
+  outline: none;
+}
+
+/* 1. Apply Filters: dark-green primary button */
+.rpt-btn-primary {
+  background-color: #166534;
+  color: #ffffff;
+  border: 1.5px solid #166534;
+  box-shadow: 0 2px 6px rgba(22, 101, 52, 0.2);
+}
+
+.rpt-btn-primary:hover:not(:disabled) {
+  background-color: #14532d;
+  border-color: #14532d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(22, 101, 52, 0.28);
+}
+
+.rpt-btn-primary:active:not(:disabled) {
+  background-color: #0f3d21;
+  border-color: #0f3d21;
+  transform: translateY(0);
+}
+
+.rpt-btn-primary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.3);
+}
+
+.rpt-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 2. Reset: white secondary button */
+.rpt-btn-reset {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.rpt-btn-reset:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #1e293b;
+  transform: translateY(-1px);
+}
+
+.rpt-btn-reset:active:not(:disabled) {
+  background-color: #f1f5f9;
+  transform: translateY(0);
+}
+
+.rpt-btn-reset:focus-visible {
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.18);
+  border-color: #64748b;
+}
+
+.rpt-btn-reset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 3. Export CSV: white outlined button */
+.rpt-btn-export,
+.rpt-btn-secondary {
+  background-color: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 0 16px;
+}
+
+.rpt-btn-export:hover:not(:disabled),
+.rpt-btn-secondary:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.rpt-btn-export:active:not(:disabled),
+.rpt-btn-secondary:active:not(:disabled) {
+  background-color: #f1f5f9;
+  transform: translateY(0);
+}
+
+.rpt-btn-export:focus-visible,
+.rpt-btn-secondary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.18);
+  border-color: #64748b;
+}
+
+.rpt-btn-export:disabled,
+.rpt-btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 4. Print: white outlined button */
+.rpt-btn-print {
+  background-color: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 0 16px;
+}
+
+.rpt-btn-print:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.rpt-btn-print:active:not(:disabled) {
+  background-color: #f1f5f9;
+  transform: translateY(0);
+}
+
+.rpt-btn-print:focus-visible {
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.18);
+  border-color: #64748b;
+}
+
+.rpt-btn-print:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner for button loading state */
+.rpt-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: rptSpin 0.7s linear infinite;
+}
+
+/* ── Feedback Banner ──────────────────────────────────────────────────────── */
+.rpt-feedback-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.rpt-feedback-banner.success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.rpt-feedback-banner.warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.rpt-feedback-banner.error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.rpt-feedback-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0 4px;
+}
+
+.rpt-feedback-close:hover {
+  opacity: 1;
+}
+
+/* ── 6. Filter Panel ───────────────────────────────────────────────────────── */
+.rpt-filter-panel {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.rpt-filter-grid {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+}
+
+.rpt-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 170px;
+  flex: 1 1 170px;
+}
+
+.rpt-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.rpt-filter-input,
+.rpt-filter-select {
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rpt-filter-input:focus,
+.rpt-filter-select:focus {
+  outline: none;
+  border-color: #166534;
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.12);
+}
+
+.rpt-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.rpt-select-wrap select {
+  width: 100%;
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 15px;
+}
+
+.rpt-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── 7. Summary Cards ──────────────────────────────────────────────────────── */
+.rpt-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.rpt-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 84px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  transition: border-color 0.15s ease;
+}
+
+.rpt-summary-card:hover {
+  border-color: #cbd5e1;
+}
+
+.rpt-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rpt-summary-val {
+  font-size: clamp(18px, 1.3vw, 22px);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+
+.rpt-summary-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Notice Bar ────────────────────────────────────────────────────────────── */
+.rpt-notice-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3.5px solid #16a34a;
+  border-radius: 6px;
+  font-size: 11.5px;
+  margin-bottom: 14px;
+}
+
+.rpt-notice-tag {
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+}
+
+.rpt-notice-text {
+  color: #475569;
+}
+
+/* ── 8. Results Table ──────────────────────────────────────────────────────── */
+.rpt-table-container {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  margin-bottom: 14px;
+}
+
+.rpt-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rpt-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.rpt-table th {
+  height: 46px;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 1.5px solid #e2e8f0;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.rpt-table td {
+  height: 52px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.rpt-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rpt-table tr:hover td {
+  background: #f8fafc;
+}
+
+.rpt-table th.align-center,
+.rpt-table td.align-center {
+  text-align: center !important;
+}
+
+.rpt-table th.align-left,
+.rpt-table td.align-left {
+  text-align: left !important;
+}
+
+.font-highlight {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Status Badges */
+.rpt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+
+.rpt-status-badge.received,
+.rpt-status-badge.paid,
+.rpt-status-badge.optimal,
+.rpt-status-badge.high-yield,
+.rpt-status-badge.in-stock {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.rpt-status-badge.pending,
+.rpt-status-badge.warning,
+.rpt-status-badge.low-stock,
+.rpt-status-badge.low-cost {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.rpt-status-badge.overdue,
+.rpt-status-badge.critical,
+.rpt-status-badge.depleted,
+.rpt-status-badge.out-of-stock {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.rpt-status-badge.partially-paid,
+.rpt-status-badge.intensive {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* ── 9. Pagination Bar ─────────────────────────────────────────────────────── */
+.rpt-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rpt-page-info {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rpt-page-info strong {
+  color: #0f172a;
+}
+
+.rpt-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rpt-pagesize-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+
+.rpt-pagesize-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rpt-pagesize-select {
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.rpt-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rpt-page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+.rpt-page-btn.active {
+  background: #166534;
+  border-color: #166534;
+  color: #ffffff;
+}
+
+.rpt-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rpt-page-ellipsis {
+  padding: 0 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ── 10. Empty / Loading / Error States ────────────────────────────────────── */
+.rpt-loading-state,
+.rpt-empty-state,
+.rpt-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.rpt-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #166534;
+  border-radius: 50%;
+  animation: rptSpin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes rptSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rpt-loading-state p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.rpt-empty-state h3,
+.rpt-error-state h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e3325;
+}
+
+.rpt-empty-state p,
+.rpt-error-state p {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 440px;
+}
+
+.rpt-error-icon {
+  color: #dc2626;
+  margin-bottom: 10px;
+}
+
+.rpt-empty-catalog {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13.5px;
+}
+
+.rpt-empty-catalog p {
+  margin: 0 0 12px 0;
+}
+
+/* ── 11. Mobile & Tablet Responsiveness ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rpt-title {
+    font-size: 22px;
+  }
+  .rpt-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rpt-search-box {
+    width: 100%;
+  }
+  .rpt-grid {
+    grid-template-columns: 1fr;
+  }
+  .rpt-view-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rpt-head-actions {
+    justify-content: flex-start;
+  }
+  .rpt-filter-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rpt-filter-item {
+    min-width: 100%;
+  }
+  .rpt-filter-actions {
+    margin-top: 6px;
+    width: 100%;
+  }
+  .rpt-filter-actions button {
+    flex: 1;
+  }
+}
+
+/* ── 12. Screen View vs Print View Toggling ────────────────────────────────── */
+.rpt-screen-view {
+  display: block;
+  width: 100%;
+}
+
+.rpt-print-view {
+  display: none;
+}
+
+/* ── 13. Professional Print Output Styles ─────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm 10mm 10mm;
+  }
+
+  /* Global Container Resets — Eliminates blank preview / scroll clipping */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box !important;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root,
+  .app-shell,
+  .main-content,
+  .page-content,
+  .module-boundary-wrapper,
+  .rpt-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Hide entire interactive app shell */
+  .sidebar,
+  .app-sidebar,
+  aside,
+  .navbar,
+  .topbar,
+  .app-header,
+  header,
+  .page-footer,
+  footer,
+  .rpt-screen-view,
+  button {
+    display: none !important;
+  }
+
+  /* Display dedicated print document */
+  .rpt-print-view,
+  .rpt-print-view * {
+    visibility: visible !important;
+  }
+
+  .rpt-print-view {
+    display: block !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 1. Print Header */
+  .rpt-print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 6px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-brand-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .rpt-print-brand-logo {
+    height: 44px !important;
+    width: auto !important;
+    max-width: 160px !important;
+    object-fit: contain !important;
+  }
+
+  .rpt-print-brand-name {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: #166534 !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1.1 !important;
+  }
+
+  .rpt-print-brand-sub {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    margin-top: 2px !important;
+  }
+
+  .rpt-print-header-meta {
+    text-align: right !important;
+  }
+
+  .rpt-print-doc-title {
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    margin: 0 0 3px 0 !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .rpt-print-meta-row {
+    font-size: 10.5px !important;
+    color: #475569 !important;
+    line-height: 1.35 !important;
+  }
+
+  .rpt-print-meta-row strong {
+    color: #1e293b !important;
+  }
+
+  .rpt-print-divider {
+    border: none !important;
+    height: 2.5px !important;
+    background-color: #166534 !important;
+    margin: 8px 0 10px !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* 2. Applied Filters (Compact Horizontal Section) */
+  .rpt-print-filters-bar {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    margin-bottom: 12px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-filter-title {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: #166534 !important;
+    white-space: nowrap !important;
+    margin-right: 4px !important;
+  }
+
+  .rpt-print-filter-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    font-size: 11px !important;
+    color: #334155 !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    white-space: nowrap !important;
+  }
+
+  .rpt-print-filter-pill strong {
+    color: #475569 !important;
+    font-weight: 600 !important;
+  }
+
+  /* 3. Summary Cards (Green, Blue, Amber, Purple subtle accents) */
+  .rpt-print-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-kpi-card {
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .rpt-print-kpi-card.accent-green {
+    border-top: 3.5px solid #166534 !important;
+    background-color: #f0fdf4 !important;
+  }
+
+  .rpt-print-kpi-card.accent-blue {
+    border-top: 3.5px solid #2563eb !important;
+    background-color: #eff6ff !important;
+  }
+
+  .rpt-print-kpi-card.accent-amber {
+    border-top: 3.5px solid #d97706 !important;
+    background-color: #fffbeb !important;
+  }
+
+  .rpt-print-kpi-card.accent-purple {
+    border-top: 3.5px solid #7c3aed !important;
+    background-color: #f5f3ff !important;
+  }
+
+  .rpt-print-kpi-label {
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .rpt-print-kpi-card.accent-green .rpt-print-kpi-label { color: #166534 !important; }
+  .rpt-print-kpi-card.accent-blue .rpt-print-kpi-label { color: #1d4ed8 !important; }
+  .rpt-print-kpi-card.accent-amber .rpt-print-kpi-label { color: #b45309 !important; }
+  .rpt-print-kpi-card.accent-purple .rpt-print-kpi-label { color: #6d28d9 !important; }
+
+  .rpt-print-kpi-val {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 4. Transaction Table */
+  .rpt-print-table-wrap {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+    page-break-inside: auto !important;
+  }
+
+  .rpt-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 10.5px !important;
+  }
+
+  .rpt-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .rpt-print-table tr {
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-table th {
+    background-color: #166534 !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    padding: 7px 6px !important;
+    border: 1px solid #14532d !important;
+    box-sizing: border-box !important;
+  }
+
+  .rpt-print-table td {
+    padding: 6.5px 6px !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    font-size: 10.5px !important;
+    box-sizing: border-box !important;
+    word-break: break-word !important;
+  }
+
+  .rpt-print-table tbody tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  .rpt-print-table tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+  }
+
+  /* Alignments */
+  .rpt-print-table .text-center {
+    text-align: center !important;
+  }
+
+  .rpt-print-table .text-left {
+    text-align: left !important;
+  }
+
+  .rpt-print-table .text-right {
+    text-align: right !important;
+  }
+
+  .rpt-print-table td.text-right {
+    font-weight: 700 !important;
+    color: #166534 !important;
+  }
+
+  /* 5. Total Income Row */
+  .rpt-print-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  .rpt-print-total-row {
+    background-color: #f0fdf4 !important;
+    font-weight: 800 !important;
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-total-row td {
+    border-top: 2px solid #166534 !important;
+    border-bottom: 2px solid #166534 !important;
+    padding: 8px 6px !important;
+  }
+
+  .rpt-print-total-label {
+    text-align: right !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    color: #166534 !important;
+    letter-spacing: 0.5px !important;
+    padding-right: 8px !important;
+  }
+
+  .rpt-print-total-amount {
+    text-align: right !important;
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    color: #166534 !important;
+  }
+
+  .rpt-print-total-mode {
+    text-align: center !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    color: #166534 !important;
+  }
+
+  /* 6. Print Footer */
+  .rpt-print-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-top: 8px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    font-size: 9.5px !important;
+    color: #64748b !important;
+    page-break-inside: avoid !important;
+  }
+
+  .rpt-print-footer-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .rpt-print-footer-dot {
+    color: #94a3b8 !important;
+  }
+}

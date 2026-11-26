@@ -1,21 +1,21 @@
 @echo off
-title AGRIMAN ngrok Tunnel for All 4 APIs
+title AGRIMAN ngrok Tunnel (travel-daringly-tapering.ngrok-free.dev -> Port 5147)
 echo ===============================================================================
-echo   Starting ngrok Tunnel for AGRIMAN Unified APIs (Port 5200)...
+echo   Starting ngrok Tunnel for AGRIMAN Unified APIs (Port 5147)...
+echo   Domain: https://travel-daringly-tapering.ngrok-free.dev
 echo ===============================================================================
 echo   Once ngrok starts:
-echo   1. Copy the Forwarding HTTPS URL (e.g. https://xxxx.ngrok-free.app)
-echo   2. Open {Forwarding-URL}/swagger in your browser for Swagger 4-in-1 Dashboard
-echo   3. Open {Forwarding-URL}/index.html in your browser for Sales UI
-echo   4. Top-right dropdown in Swagger switches between all 4 data definitions!
+echo   1. Active Tunnel: https://travel-daringly-tapering.ngrok-free.dev
+echo   2. Swagger UI:    https://travel-daringly-tapering.ngrok-free.dev/swagger
+echo   3. Local Swagger: http://localhost:5147/swagger
 echo ===============================================================================
 echo.
 cd /d "%~dp0"
 if exist "%~dp0ngrok.exe" (
-    "%~dp0ngrok.exe" http 5200
+    "%~dp0ngrok.exe" http --url=travel-daringly-tapering.ngrok-free.dev 5147
 ) else if exist "C:\Users\ADMIN\AppData\Roaming\npm\ngrok.cmd" (
-    call "C:\Users\ADMIN\AppData\Roaming\npm\ngrok.cmd" http 5200
+    call "C:\Users\ADMIN\AppData\Roaming\npm\ngrok.cmd" http --url=travel-daringly-tapering.ngrok-free.dev 5147
 ) else (
-    ngrok http 5200
+    ngrok http --url=travel-daringly-tapering.ngrok-free.dev 5147
 )
 pause

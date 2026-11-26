@@ -324,13 +324,29 @@ public class CropProfitabilityService : ICropProfitabilityService
 
         var seasons = await seasonsQuery.ToListAsync(cancellationToken);
 
+        var hasSeasonFilter = parameters.SeasonId.HasValue || !string.IsNullOrWhiteSpace(parameters.Season);
         var fromDate = parameters.FromDate?.Date;
         var toDate = parameters.ToDate?.Date.AddDays(1).AddTicks(-1);
+
+        // When filtering by Season without explicit date bounds, scope transactions to the matched season window
+        if (hasSeasonFilter && seasons.Count > 0)
+        {
+            if (!fromDate.HasValue)
+            {
+                fromDate = seasons.Min(s => s.SowingDate).Date;
+            }
+            if (!toDate.HasValue)
+            {
+                var maxEnd = seasons.Max(s => s.ActualHarvestDate ?? s.ExpectedHarvestDate ?? DateTime.UtcNow).Date;
+                toDate = maxEnd.AddDays(1).AddTicks(-1);
+            }
+        }
 
         var incomeQuery = _farmDb.IncomeTransactions
             .Include(t => t.Category)
             .Include(t => t.Items)
             .AsNoTracking()
+            .Where(t => t.Status != "Cancelled" && t.Status != "Canceled")
             .AsQueryable();
 
         if (fromDate.HasValue) incomeQuery = incomeQuery.Where(t => t.IncomeDate >= fromDate.Value);
@@ -381,7 +397,10 @@ public class CropProfitabilityService : ICropProfitabilityService
         }
 
         // Sequential queries on SalesDbContext
-        var salesQuery = _salesDb.Sales.AsNoTracking().AsQueryable();
+        var salesQuery = _salesDb.Sales
+            .AsNoTracking()
+            .Where(s => s.PaymentStatus != "Cancelled" && s.PaymentStatus != "Canceled")
+            .AsQueryable();
         if (fromDate.HasValue) salesQuery = salesQuery.Where(s => s.SalesDate >= fromDate.Value);
         if (toDate.HasValue) salesQuery = salesQuery.Where(s => s.SalesDate <= toDate.Value);
         if (resolvedFarmFilter != null)
@@ -400,8 +419,11 @@ public class CropProfitabilityService : ICropProfitabilityService
                 .ToListAsync(cancellationToken)
             : new List<SalesItem>();
 
-        // Query on ExpenseDbContext
-        var expenseQuery = _expenseDb.ExpenseTransactions.AsNoTracking().AsQueryable();
+        // Query on ExpenseDbContext (exclude Cancelled expenses)
+        var expenseQuery = _expenseDb.ExpenseTransactions
+            .AsNoTracking()
+            .Where(e => e.Status != "Cancelled" && e.Status != "Canceled")
+            .AsQueryable();
         if (fromDate.HasValue) expenseQuery = expenseQuery.Where(e => e.ExpenseDate >= fromDate.Value);
         if (toDate.HasValue) expenseQuery = expenseQuery.Where(e => e.ExpenseDate <= toDate.Value);
         if (resolvedFarmFilter != null)
@@ -420,7 +442,9 @@ public class CropProfitabilityService : ICropProfitabilityService
             resolver.GetOrCreateByMaster(mc);
         }
 
-        // 2. Accumulate Area & Seasons from CropSeasons
+        var seasonMatchedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // 2. Accumulate Area, Yield & Seasons from CropSeasons
         foreach (var season in seasons)
         {
             if (string.Equals(season.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
@@ -431,7 +455,13 @@ public class CropProfitabilityService : ICropProfitabilityService
             var bucket = resolver.GetOrCreate(season.CropId, season.Crop?.CropName);
             if (bucket == null) continue;
 
+            seasonMatchedKeys.Add(bucket.CanonicalKey);
             bucket.AreaAcres += Math.Max(0m, season.AreaAcres);
+            if (season.ActualYield.HasValue && season.ActualYield.Value > 0m)
+            {
+                var yieldUnit = season.Crop?.DefaultUnit ?? "Quintals";
+                bucket.YieldQuantityKg += ConvertToKg(season.ActualYield.Value, yieldUnit);
+            }
             if (!string.IsNullOrWhiteSpace(season.SeasonName))
             {
                 bucket.Seasons.Add(season.SeasonName.Trim());
@@ -565,7 +595,11 @@ public class CropProfitabilityService : ICropProfitabilityService
             if (!string.IsNullOrWhiteSpace(exp.Farm)) bucket.Farms.Add(exp.Farm.Trim());
         }
 
-        // 6. Accumulate LabourAttendances (when enabled)
+        // 6. Accumulate LabourAttendances (fallback per crop when no direct Labour expense was recorded, preventing double counting)
+        var cropsWithDirectLabourExpense = new HashSet<string>(
+            resolver.Buckets.Where(b => b.GetExpense("Labour") > 0m).Select(b => b.CanonicalKey),
+            StringComparer.OrdinalIgnoreCase);
+
         foreach (var lab in labourAttendances)
         {
             if (string.IsNullOrWhiteSpace(lab.CropName)) continue;
@@ -574,6 +608,7 @@ public class CropProfitabilityService : ICropProfitabilityService
 
             var bucket = resolver.GetOrCreate(null, lab.CropName);
             if (bucket == null) continue;
+            if (cropsWithDirectLabourExpense.Contains(bucket.CanonicalKey)) continue;
 
             bucket.AddExpenseBucket("Labour", amount);
             bucket.LabourAttendanceCount++;
@@ -589,6 +624,7 @@ public class CropProfitabilityService : ICropProfitabilityService
             var bucket = resolver.GetOrCreate(act.CropId, act.Crop);
             if (bucket == null) continue;
 
+            seasonMatchedKeys.Add(bucket.CanonicalKey);
             var cat = NormalizeActivityCostCategory(act.ActivityType);
             bucket.AddExpenseBucket(cat, act.TotalCost);
             bucket.CropActivityCount++;
@@ -598,6 +634,11 @@ public class CropProfitabilityService : ICropProfitabilityService
 
         // Filter buckets by CropId / Crop / Empty preference
         var allBuckets = resolver.Buckets.AsEnumerable();
+
+        if (hasSeasonFilter)
+        {
+            allBuckets = allBuckets.Where(b => seasonMatchedKeys.Contains(b.CanonicalKey));
+        }
 
         if (parameters.CropId.HasValue)
         {
@@ -692,6 +733,7 @@ public class CropProfitabilityService : ICropProfitabilityService
         var netProfit = Math.Round(totalIncome - totalExpenses, 2);
         var area = Math.Round(b.AreaAcres, 2);
         var soldKg = Math.Round(b.SoldQuantityKg, 2);
+        var effectiveKg = soldKg > 0m ? soldKg : Math.Round(b.YieldQuantityKg, 2);
 
         var primaryUnitEntry = b.RawQuantitiesByUnit
             .OrderByDescending(u => u.Value)
@@ -727,10 +769,10 @@ public class CropProfitabilityService : ICropProfitabilityService
             NetProfit = netProfit,
             NetProfitFormula = "Total Income - Total Expenses",
             ProfitStatus = DetermineProfitStatus(netProfit),
-            SoldQuantityKg = soldKg,
+            SoldQuantityKg = effectiveKg,
             PrimarySoldQuantity = Math.Round(primaryUnitEntry.Value, 2),
             PrimarySoldUnit = string.IsNullOrWhiteSpace(primaryUnitEntry.Key) ? null : primaryUnitEntry.Key,
-            Metrics = ComputeMetrics(area, soldKg, cropSales, totalIncome, totalExpenses, netProfit),
+            Metrics = ComputeMetrics(area, effectiveKg, cropSales, totalIncome, totalExpenses, netProfit),
             FormattedCropSales = FormatInr(cropSales),
             FormattedTotalIncome = FormatInr(totalIncome),
             FormattedTotalExpenses = FormatInr(totalExpenses),
@@ -931,6 +973,7 @@ public class CropProfitabilityService : ICropProfitabilityService
             "g" or "gm" or "gms" or "gram" or "grams" => quantity / 1000m,
             "qtl" or "qtls" or "quintal" or "quintals" => quantity * 100m,
             "ton" or "tons" or "tonne" or "tonnes" or "mt" or "metric ton" or "metric tons" => quantity * 1000m,
+            "bag" or "bags" => quantity * 50m,
             _ => 0m
         };
     }
@@ -996,6 +1039,7 @@ public class CropProfitabilityService : ICropProfitabilityService
         public decimal SalesDeductions { get; set; }
         public decimal OtherIncome { get; set; }
         public decimal SoldQuantityKg { get; set; }
+        public decimal YieldQuantityKg { get; set; }
 
         public int SalesCount { get; set; }
         public int IncomeTransactionCount { get; set; }

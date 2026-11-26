@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // In dev mode, use relative URL ('') so requests go through Vite proxy at localhost:5173.
 // This prevents browser CORS and 405 Method Not Allowed preflight errors.
-const isDev = import.meta.env.DEV;
-const rawBaseUrl = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev');
+const isDev = Boolean(import.meta.env?.DEV);
+const rawBaseUrl = isDev ? '' : (import.meta.env?.VITE_API_BASE_URL || 'https://travel-daringly-tapering.ngrok-free.dev');
 const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 export const BUSINESS_API_BASE_URL = BASE_URL;
 
@@ -18,14 +18,16 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('agriman_access_token') || sessionStorage.getItem('agriman_access_token');
+  const token = typeof window !== 'undefined'
+    ? (window.localStorage?.getItem('agriman_access_token') || window.sessionStorage?.getItem('agriman_access_token'))
+    : null;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 api.interceptors.request.use(
   (config) => {
-    if (import.meta.env.DEV) {
+    if (import.meta.env?.DEV) {
       console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
     return config;
@@ -40,9 +42,11 @@ api.interceptors.response.use(
     let validationErrors = null;
 
     if (error.response) {
-      const { status, data } = error.response;
+      const { status, data, headers } = error.response;
 
-      if (data && data.errors && typeof data.errors === 'object') {
+      if (headers?.['ngrok-error-code'] === 'ERR_NGROK_3200' || (typeof data === 'string' && data.includes('ERR_NGROK_3200'))) {
+        friendlyMessage = 'The backend API tunnel (travel-daringly-tapering.ngrok-free.dev) is currently offline (ERR_NGROK_3200). Please start or restart the backend ngrok tunnel.';
+      } else if (data && data.errors && typeof data.errors === 'object') {
         validationErrors = data.errors;
         const messages = Object.values(data.errors).flat();
         friendlyMessage = messages.join(' ') || data.title || 'Validation error.';
@@ -70,7 +74,7 @@ api.interceptors.response.use(
       error.friendlyMessage = error.message;
     }
 
-    if (import.meta.env.DEV) {
+    if (import.meta.env?.DEV) {
       console.error('[API Error]', error.friendlyMessage, error);
     }
 

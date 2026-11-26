@@ -1,5 +1,5 @@
-param (
-    [int]$Port = 5200
+﻿param (
+    [int]$Port = 5147
 )
 
 $ErrorActionPreference = "Continue"
@@ -56,9 +56,9 @@ function Start-BackendApi {
 }
 
 function Start-NgrokTunnel {
-    Write-Host "Starting ngrok tunnel for port $Port..." -ForegroundColor Green
+    Write-Host "Starting ngrok tunnel for port $Port on https://travel-daringly-tapering.ngrok-free.dev..." -ForegroundColor Green
     return Start-Process -FilePath $ngrokPath `
-        -ArgumentList "http $Port --log=stdout" `
+        -ArgumentList "http --url=travel-daringly-tapering.ngrok-free.dev $Port --log=stdout" `
         -WorkingDirectory $scriptDir `
         -RedirectStandardOutput $ngrokLog `
         -RedirectStandardError $ngrokErr `

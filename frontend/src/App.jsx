@@ -11,6 +11,7 @@ import ExpenseCategories from './Masters/Expense Categories/expense categories.j
 import IncomeCategories from './Masters/Income Categories/income categories.jsx'
 import Suppliers from './Masters/Suppliers/index.jsx'
 import Machinery from './Masters/Machinery/index.jsx'
+import Products from './Masters/Products/index.jsx'
 import { authRequest } from './auth.js'
 
 import Crops from './Masters/Crops/index.jsx'
@@ -32,13 +33,8 @@ import StockLedger from './Inventory/Stock Ledger/stock ledger.jsx'
 import Sales from './Sales/Sales/sales.jsx'
 import Customers from './Sales/Customers/customers.jsx'
 import Receivables from './Sales/Receivables/receivables.jsx'
-import CashFlow from './Reports/Cash Flow/cash flow.jsx'
-import CropProfit from './Reports/Crop Profit/crop profit.jsx'
-import DashboardReports from './Reports/Dashboard Reports/dashboard reports.jsx'
-import ExpenseReport from './Reports/Expense Report/expense report.jsx'
-import FarmProfit from './Reports/Farm Profit/farm profit.jsx'
-import IncomeReport from './Reports/Income Report/income report.jsx'
-import ProfitLoss from './Reports/P&L/p&l.jsx'
+import Reports from './Reports/index.jsx'
+import { REPORTS_CATALOG } from './Reports/reportsCatalog.js'
 import AuditLog from './Settings/Audit Log/audit log.jsx'
 import Company from './Settings/Company/company.jsx'
 import Roles from './Settings/Roles/roles.jsx'
@@ -47,42 +43,14 @@ import Sidebar from './Sidebar/Sidebar.jsx'
 import Navbar from './Navbar/Navbar.jsx'
 
 
-const menuGroups = [
-  { label: 'Dashboard', icon: '▦' },
-  { label: 'Masters', icon: '▤', children: ['Farmers', 'Farms', 'Crop Master', 'Crop Varieties', 'Expense Categories', 'Income Categories', 'Products', 'Suppliers', 'Machinery'] },
-  { label: 'Agriculture', icon: '♧', children: ['Crop Season', 'Crop Activities', 'Labour Attendance', 'Labour Management', 'Machinery Usage'] },
-  { label: 'Finance', icon: '₹', children: ['Income', 'Expenses', 'Payments', 'Receipts', 'Loans & Finance', 'Bank Accounts'] },
-  { label: 'Inventory', icon: '▣', children: ['Purchases', 'Product Master', 'Stock In', 'Stock Out', 'Stock Transfer', 'Stock Adjustment', 'Stock Ledger', 'Low Stock'] },
-  { label: 'Sales', icon: '▱', children: ['Sales Transactions', 'Customers', 'Payments & Receivables'] },
-  { label: 'Reports', icon: '▥', children: ['Income Report', 'Expense Report', 'Crop Profit', 'Farm Profit', 'Cash Flow', 'P&L', 'Dashboard Reports'] },
-  { label: 'Notifications', icon: '♧' },
-  { label: 'Settings', icon: '⚙', children: ['Users', 'Roles', 'Company', 'Audit Log'] },
-]
-
-// All searchable modules strictly from the sidebar menuGroups
-const sidebarNavModules = menuGroups.flatMap((group) => {
-  const list = [
-    {
-      name: group.label,
-      category: group.label,
-      icon: group.icon,
-      isParent: true,
-      path: group.label
-    }
-  ]
-  if (group.children) {
-    group.children.forEach((child) => {
-      list.push({
-        name: child,
-        category: group.label,
-        icon: group.icon,
-        isParent: false,
-        path: `${group.label} → ${child}`
-      })
-    })
-  }
-  return list
-})
+const isReportScreen = (name) => {
+  if (!name) return false
+  if (name === 'Reports' || name === 'reports') return true
+  if (String(name).startsWith('Reports:') || String(name).startsWith('Reports/')) return true
+  return REPORTS_CATALOG.some(
+    (r) => r.id === name || r.route === name || r.name.toLowerCase() === String(name).toLowerCase()
+  )
+}
 
 function formatDisplayName(email, customName) {
   if (customName) return customName
@@ -404,8 +372,6 @@ function App() {
           userRole={userRole}
           userInitials={userInitials}
           handleLogout={handleLogout}
-          unreadNotificationsCount={3}
-          sidebarNavModules={sidebarNavModules}
         />
 
         <ModuleErrorBoundary active={active}>
@@ -416,14 +382,9 @@ function App() {
           </section>
         ) : active === 'Users' ? (
           <Users />
-        ) : active === 'Crop Master' || active === 'Crops' ? (
+        ) : active === 'Crop Management' || active === 'Crop Master' || active === 'Crops' || active === 'Crop Varieties' ? (
           <section className="page-content">
-            <Crops initialTab="crops" onNavigate={selectItem} />
-            <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
-          </section>
-        ) : active === 'Crop Varieties' ? (
-          <section className="page-content">
-            <Crops initialTab="varieties" onNavigate={selectItem} />
+            <Crops initialTab="crop-management" onNavigate={selectItem} />
             <footer className="page-footer">© 2026 Agriman <span>Built for the people who grow our future.</span></footer>
           </section>
         ) : active === 'Crop Season' || active === 'Crop Seasons' ? (
@@ -465,8 +426,8 @@ function App() {
               <Loans />
             ) : active === 'Bank Accounts' ? (
               <BankAccounts />
-            ) : active === 'Product Master' ? (
-              <ProductMaster />
+            ) : active === 'Product Master' || active === 'Products' ? (
+              <Products onNavigate={selectItem} />
             ) : active === 'Purchases' ? (
               <Purchases />
             ) : active === 'Stock In' ? (
@@ -491,20 +452,8 @@ function App() {
               <ExpenseCategories />
             ) : active === 'Income Categories' ? (
               <IncomeCategories />
-            ) : active === 'Income Report' ? (
-              <IncomeReport />
-            ) : active === 'Expense Report' ? (
-              <ExpenseReport />
-            ) : active === 'Crop Profit' ? (
-              <CropProfit />
-            ) : active === 'Farm Profit' ? (
-              <FarmProfit />
-            ) : active === 'Cash Flow' ? (
-              <CashFlow />
-            ) : active === 'P&L' ? (
-              <ProfitLoss />
-            ) : active === 'Dashboard Reports' ? (
-              <DashboardReports />
+            ) : isReportScreen(active) ? (
+              <Reports activeReport={active} onNavigate={selectItem} />
             ) : active === 'Roles' ? (
               <Roles />
             ) : active === 'Company' ? (

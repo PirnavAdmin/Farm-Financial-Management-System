@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cropService } from '../../services/cropService';
+import { labourService } from '../../services/labourService';
 import './crops.css';
 
 /* ─── Crop Activity File & Photo Upload Utilities ─── */
@@ -80,8 +81,56 @@ const getFileInfo = (file) => {
 };
 
 
-function CropsInner({ initialTab = 'crops', onNavigate }) {
-  const [activeTab, setActiveTab] = useState(initialTab);
+function CropsInner({ initialTab = 'crop-management', onNavigate }) {
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialTab === 'crops' || initialTab === 'varieties') return 'crop-management';
+    return initialTab || 'crop-management';
+  });
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [cropTypeFilter, setCropTypeFilter] = useState('All');
+  const [seasonFilter, setSeasonFilter] = useState('All');
+
+  // Unified Filters Dropdown State for Crop Management
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!isFilterOpen) return undefined;
+    const handleOutsideClick = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  }, [isFilterOpen]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (cropTypeFilter !== 'All') count++;
+    if (seasonFilter !== 'All') count++;
+    if (statusFilter !== 'All') count++;
+    return count;
+  }, [cropTypeFilter, seasonFilter, statusFilter]);
+
+  const handleClearFilters = () => {
+    setCropTypeFilter('All');
+    setSeasonFilter('All');
+    setStatusFilter('All');
+  };
+
+  // Crop Management Combined Form State
+  const [cropMgmtForm, setCropMgmtForm] = useState({
+    cropName: '',
+    cropType: '',
+    varietyName: '',
+    durationDays: '',
+    season: 'Kharif',
+    status: 'Active'
+  });
 
   // Data states
   const [cropsList, setCropsList] = useState([]);
@@ -92,10 +141,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  // Search & Filter
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
 
   // Action Menu Dropdown (Three Dots)
   const [activeActionMenu, setActiveActionMenu] = useState(null); // { id, type, item }
@@ -141,6 +186,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   const [editingItem, setEditingItem] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null); // { type, item }
   const [viewTarget, setViewTarget] = useState(null); // { title, subtitle, rawItem, editType, fields }
+  const [labourDetailsTarget, setLabourDetailsTarget] = useState(null);
+  const [labourDetails, setLabourDetails] = useState([]);
+  const [labourDetailsMatch, setLabourDetailsMatch] = useState('');
+  const [labourDetailsLoading, setLabourDetailsLoading] = useState(false);
+  const [labourDetailsError, setLabourDetailsError] = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -403,38 +453,38 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
   // Form states
   const [cropForm, setCropForm] = useState({
-    cropCode: '', cropName: '', cropType: 'Kharif / Food Grain',
-    cropCategory: 'Cereals', defaultUnit: 'Quintals', status: 'Active', description: ''
+    cropCode: '', cropName: '', cropType: '',
+    cropCategory: '', defaultUnit: '', status: '', description: ''
   });
   const [seasonForm, setSeasonForm] = useState({
-    seasonCode: '', farm: 'Farm 1 (South Block)', crop: 'Paddy',
-    variety: 'BPT 5204 (Samba Mahsuri)', season: 'Kharif 2025-26',
+    seasonCode: '', farm: '', crop: '',
+    variety: '', season: '',
     sowingDate: '', expectedHarvestDate: '', actualHarvestDate: '',
-    area: '5 Acres', expectedYield: '', expectedRevenue: '',
-    actualYield: '', actualRevenue: '', status: 'In Progress'
+    area: '', expectedYield: '', expectedRevenue: '',
+    actualYield: '', actualRevenue: '', status: ''
   });
   const [activityForm, setActivityForm] = useState({
     activityCode: '',
-    farm: 'Farm 1 (South Block)',
-    crop: 'Cotton',
-    season: 'Kharif 2025-26',
-    activityType: 'Land Preparation',
-    activityDate: new Date().toISOString().split('T')[0],
-    labourWorkers: '4 Labourers',
-    machinery: 'Mahindra 575 DI Tractor',
+    farm: '',
+    crop: '',
+    season: '',
+    activityType: '',
+    activityDate: '',
+    labourWorkers: '',
+    machinery: '',
     materialsUsed: '',
-    totalCost: '₹ 5,000',
-    status: 'In Progress',
-    supervisor: 'Niranjan Reddy',
+    totalCost: '',
+    status: '',
+    supervisor: '',
     notes: '',
     attachments: []
   });
   const [varietyForm, setVarietyForm] = useState({
-    code: '', cropName: 'Paddy', varietyName: '', durationDays: 120,
-    season: 'Kharif', expectedYield: '', status: 'Active'
+    code: '', cropName: '', varietyName: '', durationDays: '',
+    season: '', expectedYield: '', status: ''
   });
   const [categoryForm, setCategoryForm] = useState({
-    code: '', name: '', description: '', status: 'Active'
+    code: '', name: '', description: '', status: ''
   });
 
   // Toast feedback
@@ -448,7 +498,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   // Sync activeTab when initialTab prop changes
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab);
+      if (initialTab === 'crops' || initialTab === 'varieties') {
+        setActiveTab('crop-management');
+      } else {
+        setActiveTab(initialTab);
+      }
     }
   }, [initialTab]);
 
@@ -489,6 +543,199 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   const safeActivities = Array.isArray(activitiesList) ? activitiesList : [];
   const safeVarieties = Array.isArray(varietiesList) ? varietiesList : [];
   const safeCategories = Array.isArray(categoriesList) ? categoriesList : [];
+
+  // Helper: Resolve agricultural crop type (Cereal, Vegetable, Spices, Fibre Crop, Oilseeds, Commercial, Pulses, Horticulture, etc.)
+const resolveCropType = (crop) => {
+  if (!crop) return 'Field Crop';
+  const rawType = String(crop.cropType || '').trim();
+  const lowerType = rawType.toLowerCase();
+  const seasonWords = ['kharif', 'rabi', 'zaid', 'annual', 'perennial', 'summer', 'winter', 'monsoon', 'standing', 'seasonal'];
+
+  // If rawType is an actual agricultural type and not a season/duration word
+  if (rawType && !seasonWords.includes(lowerType) && lowerType !== 'field crop' && lowerType !== 'agricultural') {
+    return rawType;
+  }
+
+  // Derive from cropName
+  const name = String(crop.cropName || crop.name || '').toLowerCase();
+  if (name.includes('paddy') || name.includes('rice') || name.includes('wheat') || name.includes('maize') || name.includes('corn') || name.includes('millet') || name.includes('jowar') || name.includes('bajra') || name.includes('ragi') || name.includes('barley')) {
+    return 'Cereal';
+  }
+  if (name.includes('tomato') || name.includes('onion') || name.includes('potato') || name.includes('brinjal') || name.includes('eggplant') || name.includes('okra') || name.includes('bhendi') || name.includes('cabbage') || name.includes('cauliflower') || name.includes('vegetable')) {
+    return 'Vegetable';
+  }
+  if (name.includes('chilli') || name.includes('chili') || name.includes('pepper') || name.includes('turmeric') || name.includes('ginger') || name.includes('spice')) {
+    return 'Spices';
+  }
+  if (name.includes('cotton') || name.includes('jute')) {
+    return 'Fibre Crop';
+  }
+  if (name.includes('groundnut') || name.includes('peanut') || name.includes('soybean') || name.includes('mustard') || name.includes('sunflower') || name.includes('oilseed')) {
+    return 'Oilseeds';
+  }
+  if (name.includes('sugarcane') || name.includes('tobacco')) {
+    return 'Commercial';
+  }
+  if (name.includes('gram') || name.includes('pulse') || name.includes('dal') || name.includes('pea') || name.includes('lentil')) {
+    return 'Pulses';
+  }
+  if (name.includes('mango') || name.includes('banana') || name.includes('guava') || name.includes('citrus') || name.includes('apple') || name.includes('fruit')) {
+    return 'Horticulture';
+  }
+
+  // Fallback to cropCategory if meaningful
+  const cat = String(crop.cropCategory || crop.category || '').trim();
+  if (cat && !['field crop', 'agricultural', 'active', 'inactive'].includes(cat.toLowerCase())) {
+    return cat;
+  }
+
+  return 'Field Crop';
+};
+
+  // ── Combined Crop Management Dataset (Merging Crop Master & Crop Varieties) ──
+  const combinedCropManagementRows = useMemo(() => {
+    const rows = [];
+    const matchedVarietyIds = new Set();
+
+    safeCrops.forEach((c) => {
+      const cName = String(c.cropName || '').trim();
+      const cId = c.cropCode || (c.id ? `CRP-${String(c.id).padStart(3, '0')}` : 'CRP-001');
+
+      // Find all varieties associated with this crop (by cropId or matching cropName)
+      const linkedVarieties = safeVarieties.filter((v) => {
+        if (!v) return false;
+        if (v.cropId && String(v.cropId) === String(c.id)) return true;
+        if (v.cropName && v.cropName.trim().toLowerCase() === cName.toLowerCase()) return true;
+        return false;
+      });
+
+      if (linkedVarieties.length > 0) {
+        linkedVarieties.forEach((v) => {
+          matchedVarietyIds.add(v.id);
+          const resolvedType = resolveCropType(c);
+          rows.push({
+            uniqueKey: `crop-${c.id}-var-${v.id}`,
+            rowId: `crop-${c.id}-var-${v.id}`,
+            cropId: cId,
+            cropName: cName,
+            cropType: resolvedType,
+            varietyName: v.varietyName || v.name || '—',
+            durationDays: v.durationDays || v.duration || '',
+            season: v.season || 'Kharif',
+            status: v.status || c.status || 'Active',
+            rawCrop: c,
+            rawVariety: v
+          });
+        });
+      } else {
+        // Crop with no variety registered yet
+        const resolvedType = resolveCropType(c);
+        rows.push({
+          uniqueKey: `crop-${c.id}-standalone`,
+          rowId: `crop-${c.id}-standalone`,
+          cropId: cId,
+          cropName: cName,
+          cropType: resolvedType,
+          varietyName: '—',
+          durationDays: '',
+          season: '—',
+          status: c.status || 'Active',
+          rawCrop: c,
+          rawVariety: null
+        });
+      }
+    });
+
+    // Support standalone varieties without linked crop in master list
+    safeVarieties.forEach((v) => {
+      if (!matchedVarietyIds.has(v.id)) {
+        const cName = v.cropName || 'Other Crop';
+        const resolvedType = resolveCropType({ cropName: cName, cropType: v.cropType });
+        rows.push({
+          uniqueKey: `var-orphan-${v.id}`,
+          rowId: `var-orphan-${v.id}`,
+          cropId: v.code ? `CRP-${String(v.code).replace(/\D/g, '').padStart(3, '0')}` : 'CRP-009',
+          cropName: cName,
+          cropType: resolvedType,
+          varietyName: v.varietyName || '—',
+          durationDays: v.durationDays || '',
+          season: v.season || 'Seasonal',
+          status: v.status || 'Active',
+          rawCrop: null,
+          rawVariety: v
+        });
+      }
+    });
+
+    // Deterministic sorting by Crop ID sequence
+    return rows.sort((a, b) => {
+      const numA = parseInt(String(a.cropId).replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.cropId).replace(/\D/g, ''), 10) || 0;
+      if (numA !== numB) return numA - numB;
+      return String(a.cropName).localeCompare(String(b.cropName));
+    });
+  }, [safeCrops, safeVarieties]);
+
+  // Unique Dropdown Options dynamically extracted from data
+  const availableCropTypes = useMemo(() => {
+    const set = new Set();
+    combinedCropManagementRows.forEach(r => {
+      if (r.cropType && r.cropType !== '—') set.add(r.cropType.trim());
+    });
+    ['Cereal', 'Vegetable', 'Spices', 'Fibre Crop', 'Oilseeds', 'Commercial', 'Pulses', 'Horticulture'].forEach(t => set.add(t));
+    const sorted = Array.from(set).filter(Boolean).sort();
+    return ['All', ...sorted];
+  }, [combinedCropManagementRows]);
+
+  const availableSeasons = useMemo(() => {
+    const set = new Set();
+    combinedCropManagementRows.forEach(r => {
+      if (r.season && r.season !== '—') set.add(r.season.trim());
+    });
+    ['Kharif', 'Rabi', 'Zaid', 'Kharif-Rabi', 'Perennial', 'All Season'].forEach(s => set.add(s));
+    const sorted = Array.from(set).filter(Boolean).sort();
+    return ['All', ...sorted];
+  }, [combinedCropManagementRows]);
+
+  // Combined Crop Management Filtering
+  const filteredCropManagementRows = useMemo(() => {
+    const q = (searchQuery || '').trim().toLowerCase();
+    const ct = (cropTypeFilter || 'All').trim().toLowerCase();
+    const sf = (seasonFilter || 'All').trim().toLowerCase();
+    const st = (statusFilter || 'All').trim().toLowerCase();
+
+    return combinedCropManagementRows.filter((r) => {
+      if (!r) return false;
+      const matchSearch = !q || (
+        String(r.cropId || '').toLowerCase().includes(q) ||
+        String(r.cropName || '').toLowerCase().includes(q) ||
+        String(r.cropType || '').toLowerCase().includes(q) ||
+        String(r.cropCategory || '').toLowerCase().includes(q) ||
+        String(r.varietyName || '').toLowerCase().includes(q) ||
+        String(r.season || '').toLowerCase().includes(q) ||
+        String(r.durationDays || '').toLowerCase().includes(q)
+      );
+      const matchCropType = ct === 'all' || String(r.cropType || '').toLowerCase() === ct;
+      const matchSeason = sf === 'all' || String(r.season || '').toLowerCase().includes(sf);
+      const matchStatus = st === 'all' || String(r.status || 'Active').toLowerCase() === st;
+
+      return matchSearch && matchCropType && matchSeason && matchStatus;
+    });
+  }, [combinedCropManagementRows, searchQuery, cropTypeFilter, seasonFilter, statusFilter]);
+
+  // Dynamic Crop Management Summary Counts
+  const cropMgmtTotalCrops = useMemo(() => {
+    const unique = new Set();
+    safeCrops.forEach(c => {
+      if (c && c.cropName) unique.add(c.cropName.trim().toLowerCase());
+    });
+    return unique.size || safeCrops.length;
+  }, [safeCrops]);
+
+  const cropMgmtTotalVarieties = safeVarieties.length;
+  const cropMgmtActiveCount = useMemo(() => {
+    return combinedCropManagementRows.filter(r => (r.status || 'Active').toLowerCase() === 'active').length;
+  }, [combinedCropManagementRows]);
 
   // 1. Crop Master stats
   const totalCropsCount = safeCrops.length;
@@ -660,10 +907,16 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
   // Dynamic Tab Meta Information
   const tabMeta = {
+    'crop-management': {
+      eyebrow: 'MASTERS • CROPS',
+      title: 'Crops',
+      subtitle: 'Manage crops and varieties in one place.',
+      addLabel: 'Crop'
+    },
     crops: {
-      eyebrow: 'MASTERS • CROP MASTER',
-      title: 'Crop Master',
-      subtitle: 'Manage standard crop species, biological classifications, harvest units, and active statuses.',
+      eyebrow: 'MASTERS • CROPS',
+      title: 'Crops',
+      subtitle: 'Manage crops and varieties in one place.',
       addLabel: 'Crop'
     },
     seasons: {
@@ -691,17 +944,17 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       addLabel: 'Category'
     }
   };
-  const currentTabInfo = tabMeta[activeTab] || tabMeta.crops;
+  const currentTabInfo = tabMeta[activeTab] || tabMeta['crop-management'] || tabMeta.crops;
 
   // Active Tab Filtered Items & Pagination calculation
   const currentList = useMemo(() => {
-    if (activeTab === 'crops') return filteredCrops;
+    if (activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties') return filteredCropManagementRows;
     if (activeTab === 'seasons') return filteredSeasons;
     if (activeTab === 'varieties') return filteredVarieties;
     if (activeTab === 'categories') return filteredCategories;
     if (activeTab === 'activities') return filteredActivities;
     return [];
-  }, [activeTab, filteredCrops, filteredSeasons, filteredVarieties, filteredCategories, filteredActivities]);
+  }, [activeTab, filteredCropManagementRows, filteredSeasons, filteredVarieties, filteredCategories, filteredActivities]);
 
   const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
   const pagedList = useMemo(() => {
@@ -733,7 +986,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           { label: 'Status', value: target.status },
           { label: 'Cultivated Farm', value: target.farm || 'Sample Farm' },
           { label: 'Planting Season / Date', value: target.plantingDate || 'Seasonal' },
-          { label: 'Description & Notes', value: target.description || 'Standard agricultural cultivar.', fullWidth: true }
+          { label: 'Description & Notes', value: (typeof target?.description === 'string' && target.description.trim() && !target.description.toLowerCase().includes('standard cultivar') && !target.description.toLowerCase().includes('standard agricultural cultivar')) ? target.description : '—', fullWidth: true }
         ]
       });
     } else if (type === 'category') {
@@ -790,6 +1043,24 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           { label: 'Actual Revenue', value: target.actualRevenue || '-' }
         ]
       });
+    } else if (type === 'crop-management') {
+      setViewTarget({
+        title: `Crop Details: ${item.cropName}`,
+        subtitle: `${item.cropId} • ${item.varietyName || 'Standard'}`,
+        rawItem: item,
+        editType: 'crop-management',
+        fields: [
+          { label: 'Crop ID', value: item.cropId },
+          { label: 'Crop Name', value: item.cropName },
+          { label: 'Crop Type', value: item.cropType },
+          { label: 'Variety / Hybrid Name', value: item.varietyName || '—' },
+          { label: 'Duration (Days)', value: item.durationDays ? `${item.durationDays} Days` : '—' },
+          { label: 'Season', value: item.season || '—' },
+          { label: 'Status', value: item.status || 'Active' },
+          { label: 'Cultivated Farm', value: item.rawCrop?.farm || 'Sample Farm' },
+          { label: 'Description & Notes', value: (typeof item.rawCrop?.description === 'string' && item.rawCrop.description.trim() && !item.rawCrop.description.toLowerCase().includes('standard cultivar') && !item.rawCrop.description.toLowerCase().includes('standard agricultural cultivar')) ? item.rawCrop.description : '—', fullWidth: true }
+        ]
+      });
     } else if (type === 'variety') {
       let target = item;
       try {
@@ -844,6 +1115,137 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
     }
   };
 
+  const handleOpenLabourDetails = async (activity) => {
+    setLabourDetailsTarget(activity);
+    setLabourDetails([]);
+    setLabourDetailsMatch('');
+    setLabourDetailsError('');
+    setLabourDetailsLoading(true);
+
+    try {
+      const [attendanceRecords, labourRecords, paymentRecords] = await Promise.all([
+        labourService.getAttendance(),
+        labourService.getLabours(),
+        labourService.getPayments()
+      ]);
+      const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const dateOnly = (value) => String(value || '').split(/[T ]/)[0];
+      const parseAmount = (value) => {
+        const amount = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+        return Number.isFinite(amount) ? amount : 0;
+      };
+      const activityDate = dateOnly(activity.activityDate);
+      const activityFarm = normalize(activity.farm);
+      const activityCrop = normalize(activity.crop);
+      const labourNames = new Map(
+        labourRecords.map((labour) => [String(labour.id), labour.labourName])
+      );
+
+      const allAttendance = attendanceRecords.map((record, index) => ({
+        record,
+        key: String(record.id || record.attendanceCode || index),
+        labourId: String(record.labourId || ''),
+        date: dateOnly(record.attendanceDate || record.date),
+        amount: parseAmount(record.amount ?? record.calculatedAmount),
+        index
+      }));
+      const paidByAttendance = new Map(allAttendance.map(({ key }) => [key, 0]));
+      const orderedPayments = [...paymentRecords].sort(
+        (a, b) => dateOnly(a.paymentDate).localeCompare(dateOnly(b.paymentDate))
+      );
+
+      orderedPayments.forEach((payment) => {
+        const paymentStart = dateOnly(payment.periodStart || payment.periodEnd || payment.paymentDate);
+        const paymentEnd = dateOnly(payment.periodEnd || payment.periodStart || payment.paymentDate);
+        let remaining = parseAmount(payment.amountPaid);
+        if (!paymentStart || !paymentEnd || paymentStart > paymentEnd || remaining <= 0) return;
+
+        const eligibleAttendance = allAttendance
+          .filter((entry) => (
+            entry.labourId === String(payment.labourId || '') &&
+            entry.date >= paymentStart &&
+            entry.date <= paymentEnd
+          ))
+          .sort((a, b) => a.date.localeCompare(b.date) || a.index - b.index);
+
+        eligibleAttendance.forEach((entry) => {
+          if (remaining <= 0) return;
+          const alreadyPaid = paidByAttendance.get(entry.key) || 0;
+          const stillDue = Math.max(0, entry.amount - alreadyPaid);
+          const allocated = Math.min(stillDue, remaining);
+          paidByAttendance.set(entry.key, alreadyPaid + allocated);
+          remaining -= allocated;
+        });
+      });
+
+      const dateAndCropMatches = allAttendance.filter(({ record }) => (
+        dateOnly(record.attendanceDate || record.date) === activityDate &&
+        normalize(record.cropName) === activityCrop
+      ));
+      const sameFarmMatches = dateAndCropMatches.filter(
+        ({ record }) => normalize(record.farmName) === activityFarm
+      );
+      const matchingAttendance = (sameFarmMatches.length > 0 ? sameFarmMatches : dateAndCropMatches)
+        .map(({ record, key, amount }) => {
+          const paidAmount = Math.min(amount, paidByAttendance.get(key) || 0);
+          const paymentStatus = amount <= 0
+            ? 'Amount not set'
+            : paidAmount >= amount
+              ? 'Paid'
+              : paidAmount > 0
+                ? 'Partially paid'
+                : 'Unpaid';
+
+          return {
+            ...record,
+            labourName: record.labourName ||
+              labourNames.get(String(record.labourId)) ||
+              (record.labourId ? `Labour #${record.labourId}` : 'Labourer'),
+            amount,
+            paidAmount,
+            paymentStatus
+          };
+        });
+
+      if (matchingAttendance.length > 0) {
+        setLabourDetailsMatch(sameFarmMatches.length > 0 ? 'date-farm-crop' : 'date-crop');
+        setLabourDetails(matchingAttendance);
+      } else {
+        const activeLabours = labourRecords.filter(
+          (labour) => String(labour.status || 'Active').toLowerCase() !== 'inactive'
+        );
+        const sampleLabours = activeLabours.length > 0 ? activeLabours : labourRecords;
+        const requestedCount = Number(String(activity.labourWorkers || '').match(/\d+/)?.[0]) || 1;
+        const workerLabel = normalize(activity.labourWorkers);
+        const femaleLabours = workerLabel.includes('women')
+          ? sampleLabours.filter((labour) => normalize(labour.gender) === 'female')
+          : [];
+        const workersToShow = (femaleLabours.length > 0 ? femaleLabours : sampleLabours)
+          .slice(0, Math.min(requestedCount, sampleLabours.length));
+
+        setLabourDetailsMatch(workersToShow.length > 0 ? 'sample' : 'no-match');
+        setLabourDetails(workersToShow.map((labour, index) => ({
+          id: `sample-${activity.id}-${labour.id || index}`,
+          labourName: labour.labourName || `Labourer ${index + 1}`,
+          farmName: activity.farm,
+          workType: activity.activityType,
+          workBasis: 'Days',
+          unitsWorked: 1,
+          amount: Number(labour.dailyRate) || 400,
+          paidAmount: 0,
+          paymentStatus: 'Unpaid',
+          notes: '',
+          isSample: true
+        })));
+      }
+    } catch (error) {
+      console.error('[Crops] Failed to load matching labour attendance:', error);
+      setLabourDetailsError('Could not load labour attendance details. Please try again.');
+    } finally {
+      setLabourDetailsLoading(false);
+    }
+  };
+
   // Reusable Pagination Footer
   const renderPaginationFooter = (itemCount) => {
     if (itemCount === 0) return null;
@@ -887,55 +1289,201 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
   };
 
   // Handlers for Add / Edit
+  const handleOpenAddCropManagement = () => {
+    setEditingItem(null);
+    setCropMgmtForm({
+      cropName: '',
+      cropType: '',
+      varietyName: '',
+      durationDays: '',
+      season: 'Kharif',
+      status: 'Active'
+    });
+    setModalType('crop-management');
+  };
+
+  const handleOpenEditCropManagement = (row) => {
+    setEditingItem(row);
+    setCropMgmtForm({
+      cropName: row.cropName || '',
+      cropType: row.cropType || '',
+      varietyName: row.varietyName === '—' ? '' : (row.varietyName || ''),
+      durationDays: row.durationDays || '',
+      season: row.season === '—' ? 'Kharif' : (row.season || 'Kharif'),
+      status: row.status || 'Active'
+    });
+    setModalType('crop-management');
+  };
+
+  const handleSaveCropManagement = async (e) => {
+    e.preventDefault();
+    if (!cropMgmtForm.cropName?.trim()) {
+      showToast('Crop Name is required', 'error');
+      return;
+    }
+    if (!cropMgmtForm.varietyName?.trim()) {
+      showToast('Variety / Hybrid Name is required', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const cName = cropMgmtForm.cropName.trim();
+      const vName = cropMgmtForm.varietyName.trim();
+      const cType = cropMgmtForm.cropType?.trim() || resolveCropType({ cropName: cName });
+      const durDays = cropMgmtForm.durationDays ? Number(cropMgmtForm.durationDays) : null;
+      const seas = cropMgmtForm.season?.trim() || 'Kharif';
+      const stat = cropMgmtForm.status || 'Active';
+
+      if (editingItem) {
+        if (editingItem.rawVariety) {
+          await cropVarietyService.updateVariety(editingItem.rawVariety.id, {
+            ...editingItem.rawVariety,
+            varietyName: vName,
+            cropName: cName,
+            durationDays: durDays,
+            season: seas,
+            status: stat
+          });
+        }
+        if (editingItem.rawCrop) {
+          await cropService.updateCrop(editingItem.rawCrop.id, {
+            ...editingItem.rawCrop,
+            cropName: cName,
+            cropType: cType,
+            cropCategory: cCat,
+            status: stat
+          });
+        }
+        showToast('Crop & Variety record updated successfully!', 'success');
+      } else {
+        // 1. Check if crop already exists
+        let targetCrop = safeCrops.find(
+          c => String(c.cropName || '').trim().toLowerCase() === cName.toLowerCase()
+        );
+
+        if (!targetCrop) {
+          const nextCropSeq = safeCrops.length + 1;
+          const newCropPayload = {
+            cropCode: `CRP-${String(nextCropSeq).padStart(3, '0')}`,
+            cropName: cName,
+            cropType: cType,
+            cropCategory: cCat,
+            defaultUnit: 'Quintals',
+            status: stat,
+            farm: 'Sample Farm',
+            description: `${cName} agricultural crop record.`
+          };
+          targetCrop = await cropService.createCrop(newCropPayload);
+        } else if (cType !== targetCrop.cropType || cCat !== targetCrop.cropCategory) {
+          await cropService.updateCrop(targetCrop.id, {
+            ...targetCrop,
+            cropType: cType,
+            cropCategory: cCat
+          });
+        }
+
+        // 2. Create the associated variety record
+        const nextVarSeq = safeVarieties.length + 1;
+        const newVarietyPayload = {
+          code: `VAR-${String(nextVarSeq).padStart(3, '0')}`,
+          cropId: targetCrop?.id,
+          cropName: targetCrop?.cropName || cName,
+          varietyName: vName,
+          durationDays: durDays,
+          season: seas,
+          status: stat,
+          expectedYield: '—'
+        };
+        await cropVarietyService.createVariety(newVarietyPayload);
+        showToast('Crop & Variety successfully added!', 'success');
+      }
+
+      setModalType(null);
+      setEditingItem(null);
+      await loadData();
+    } catch (err) {
+      console.error('[handleSaveCropManagement error]:', err);
+      showToast(err.message || 'Failed to save crop record', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleCropManagementStatus = async (item) => {
+    const newStatus = (item.status || 'Active') === 'Active' ? 'Inactive' : 'Active';
+    try {
+      if (item.rawVariety && cropVarietyService.updateVariety) {
+        await cropVarietyService.updateVariety(item.rawVariety.id, {
+          ...item.rawVariety,
+          status: newStatus
+        });
+      }
+      if (item.rawCrop && cropService.updateCrop) {
+        await cropService.updateCrop(item.rawCrop.id, {
+          ...item.rawCrop,
+          status: newStatus
+        });
+      }
+      showToast(`Record status updated to "${newStatus}"`, 'success');
+      await loadData();
+    } catch (err) {
+      console.error('[handleToggleCropManagementStatus error]:', err);
+      showToast('Failed to update status.', 'error');
+    }
+  };
+
   const handleOpenAdd = () => {
     setEditingItem(null);
+    if (activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties') {
+      handleOpenAddCropManagement();
+      return;
+    }
     if (activeTab === 'crops') {
       const nextNum = cropsList.length + 1;
       setCropForm({
         cropCode: `CRP-${String(nextNum).padStart(3, '0')}`,
         cropName: '',
-        cropType: 'Kharif / Food Grain',
-        cropCategory: categoriesList[0]?.name || 'Cereals',
-        defaultUnit: 'Quintals',
-        status: 'Active',
+        cropType: '',
+        cropCategory: '',
+        cropCategoryId: '',
+        defaultUnit: '',
+        status: '',
         description: ''
       });
       setModalType('crop');
     } else if (activeTab === 'seasons') {
       const nextNum = seasonsList.length + 1;
-      const defaultFarm = availableFarms[0] || 'Farm 1 (South Block)';
-      const defaultCrop = safeCrops[0]?.cropName || 'Paddy';
-      const matchedVariety = safeVarieties.find(v => v.cropName === defaultCrop);
       setSeasonForm({
         seasonCode: `CS-${new Date().getFullYear()}-${String(nextNum).padStart(2, '0')}`,
-        farm: defaultFarm,
-        farmName: defaultFarm,
-        crop: defaultCrop,
-        cropName: defaultCrop,
-        variety: matchedVariety ? matchedVariety.varietyName : 'Standard Hybrid',
-        varietyName: matchedVariety ? matchedVariety.varietyName : 'Standard Hybrid',
-        season: 'Kharif 2025-26',
-        sowingDate: new Date().toISOString().split('T')[0],
+        farm: '',
+        farmName: '',
+        crop: '',
+        cropName: '',
+        variety: '',
+        varietyName: '',
+        season: '',
+        sowingDate: '',
         expectedHarvestDate: '',
         actualHarvestDate: '',
-        area: '5 Acres',
-        expectedYield: '50 Quintals',
+        area: '',
+        expectedYield: '',
         actualYield: '',
-        expectedRevenue: '₹ 1,50,000',
+        expectedRevenue: '',
         actualRevenue: '',
-        status: 'In Progress'
+        status: ''
       });
       setModalType('season');
     } else if (activeTab === 'varieties') {
       const nextNum = varietiesList.length + 1;
       setVarietyForm({
         code: `VAR-${String(nextNum).padStart(3, '0')}`,
-        cropName: safeCrops[0]?.cropName || 'Paddy',
+        cropName: '',
         varietyName: '',
-        durationDays: 120,
-        season: 'Kharif',
-        expectedYield: '25-30 Qtl/Acre',
-        status: 'Active'
+        durationDays: '',
+        season: '',
+        expectedYield: '',
+        status: ''
       });
       setModalType('variety');
     } else if (activeTab === 'categories') {
@@ -944,24 +1492,24 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         code: `CAT-${String(nextNum).padStart(2, '0')}`,
         name: '',
         description: '',
-        status: 'Active'
+        status: ''
       });
       setModalType('category');
     } else if (activeTab === 'activities') {
       const nextNum = safeActivities.length + 1;
       setActivityForm({
         activityCode: `ACT-${new Date().getFullYear()}-${String(nextNum).padStart(2, '0')}`,
-        farm: safeSeasons[0]?.farm || 'Farm 1 (South Block)',
-        crop: safeCrops[0]?.cropName || 'Cotton',
-        season: safeSeasons[0]?.season || 'Kharif 2025-26',
-        activityType: 'Land Preparation',
-        activityDate: new Date().toISOString().split('T')[0],
-        labourWorkers: '4 Labourers',
-        machinery: 'Mahindra 575 DI Tractor',
+        farm: '',
+        crop: '',
+        season: '',
+        activityType: '',
+        activityDate: '',
+        labourWorkers: '',
+        machinery: '',
         materialsUsed: '',
-        totalCost: '₹ 5,000',
-        status: 'In Progress',
-        supervisor: 'Niranjan Reddy',
+        totalCost: '',
+        status: '',
+        supervisor: '',
         notes: '',
         attachments: []
       });
@@ -1068,8 +1616,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         const matchedCat = categoriesList.find(c => (c.name || c.categoryName) === cropForm.cropCategory);
         const payload = {
           ...cropForm,
+          cropType: cropForm.cropType || 'Kharif / Food Grain',
           cropCategoryId: matchedCat?.id || cropForm.cropCategoryId || 1,
-          cropCategory: cropForm.cropCategory || matchedCat?.name || 'Cereal'
+          cropCategory: cropForm.cropCategory || matchedCat?.name || 'Cereals',
+          defaultUnit: cropForm.defaultUnit || 'Quintals',
+          status: cropForm.status || 'Active'
         };
         if (editingItem) {
           await cropService.updateCrop(editingItem.id, payload);
@@ -1136,7 +1687,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           farm: farmVal,
           farmName: farmVal,
           crop: cropVal,
-          cropName: cropVal
+          cropName: cropVal,
+          status: seasonForm.status || 'In Progress'
         };
         if (editingItem) {
           await cropService.updateSeason(editingItem.id, recordToSave);
@@ -1151,11 +1703,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const varietyToSave = {
+          ...varietyForm,
+          status: varietyForm.status || 'Active'
+        };
         if (editingItem) {
-          await cropService.updateVariety(editingItem.id, varietyForm);
+          await cropService.updateVariety(editingItem.id, varietyToSave);
           showToast(`Variety "${varietyForm.varietyName}" updated.`);
         } else {
-          await cropService.createVariety(varietyForm);
+          await cropService.createVariety(varietyToSave);
           showToast(`Variety "${varietyForm.varietyName}" added.`);
         }
       } else if (modalType === 'category') {
@@ -1164,11 +1720,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const categoryToSave = {
+          ...categoryForm,
+          status: categoryForm.status || 'Active'
+        };
         if (editingItem) {
-          await cropService.updateCategory(editingItem.id, categoryForm);
+          await cropService.updateCategory(editingItem.id, categoryToSave);
           showToast(`Category "${categoryForm.name}" updated.`);
         } else {
-          await cropService.createCategory(categoryForm);
+          await cropService.createCategory(categoryToSave);
           showToast(`Category "${categoryForm.name}" created.`);
         }
       } else if (modalType === 'activity') {
@@ -1177,11 +1737,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           setSaving(false);
           return;
         }
+        const activityToSave = {
+          ...activityForm,
+          status: activityForm.status || 'In Progress'
+        };
         if (editingItem) {
-          await cropService.updateActivity(editingItem.id, activityForm);
+          await cropService.updateActivity(editingItem.id, activityToSave);
           showToast(`Activity "${activityForm.activityCode}" updated.`);
         } else {
-          await cropService.createActivity(activityForm);
+          await cropService.createActivity(activityToSave);
           showToast(`Activity "${activityForm.activityCode}" logged.`);
         }
       }
@@ -1323,45 +1887,26 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
       {/* 2. Top Metric Cards - Strictly scoped to the relevant module */}
       <div className="cr-stats-grid">
-        {activeTab === 'crops' && (
+        {(activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties') && initialTab !== 'seasons' && initialTab !== 'activities' && (
           <>
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#f0fdf4', color: '#15803d' }}>
-                🌱
-              </div>
               <div className="cr-stat-info">
                 <span className="cr-stat-label">Total Crops</span>
-                <span className="cr-stat-value">{totalCropsCount} Crops</span>
+                <span className="cr-stat-value">{cropMgmtTotalCrops}</span>
               </div>
             </div>
 
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
-                ✓
-              </div>
               <div className="cr-stat-info">
-                <span className="cr-stat-label">Active Crops</span>
-                <span className="cr-stat-value">{activeCropsCount} Active</span>
+                <span className="cr-stat-label">Total Varieties</span>
+                <span className="cr-stat-value">{cropMgmtTotalVarieties}</span>
               </div>
             </div>
 
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#f8fafc', color: '#64748b' }}>
-                ⏸
-              </div>
               <div className="cr-stat-info">
-                <span className="cr-stat-label">Inactive Crops</span>
-                <span className="cr-stat-value">{inactiveCropsCount} Inactive</span>
-              </div>
-            </div>
-
-            <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                🏷️
-              </div>
-              <div className="cr-stat-info">
-                <span className="cr-stat-label">Categories</span>
-                <span className="cr-stat-value">{totalCategoriesCount} Categories</span>
+                <span className="cr-stat-label">Active</span>
+                <span className="cr-stat-value">{cropMgmtActiveCount}</span>
               </div>
             </div>
           </>
@@ -1414,9 +1959,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
         {activeTab === 'activities' && (
           <>
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
-                🚜
-              </div>
               <div className="cr-stat-info">
                 <span className="cr-stat-label">Crop Activities</span>
                 <span className="cr-stat-value">{totalActivitiesCount} Logged</span>
@@ -1424,9 +1966,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             </div>
 
             <div className="cr-stat-card">
-              <div className="cr-stat-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                ⚡
-              </div>
               <div className="cr-stat-info">
                 <span className="cr-stat-label">In Progress</span>
                 <span className="cr-stat-value">{inProgressActivitiesCount} Active</span>
@@ -1515,14 +2054,14 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       </div>
 
       {/* 3. Sub Tabs Navigation - Only shown for Crop Master module to manage Crop Master & Categories */}
-      {(initialTab === 'crops' || activeTab === 'crops' || activeTab === 'categories') && initialTab !== 'seasons' && initialTab !== 'activities' && initialTab !== 'varieties' && (
+      {activeTab === 'categories' && initialTab !== 'crop-management' && (
         <div className="cr-tabs-bar">
           <button
             type="button"
             className={`cr-tab-btn ${activeTab === 'crops' ? 'active' : ''}`}
             onClick={() => { setActiveTab('crops'); setSearchQuery(''); setStatusFilter('All'); }}
           >
-            <span>🌱 Crop Master</span>
+            <span>Crop Master</span>
             <span className="cr-tab-badge">{cropsList.length}</span>
           </button>
 
@@ -1531,7 +2070,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             className={`cr-tab-btn ${activeTab === 'categories' ? 'active' : ''}`}
             onClick={() => { setActiveTab('categories'); setSearchQuery(''); setStatusFilter('All'); }}
           >
-            <span>🏷️ Crop Categories</span>
+            <span>Crop Categories</span>
             <span className="cr-tab-badge">{categoriesList.length}</span>
           </button>
         </div>
@@ -1544,7 +2083,15 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           <input
             type="text"
             className="cr-search"
-            placeholder={`Search ${activeTab === 'crops' ? 'crops (Paddy, Cotton...)' : activeTab === 'seasons' ? 'seasons, farms, dates...' : activeTab === 'activities' ? 'activities, operations, machinery...' : activeTab === 'varieties' ? 'varieties, hybrids...' : 'categories...'}`}
+            placeholder={
+              (activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties')
+                ? "Search crop, variety or hybrid..."
+                : activeTab === 'seasons'
+                ? "Search seasons, farms, dates..."
+                : activeTab === 'activities'
+                ? "Search activities, operations, machinery..."
+                : "Search categories..."
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -1559,28 +2106,136 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
           )}
         </div>
 
-        <div className="cr-filter-group">
-          {(activeTab === 'activities'
-            ? ['All', 'In Progress', 'Completed', 'Scheduled']
-            : activeTab === 'seasons'
-            ? ['All', 'In Progress', 'Harvested']
-            : ['All', 'Active', 'Inactive']
-          ).map((st) => (
+        {(activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties') && initialTab !== 'seasons' && initialTab !== 'activities' ? (
+          <div className="cr-filters-dropdown-wrap" ref={filterDropdownRef}>
             <button
-              key={st}
               type="button"
-              className={`cr-filter-btn ${statusFilter === st ? 'active' : ''}`}
-              onClick={() => setStatusFilter(st)}
+              className={`cr-filters-btn ${isFilterOpen ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-active' : ''}`}
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={isFilterOpen}
+              title="Filter crops by type, season, and status"
             >
-              {st}
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="cr-filters-count-badge">{activeFiltersCount}</span>
+              )}
+              <svg
+                className={`cr-filters-chevron ${isFilterOpen ? 'rotated' : ''}`}
+                width="10"
+                height="10"
+                viewBox="0 0 12 12"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M2.4 4.5h7.2a.5.5 0 0 1 .38.83l-3.6 4.1a.5.5 0 0 1-.76 0l-3.6-4.1a.5.5 0 0 1 .38-.83z" />
+              </svg>
             </button>
-          ))}
-        </div>
+
+            {isFilterOpen && (
+              <div className="cr-filters-dropdown-menu">
+                <div className="cr-filters-dropdown-header">
+                  <div className="cr-filters-header-title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                    </svg>
+                    <span>Filter Crops</span>
+                  </div>
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      className="cr-filters-clear-btn"
+                      onClick={handleClearFilters}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="cr-filters-dropdown-body">
+                  <div className="cr-filter-field">
+                    <label className="cr-filter-field-label">Crop Type</label>
+                    <select
+                      value={cropTypeFilter}
+                      onChange={(e) => setCropTypeFilter(e.target.value)}
+                      aria-label="Filter by Crop Type"
+                    >
+                      {availableCropTypes.map(ct => (
+                        <option key={ct} value={ct}>
+                          {ct === 'All' ? 'All Crop Types' : ct}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="cr-filter-field">
+                    <label className="cr-filter-field-label">Season</label>
+                    <select
+                      value={seasonFilter}
+                      onChange={(e) => setSeasonFilter(e.target.value)}
+                      aria-label="Filter by Season"
+                    >
+                      {availableSeasons.map(s => (
+                        <option key={s} value={s}>
+                          {s === 'All' ? 'All Seasons' : s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="cr-filter-field">
+                    <label className="cr-filter-field-label">Status</label>
+                    <div className="cr-filters-status-row">
+                      {['All', 'Active', 'Inactive'].map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          className={`cr-filters-status-btn ${statusFilter === st ? 'active' : ''}`}
+                          onClick={() => setStatusFilter(st)}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cr-filters-dropdown-footer">
+                  <button
+                    type="button"
+                    className="cr-filters-apply-action"
+                    onClick={() => setIsFilterOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="cr-filter-group">
+            {(activeTab === 'activities'
+              ? ['All', 'In Progress', 'Completed', 'Scheduled']
+              : activeTab === 'seasons'
+              ? ['All', 'In Progress', 'Harvested']
+              : ['All', 'Active', 'Inactive']
+            ).map((st) => (
+              <button
+                key={st}
+                type="button"
+                className={`cr-filter-btn ${statusFilter === st ? 'active' : ''}`}
+                onClick={() => setStatusFilter(st)}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 5. Main Content Tables */}
-      {/* ─── TAB 1: CROP MASTER ────────────────────────────────────────── */}
-      {activeTab === 'crops' && (
+      {/* ─── MODULE: CROP MANAGEMENT (COMBINED) ───────────────────────── */}
+      {(activeTab === 'crop-management' || activeTab === 'crops' || activeTab === 'varieties') && initialTab !== 'seasons' && initialTab !== 'activities' && (
         <div className="cr-table-wrap">
           <table className="cr-table">
             <thead>
@@ -1588,61 +2243,74 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                 <th><strong>Crop ID</strong></th>
                 <th><strong>Crop Name</strong></th>
                 <th><strong>Crop Type</strong></th>
-                <th><strong>Crop Category</strong></th>
-                <th><strong>Default Unit</strong></th>
+                <th><strong>Variety / Hybrid Name</strong></th>
+                <th><strong>Duration (Days)</strong></th>
+                <th><strong>Season</strong></th>
                 <th><strong>Status</strong></th>
                 <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '32px' }}>Loading crops...</td></tr>
-              ) : filteredCrops.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="cr-empty">
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '32px' }}>
+                    Loading crop management records...
+                  </td>
+                </tr>
+              ) : currentList.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="cr-empty">
                     <div className="cr-empty-state">
                       <span className="cr-empty-icon">🌱</span>
-                      <p>No crops found matching filters</p>
-                      <span>Try clearing your search or add a new crop record</span>
+                      <h4>No crop records found</h4>
+                      <p>Try adjusting your search or filters, or add a new crop.</p>
+                      <button
+                        type="button"
+                        className="cr-btn-primary"
+                        onClick={handleOpenAddCropManagement}
+                        style={{ marginTop: '12px' }}
+                      >
+                        + Add Crop
+                      </button>
                     </div>
                   </td>
                 </tr>
               ) : (
-                pagedList.map((c) => (
-                  <tr key={c.id}>
-                    <td><span className="cr-code-badge">{c.cropCode}</span></td>
+                pagedList.map((row) => (
+                  <tr key={row.uniqueKey || `${row.cropId}-${row.varietyId || row.varietyName}`}>
                     <td>
-                      <div className="cr-item-cell">
-                        <span className="cr-item-icon">🌾</span>
-                        <div>
-                          <span className="cr-item-title">{c.cropName}</span>
-                          <span className="cr-item-sub">{c.description || 'Standard cultivar'}</span>
-                        </div>
-                      </div>
+                      <span className="cr-code-badge">{row.cropId}</span>
                     </td>
-                    <td><span className="cr-tag-pill">{c.cropType}</span></td>
-                    <td><strong>{c.cropCategory}</strong></td>
-                    <td>{c.defaultUnit}</td>
                     <td>
-                      <button
-                        type="button"
-                        className={`cr-status-pill ${c.status === 'Active' ? 'cr-status-active' : 'cr-status-inactive'}`}
-                        onClick={() => handleToggleStatus(c, 'crop')}
-                        title="Click to toggle status"
-                      >
-                        {c.status}
-                      </button>
+                      <span className="cr-item-title">{row.cropName}</span>
+                    </td>
+                    <td>
+                      <span className="cr-tag-pill">{row.cropType}</span>
+                    </td>
+                    <td>
+                      <span>{row.varietyName || '—'}</span>
+                    </td>
+                    <td>
+                      <span>{row.durationDays ? `${row.durationDays} Days` : '—'}</span>
+                    </td>
+                    <td>
+                      <span className="cr-season-badge">{row.season || '—'}</span>
+                    </td>
+                    <td>
+                      <span className={`cr-status-pill cr-status-${(row.status || 'active').toLowerCase()}`}>
+                        {row.status || 'Active'}
+                      </span>
                     </td>
                     <td>
                       <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           type="button"
-                          className={`cr-action-menu-btn ${activeActionMenu?.id === c.id ? 'active' : ''}`}
+                          className={`cr-action-menu-btn ${activeActionMenu?.id === (row.uniqueKey || row.cropId) ? 'active' : ''}`}
                           title="Actions"
                           aria-label="Actions"
                           aria-haspopup="menu"
-                          aria-expanded={activeActionMenu?.id === c.id}
-                          onClick={(e) => toggleActionMenu(e, c.id, 'crop', c)}
+                          aria-expanded={activeActionMenu?.id === (row.uniqueKey || row.cropId)}
+                          onClick={(e) => toggleActionMenu(e, row.uniqueKey || row.cropId, 'crop-management', row)}
                         >
                           ⋮
                         </button>
@@ -1653,16 +2321,30 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
               )}
             </tbody>
           </table>
-          {filteredCrops.length > 0 && renderPaginationFooter(filteredCrops.length)}
+          {renderPaginationFooter(currentList.length)}
         </div>
       )}
-
-
 
       {/* ─── TAB 2: CROP SEASON ────────────────────────────────────────── */}
       {activeTab === 'seasons' && (
         <div className="cr-table-wrap">
-          <table className="cr-table">
+          <table className="cr-table cr-seasons-table">
+            <colgroup>
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '140px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '140px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '85px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '65px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th><strong>Season ID</strong></th>
@@ -1722,7 +2404,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       <td><strong>{sFarm}</strong></td>
                       <td>
                         <div className="cr-item-cell">
-                          <span className="cr-item-icon">🌱</span>
                           <div>
                             <span className="cr-item-title">{sCrop}</span>
                             <span className="cr-item-sub">{sVariety}</span>
@@ -1778,85 +2459,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
 
 
-      {/* ─── TAB 3: CROP VARIETIES ─────────────────────────────────────── */}
-      {activeTab === 'varieties' && (
-        <div className="cr-table-wrap">
-          <table className="cr-table">
-            <thead>
-              <tr>
-                <th><strong>Variety ID</strong></th>
-                <th><strong>Crop Name</strong></th>
-                <th><strong>Variety / Hybrid Name</strong></th>
-                <th><strong>Duration (Days)</strong></th>
-                <th><strong>Season</strong></th>
-                <th><strong>Expected Yield</strong></th>
-                <th><strong>Status</strong></th>
-                <th style={{ textAlign: 'right' }}><strong>Actions</strong></th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '32px' }}>Loading varieties...</td></tr>
-              ) : filteredVarieties.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="cr-empty">
-                    <div className="cr-empty-state">
-                      <span className="cr-empty-icon">🌾</span>
-                      <p>No crop varieties found</p>
-                      <span>Add seed varieties, hybrids, and duration specifications</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                pagedList.map((v) => (
-                  <tr key={v.id}>
-                    <td><span className="cr-code-badge">{v.code}</span></td>
-                    <td><strong>{v.cropName}</strong></td>
-                    <td>
-                      <div className="cr-item-cell">
-                        <span className="cr-item-icon">🧬</span>
-                        <span className="cr-item-title">{v.varietyName}</span>
-                      </div>
-                    </td>
-                    <td>{v.durationDays} days</td>
-                    <td><span className="cr-tag-pill">{v.season}</span></td>
-                    <td>{v.expectedYield}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={`cr-status-pill ${v.status === 'Active' ? 'cr-status-active' : 'cr-status-inactive'}`}
-                        onClick={() => handleToggleStatus(v, 'variety')}
-                        title="Click to toggle status"
-                      >
-                        {v.status}
-                      </button>
-                    </td>
-                    <td>
-                      <div className="cr-actions" style={{ justifyContent: 'flex-end' }}>
-                        <button
-                          type="button"
-                          className={`cr-action-menu-btn ${activeActionMenu?.id === v.id ? 'active' : ''}`}
-                          title="Actions"
-                          aria-label="Actions"
-                          aria-haspopup="menu"
-                          aria-expanded={activeActionMenu?.id === v.id}
-                          onClick={(e) => toggleActionMenu(e, v.id, 'variety', v)}
-                        >
-                          ⋮
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          {filteredVarieties.length > 0 && renderPaginationFooter(filteredVarieties.length)}
-        </div>
-      )}
-
-
-
       {/* ─── TAB 4: CROP CATEGORIES ────────────────────────────────────── */}
       {activeTab === 'categories' && (
         <div className="cr-table-wrap">
@@ -1889,7 +2491,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><span className="cr-code-badge">{cat.code}</span></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">📂</span>
                         <span className="cr-item-title">{cat.name}</span>
                       </div>
                     </td>
@@ -1933,7 +2534,21 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             {/* ─── TAB 5: CROP ACTIVITIES ─────────────────────────────────────── */}
       {activeTab === 'activities' && (
         <div className="cr-table-wrap">
-          <table className="cr-table">
+          <table className="cr-table cr-activities-table">
+            <colgroup>
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '6%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th><strong>Activity ID</strong></th>
@@ -1969,7 +2584,6 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                     <td><span className="cr-code-badge">{act.activityCode}</span></td>
                     <td>
                       <div className="cr-item-cell">
-                        <span className="cr-item-icon">🌱</span>
                         <div>
                           <span className="cr-item-title">{act.crop}</span>
                           <span className="cr-item-sub">{act.season}</span>
@@ -1982,9 +2596,19 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                         {act.activityType}
                       </span>
                     </td>
-                    <td>{act.activityDate || '-'}</td>
+                    <td>{act.activityDate ? String(act.activityDate).split(/[T ]/)[0] : '-'}</td>
                     <td>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>{act.labourWorkers || '-'}</span>
+                      {act.labourWorkers ? (
+                        <button
+                          type="button"
+                          className="cr-labour-count"
+                          onClick={() => handleOpenLabourDetails(act)}
+                          aria-label={`View labour attendance for ${act.activityCode}`}
+                          title="View matching attendance details"
+                        >
+                          {act.labourWorkers}
+                        </button>
+                      ) : '-'}
                     </td>
                     <td>
                       <span style={{ fontSize: '12px', color: '#475569' }}>{act.machinery || '-'}</span>
@@ -2032,6 +2656,131 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       )}
 
       {/* ─── MODAL: CROP MASTER FORM ───────────────────────────────────── */}
+      {modalType === 'crop-management' && (
+        <div className="cr-overlay" role="dialog" aria-modal="true">
+          <div className="cr-modal">
+            <div className="cr-modal-head">
+              <div>
+                <h2>{editingItem ? 'Edit Crop Record' : 'Add New Crop'}</h2>
+                <p>Register crop species, crop type classification, and variety information</p>
+              </div>
+              <button type="button" className="cr-close" onClick={() => setModalType(null)}>✕</button>
+            </div>
+
+            <form className="cr-form" onSubmit={handleSaveCropManagement}>
+              <div className="cr-form-body">
+                <div className="cr-row">
+                  <div className="cr-field">
+                    <label>Crop Name <span className="cr-req">*</span></label>
+                    <input
+                      type="text"
+                      list="cr-existing-crops-list"
+                      value={cropMgmtForm.cropName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const match = safeCrops.find(c => c && c.cropName && c.cropName.toLowerCase() === val.toLowerCase());
+                        const resolved = resolveCropType(match || { cropName: val });
+                        setCropMgmtForm(prev => ({
+                          ...prev,
+                          cropName: val,
+                          cropType: resolved !== 'Field Crop' ? resolved : prev.cropType
+                        }));
+                      }}
+                      placeholder="e.g. Paddy (Rice), Cotton, Chilli..."
+                      required
+                    />
+                    <datalist id="cr-existing-crops-list">
+                      {safeCrops.map(c => (
+                        <option key={c.id || c.cropCode} value={c.cropName} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  <div className="cr-field">
+                    <label>Crop Type <span className="cr-req">*</span></label>
+                    <select
+                      value={cropMgmtForm.cropType || ''}
+                      onChange={(e) => setCropMgmtForm({ ...cropMgmtForm, cropType: e.target.value })}
+                      required
+                    >
+                      <option value="">Select Crop Type</option>
+                      <option value="Cereal">Cereal</option>
+                      <option value="Vegetable">Vegetable</option>
+                      <option value="Spices">Spices</option>
+                      <option value="Fibre Crop">Fibre Crop</option>
+                      <option value="Oilseeds">Oilseeds</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Pulses">Pulses</option>
+                      <option value="Horticulture">Horticulture</option>
+                      <option value="Field Crop">Field Crop</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="cr-row">
+                  <div className="cr-field">
+                    <label>Variety / Hybrid Name <span className="cr-req">*</span></label>
+                    <input
+                      type="text"
+                      value={cropMgmtForm.varietyName}
+                      onChange={(e) => setCropMgmtForm({ ...cropMgmtForm, varietyName: e.target.value })}
+                      placeholder="e.g. BPT 5204 (Samba Mahsuri)"
+                      required
+                    />
+                  </div>
+
+                  <div className="cr-field">
+                    <label>Duration (Days)</label>
+                    <input
+                      type="number"
+                      value={cropMgmtForm.durationDays}
+                      onChange={(e) => setCropMgmtForm({ ...cropMgmtForm, durationDays: e.target.value })}
+                      placeholder="e.g. 145"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className="cr-row">
+                  <div className="cr-field">
+                    <label>Season</label>
+                    <select
+                      value={cropMgmtForm.season || 'Kharif'}
+                      onChange={(e) => setCropMgmtForm({ ...cropMgmtForm, season: e.target.value })}
+                    >
+                      <option value="Kharif">Kharif</option>
+                      <option value="Rabi">Rabi</option>
+                      <option value="Zaid">Zaid</option>
+                      <option value="Kharif-Rabi">Kharif-Rabi</option>
+                      <option value="Perennial">Perennial</option>
+                      <option value="All Season">All Season</option>
+                    </select>
+                  </div>
+
+                  <div className="cr-field">
+                    <label>Status</label>
+                    <select
+                      value={cropMgmtForm.status || 'Active'}
+                      onChange={(e) => setCropMgmtForm({ ...cropMgmtForm, status: e.target.value })}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="cr-modal-foot">
+                <button type="button" className="cr-btn-secondary" onClick={() => setModalType(null)} disabled={saving}>Cancel</button>
+                <button type="submit" className="cr-btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Crop'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {modalType === 'crop' && (
         <div className="cr-overlay" role="dialog" aria-modal="true">
           <div className="cr-modal">
@@ -2072,9 +2821,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop Type</label>
                     <select
-                      value={cropForm.cropType}
+                      value={cropForm.cropType || ''}
                       onChange={(e) => setCropForm({ ...cropForm, cropType: e.target.value })}
                     >
+                      <option value="">Select Crop Type</option>
                       <option value="Kharif / Food Grain">Kharif / Food Grain</option>
                       <option value="Kharif / Cash Crop">Kharif / Cash Crop</option>
                       <option value="Kharif-Rabi / Spices">Kharif-Rabi / Spices</option>
@@ -2087,7 +2837,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop Category</label>
                     <select
-                      value={cropForm.cropCategory}
+                      value={cropForm.cropCategory || ''}
                       onChange={(e) => {
                         const selected = e.target.value;
                         const match = categoriesList.find(c => (c.name || c.categoryName) === selected);
@@ -2098,6 +2848,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                         });
                       }}
                     >
+                      <option value="">Select Crop Category</option>
                       {categoriesList.map(cat => (
                         <option key={cat.id} value={cat.name || cat.categoryName}>{cat.name || cat.categoryName}</option>
                       ))}
@@ -2115,9 +2866,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Default Unit</label>
                     <select
-                      value={cropForm.defaultUnit}
+                      value={cropForm.defaultUnit || ''}
                       onChange={(e) => setCropForm({ ...cropForm, defaultUnit: e.target.value })}
                     >
+                      <option value="">Select Default Unit</option>
                       <option value="Quintals">Quintals</option>
                       <option value="Bags">Bags</option>
                       <option value="Kg">Kg</option>
@@ -2128,9 +2880,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={cropForm.status}
+                      value={cropForm.status || ''}
                       onChange={(e) => setCropForm({ ...cropForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
@@ -2162,7 +2915,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
       {/* ─── MODAL: CROP SEASON FORM ───────────────────────────────────── */}
       {modalType === 'season' && (
         <div className="cr-overlay" role="dialog" aria-modal="true">
-          <div className="cr-modal">
+          <div className="cr-modal cr-season-modal">
             <div className="cr-modal-head">
               <div>
                 <h2>{editingItem ? 'Edit Crop Season' : 'Add New Crop Season (crop_seasons)'}</h2>
@@ -2171,8 +2924,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
               <button type="button" className="cr-close" onClick={() => setModalType(null)}>✕</button>
             </div>
 
-            <form className="cr-form" onSubmit={handleSaveForm}>
-              <div className="cr-form-body">
+            <form className="cr-form cr-season-form" onSubmit={handleSaveForm}>
+              <div className="cr-form-body cr-season-form-body">
                 <div className="cr-row">
                   <div className="cr-field">
                     <label>Season Record ID</label>
@@ -2187,11 +2940,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Farm Parcel <span className="cr-req">*</span></label>
                     <select
-                      value={seasonForm.farm || seasonForm.farmName}
+                      value={seasonForm.farm || seasonForm.farmName || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, farm: e.target.value, farmName: e.target.value })}
                       required
                     >
-                      <option value="" disabled>Select Farm Parcel</option>
+                      <option value="">Select Farm Parcel</option>
                       {availableFarms.map(f => (
                         <option key={f} value={f}>{f}</option>
                       ))}
@@ -2203,7 +2956,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Crop <span className="cr-req">*</span></label>
                     <select
-                      value={seasonForm.crop || seasonForm.cropName}
+                      value={seasonForm.crop || seasonForm.cropName || ''}
                       onChange={(e) => {
                         const selectedCrop = e.target.value;
                         const matchVar = safeVarieties.find(v => v.cropName === selectedCrop);
@@ -2211,13 +2964,13 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                           ...seasonForm,
                           crop: selectedCrop,
                           cropName: selectedCrop,
-                          variety: matchVar ? matchVar.varietyName : (seasonForm.variety || 'Standard Hybrid'),
-                          varietyName: matchVar ? matchVar.varietyName : (seasonForm.variety || 'Standard Hybrid')
+                          variety: matchVar ? matchVar.varietyName : (seasonForm.variety || ''),
+                          varietyName: matchVar ? matchVar.varietyName : (seasonForm.variety || '')
                         });
                       }}
                       required
                     >
-                      <option value="" disabled>Select Crop</option>
+                      <option value="">Select Crop</option>
                       {safeCrops.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2229,7 +2982,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                       value={seasonForm.variety || seasonForm.varietyName || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, variety: e.target.value, varietyName: e.target.value })}
                     >
-                      <option value="">Select or standard cultivar...</option>
+                      <option value="">Select Variety / Cultivar</option>
                       {safeVarieties
                         .filter(v => !seasonForm.crop || v.cropName?.toLowerCase() === seasonForm.crop?.toLowerCase())
                         .map(v => (
@@ -2265,9 +3018,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={seasonForm.status}
+                      value={seasonForm.status || ''}
                       onChange={(e) => setSeasonForm({ ...seasonForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Planned">Planned</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Harvest Ready">Harvest Ready</option>
@@ -2389,10 +3143,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Parent Crop <span className="cr-req">*</span></label>
                     <select
-                      value={varietyForm.cropName}
+                      value={varietyForm.cropName || ''}
                       onChange={(e) => setVarietyForm({ ...varietyForm, cropName: e.target.value })}
                       required
                     >
+                      <option value="">Select Parent Crop</option>
                       {cropsList.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2433,9 +3188,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Status</label>
                     <select
-                      value={varietyForm.status}
+                      value={varietyForm.status || ''}
                       onChange={(e) => setVarietyForm({ ...varietyForm, status: e.target.value })}
                     >
+                      <option value="">Select Status</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
@@ -2514,9 +3270,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                 <div className="cr-field">
                   <label>Status</label>
                   <select
-                    value={categoryForm.status}
+                    value={categoryForm.status || ''}
                     onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value })}
                   >
+                    <option value="">Select Status</option>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
@@ -2537,7 +3294,7 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             {/* ─── MODAL: CROP ACTIVITY FORM ─────────────────────────────────── */}
       {modalType === 'activity' && (
         <div className="cr-overlay" role="dialog" aria-modal="true">
-          <div className="cr-modal cr-modal-lg">
+                <div className="cr-modal cr-modal-lg cr-activity-modal">
             <div className="cr-modal-head">
               <div>
                 <h2>{editingItem ? 'Edit Crop Activity' : 'Log New Crop Activity'}</h2>
@@ -2546,8 +3303,8 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
               <button type="button" className="cr-close" onClick={() => setModalType(null)}>✕</button>
             </div>
 
-            <form className="cr-form" onSubmit={handleSaveForm}>
-              <div className="cr-form-body">
+            <form className="cr-form cr-activity-form" onSubmit={handleSaveForm}>
+              <div className="cr-form-body cr-activity-form-body">
                 <div className="cr-row">
                   <div className="cr-field">
                     <label>Activity Code</label>
@@ -2562,10 +3319,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Farm Parcel <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.farm}
+                      value={activityForm.farm || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, farm: e.target.value })}
                       required
                     >
+                      <option value="">Select Farm Parcel</option>
                       <option value="Farm 1 (South Block)">Farm 1 (South Block)</option>
                       <option value="Farm 2 (Canal Belt)">Farm 2 (Canal Belt)</option>
                       <option value="Sunrise Farms (East Block)">Sunrise Farms (East Block)</option>
@@ -2578,10 +3336,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Target Crop <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.crop}
+                      value={activityForm.crop || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, crop: e.target.value })}
                       required
                     >
+                      <option value="">Select Target Crop</option>
                       {safeCrops.map(c => (
                         <option key={c.id} value={c.cropName}>{c.cropName}</option>
                       ))}
@@ -2597,10 +3356,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Season Cycle <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.season}
+                      value={activityForm.season || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, season: e.target.value })}
                       required
                     >
+                      <option value="">Select Season Cycle</option>
                       <option value="Kharif 2025-26">Kharif 2025-26</option>
                       <option value="Kharif-Rabi 2025-26">Kharif-Rabi 2025-26</option>
                       <option value="Rabi 2025-26">Rabi 2025-26</option>
@@ -2613,10 +3373,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Activity Type <span className="cr-req">*</span></label>
                     <select
-                      value={activityForm.activityType}
+                      value={activityForm.activityType || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, activityType: e.target.value })}
                       required
                     >
+                      <option value="">Select Activity Type</option>
                       <option value="Land Preparation">Land Preparation</option>
                       <option value="Sowing / Planting">Sowing / Planting</option>
                       <option value="Nursery Raising &amp; Puddling">Nursery Raising &amp; Puddling</option>
@@ -2696,9 +3457,10 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
                   <div className="cr-field">
                     <label>Activity Status</label>
                     <select
-                      value={activityForm.status}
+                      value={activityForm.status || ''}
                       onChange={(e) => setActivityForm({ ...activityForm, status: e.target.value })}
                     >
+                      <option value="">Select Activity Status</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Completed">Completed</option>
                       <option value="Scheduled">Scheduled</option>
@@ -2960,6 +3722,104 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
 
             <div className="cr-modal-foot">
               <button type="button" className="cr-btn-secondary" onClick={() => setViewTarget(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {labourDetailsTarget && (
+        <div className="cr-overlay" role="dialog" aria-modal="true" onClick={() => setLabourDetailsTarget(null)}>
+          <div className="cr-modal cr-labour-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cr-modal-head">
+              <div>
+                <h2>Labour Attendance</h2>
+                <p>
+                  {labourDetailsTarget.activityCode} · {labourDetailsTarget.crop} · {labourDetailsTarget.activityDate ? String(labourDetailsTarget.activityDate).split(/[T ]/)[0] : '-'}
+                </p>
+              </div>
+              <button type="button" className="cr-close" onClick={() => setLabourDetailsTarget(null)}>✕</button>
+            </div>
+
+            <div className="cr-labour-details-content">
+              <p className="cr-labour-details-hint">
+                {labourDetailsMatch === 'sample'
+                  ? 'Sample details only: names and daily rates are from Labour Management; one-day duration and unpaid status are illustrative. Record actual details in Labour Attendance and Labour Payments.'
+                  : labourDetailsMatch === 'date-crop'
+                  ? 'No farm-name match found. Showing attendance for the same date and crop; farm/plot is shown as recorded. Payments are allocated oldest attendance first within each settlement period, or by exact payment date if no period is set.'
+                  : labourDetailsMatch === 'date-farm-crop'
+                    ? 'Attendance matched by date, farm and crop. Names, work and duration come from Labour Attendance and Labour Management. Payments are allocated oldest attendance first within each settlement period, or by exact payment date if no period is set.'
+                    : 'Attendance details are loaded from Labour Attendance and Labour Management.'}
+              </p>
+              {labourDetailsLoading ? (
+                <div className="cr-labour-details-state">Loading attendance details...</div>
+              ) : labourDetailsError ? (
+                <div className="cr-labour-details-state cr-labour-details-error">{labourDetailsError}</div>
+              ) : labourDetails.length === 0 ? (
+                <div className="cr-labour-details-state">
+                  No Labour Attendance record found for this crop and date. Add attendance there to see worker details here.
+                </div>
+              ) : (
+                <div className="cr-labour-details-table-wrap">
+                  <table className="cr-labour-details-table">
+                    <thead>
+                      <tr>
+                        <th>Labourer</th>
+                        <th>Farm / Plot</th>
+                        <th>Work performed</th>
+                        <th>Duration</th>
+                        <th>Amount</th>
+                        <th>Payment status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {labourDetails.map((record, index) => {
+                        const unitsWorked = Number(record.unitsWorked);
+                        const unit = String(record.workBasis || 'Days').toLowerCase().replace(/s$/, '');
+                        const duration = Number.isFinite(unitsWorked)
+                          ? `${unitsWorked} ${unit}${unitsWorked === 1 ? '' : 's'}`
+                          : '-';
+                        const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2
+                        })}`;
+                        const paymentStatusClass = record.paymentStatus === 'Paid'
+                          ? 'paid'
+                          : record.paymentStatus === 'Partially paid'
+                            ? 'partial'
+                            : record.paymentStatus === 'Unpaid'
+                              ? 'unpaid'
+                              : 'unset';
+
+                        return (
+                          <tr key={record.id || record.attendanceCode || index}>
+                            <td><strong>{record.labourName}</strong></td>
+                            <td>{record.farmName || '-'}</td>
+                            <td>{record.workType || '-'}</td>
+                            <td>{duration}{record.isSample ? ' (sample)' : ''}</td>
+                            <td>
+                              <strong>{formatCurrency(record.amount)}</strong>
+                              {record.isSample && <span className="cr-labour-sample-label">Sample estimate</span>}
+                              {record.paidAmount > 0 && (
+                                <span className="cr-labour-paid-amount">Paid: {formatCurrency(record.paidAmount)}</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`cr-labour-payment-status ${paymentStatusClass}`}>
+                                {record.paymentStatus || 'Unpaid'}
+                              </span>
+                              {record.isSample && <span className="cr-labour-sample-label">Illustrative</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="cr-modal-foot">
+              <button type="button" className="cr-btn-secondary" onClick={() => setLabourDetailsTarget(null)}>Close</button>
             </div>
           </div>
         </div>
@@ -3448,7 +4308,11 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
               const { item } = activeActionMenu;
               setActiveActionMenu(null);
               setActionMenuPos(null);
-              handleOpenEdit(item);
+              if (activeActionMenu?.type === 'crop-management') {
+                handleOpenEditCropManagement(item);
+              } else {
+                handleOpenEdit(item);
+              }
             }}
           >
             <span className="cr-menu-icon">
@@ -3460,24 +4324,43 @@ function CropsInner({ initialTab = 'crops', onNavigate }) {
             Edit
           </button>
 
-          <button
-            type="button"
-            className="cr-action-menu-item delete"
-            role="menuitem"
-            onClick={() => {
-              const { type, item } = activeActionMenu;
-              setActiveActionMenu(null);
-              setActionMenuPos(null);
-              setDeleteTarget({ type, item });
-            }}
-          >
-            <span className="cr-menu-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-              </svg>
-            </span>
-            Delete
-          </button>
+          {activeActionMenu?.type === 'crop-management' ? (
+            <button
+              type="button"
+              className={`cr-action-menu-item toggle ${(activeActionMenu.item.status || 'Active') === 'Active' ? 'deactivate' : 'activate'}`}
+              role="menuitem"
+              onClick={() => {
+                const { item } = activeActionMenu;
+                setActiveActionMenu(null);
+                setActionMenuPos(null);
+                handleToggleCropManagementStatus(item);
+              }}
+            >
+              <span className="cr-menu-icon">
+                {(activeActionMenu.item.status || 'Active') === 'Active' ? '⏸' : '▶'}
+              </span>
+              {(activeActionMenu.item.status || 'Active') === 'Active' ? 'Deactivate' : 'Activate'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cr-action-menu-item delete"
+              role="menuitem"
+              onClick={() => {
+                const { type, item } = activeActionMenu;
+                setActiveActionMenu(null);
+                setActionMenuPos(null);
+                setDeleteTarget({ type, item });
+              }}
+            >
+              <span className="cr-menu-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </span>
+              Delete
+            </button>
+          )}
         </div>,
         document.body
       )}

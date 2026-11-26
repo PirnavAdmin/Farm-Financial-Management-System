@@ -46,6 +46,7 @@ export default function TableActionMenu({
   title = 'Actions',
   ariaLabel = 'Actions',
   buttonClassName = '',
+  children,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState(null);
@@ -106,7 +107,7 @@ export default function TableActionMenu({
         aria-expanded={isOpen}
         onClick={handleToggle}
       >
-        ⋮
+        {children || '⋮'}
       </button>
 
       {isOpen && position && createPortal(

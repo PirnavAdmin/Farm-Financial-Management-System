@@ -31,8 +31,8 @@ export default function Customers({ onNavigate }) {
     address: '',
     businessName: '',
     gstin: '',
-    openingBalance: 0,
-    status: 'Active'
+    openingBalance: '',
+    status: ''
   };
   const [formData, setFormData] = useState(initialForm);
   const [formErrors, setFormErrors] = useState({});
@@ -43,6 +43,21 @@ export default function Customers({ onNavigate }) {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Helper to sort buyers in ascending numeric order by Buyer Code
+  const sortBuyersByCode = (buyerList) => {
+    return [...(buyerList || [])].sort((a, b) => {
+      const codeA = a?.buyerCode || '';
+      const codeB = b?.buyerCode || '';
+      const numA = parseInt(String(codeA).replace(/\D/g, ''), 10);
+      const numB = parseInt(String(codeB).replace(/\D/g, ''), 10);
+
+      if (!isNaN(numA) && !isNaN(numB)) {
+        if (numA !== numB) return numA - numB;
+      }
+      return String(codeA).localeCompare(String(codeB), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -50,8 +65,8 @@ export default function Customers({ onNavigate }) {
         salesService.getBuyers(),
         salesService.getSales()
       ]);
-      setBuyers(buyersList);
-      setSales(salesList);
+      setBuyers(sortBuyersByCode(buyersList || []));
+      setSales(salesList || []);
     } catch (err) {
       console.error('[Customers] Error loading data:', err);
       setToast(err.friendlyMessage || err.message || 'Failed to load customers data.');
@@ -70,19 +85,20 @@ export default function Customers({ onNavigate }) {
 
   // Open Add Modal
   const openAddModal = () => {
-    const existingCodes = buyers
-      .map((b) => b.buyerCode)
-      .filter((c) => c && c.startsWith('BUY-'))
-      .map((c) => parseInt(c.replace('BUY-', ''), 10))
+    const existingNumbers = buyers
+      .map((b) => {
+        const digits = String(b.buyerCode || '').replace(/\D/g, '');
+        return digits ? parseInt(digits, 10) : NaN;
+      })
       .filter((n) => !isNaN(n));
-    const nextSeq = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : buyers.length + 1;
+    const nextSeq = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
     const generatedCode = `BUY-${String(nextSeq).padStart(3, '0')}`;
 
     setFormData({
       ...initialForm,
       buyerCode: generatedCode,
-      openingBalance: 0,
-      status: 'Active'
+      openingBalance: '',
+      status: ''
     });
     setFormErrors({});
     setBuyerModal({ isEdit: false });
@@ -151,7 +167,7 @@ export default function Customers({ onNavigate }) {
         setToast(`Buyer '${formData.buyerName}' updated.`);
       } else {
         await salesService.createBuyer(formData);
-        setToast(`Buyer '${formData.buyerName}' registered.`);
+        setToast(`Buyer '${formData.buyerName}' added.`);
       }
       setBuyerModal(null);
       await loadData();
@@ -181,10 +197,10 @@ export default function Customers({ onNavigate }) {
   const totalOpeningBalance = buyers.reduce((sum, b) => sum + (Number(b.openingBalance) || 0), 0);
   const totalAssociatedSales = sales.length;
 
-  // Filtered Buyers
+  // Filtered Buyers (always sorted in ascending numeric order by Buyer Code)
   const filteredBuyers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return buyers.filter((b) => {
+    const matched = buyers.filter((b) => {
       const matchSearch =
         !q ||
         (b.buyerCode && b.buyerCode.toLowerCase().includes(q)) ||
@@ -199,6 +215,8 @@ export default function Customers({ onNavigate }) {
 
       return matchSearch && matchStatus;
     });
+
+    return sortBuyersByCode(matched);
   }, [buyers, query, statusFilter]);
 
   const totalRecords = filteredBuyers.length;
@@ -213,7 +231,7 @@ export default function Customers({ onNavigate }) {
   };
 
   return (
-    <div className="users-page sales-page-container">
+    <div className="users-page sales-page-container customers-page-container">
       {/* Title & Header */}
       <div className="users-title-row">
         <div>
@@ -272,7 +290,21 @@ export default function Customers({ onNavigate }) {
         {/* Toolbar */}
         <div className="sales-toolbar">
           <div className="sales-search">
-            <span>⌕</span>
+            <svg
+              className="sales-search-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="text"
               placeholder="Search by Buyer Code, Name, Mobile, Business, GSTIN..."
@@ -281,45 +313,45 @@ export default function Customers({ onNavigate }) {
             />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            title="Filter by status"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-
-
+          <div className="sales-toolbar-filters">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              title="Filter by status"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
         </div>
 
         {/* Data Table */}
-        <div className="sales-table-wrap">
-          <table className="sales-table">
+        <div className="sales-table-wrap customers-table-wrap">
+          <table className="sales-table customers-table">
             <thead>
               <tr>
-                <th>BUYER CODE</th>
-                <th>BUYER NAME</th>
-                <th>MOBILE</th>
-                <th>ADDRESS</th>
-                <th>BUSINESS NAME</th>
-                <th>GSTIN</th>
-                <th>OPENING BALANCE</th>
-                <th style={{ textAlign: 'center' }}>ACTIONS</th>
+                <th style={{ width: '10%' }}>BUYER CODE</th>
+                <th style={{ width: '16%' }}>BUYER NAME</th>
+                <th style={{ width: '11%' }}>MOBILE</th>
+                <th style={{ width: '20%' }}>ADDRESS</th>
+                <th style={{ width: '16%' }}>BUSINESS NAME</th>
+                <th style={{ width: '12%' }}>GSTIN</th>
+                <th style={{ width: '11%', textAlign: 'right' }}>OPENING BALANCE</th>
+                <th style={{ width: '4%', textAlign: 'center' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '36px' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '24px' }}>
                     <div style={{ color: '#64748b', fontSize: '13px' }}>Loading buyers...</div>
                   </td>
                 </tr>
               ) : pageRows.length === 0 ? (
                 <tr>
                   <td colSpan="8">
-                    <div className="users-empty">
+                    <div className="users-empty" style={{ padding: '28px' }}>
                       <span>⌕</span>
                       <strong>No buyer records found</strong>
                       <p>Add a new buyer or try a different search term.</p>
@@ -335,24 +367,24 @@ export default function Customers({ onNavigate }) {
                     <td>
                       <span className="sales-code-badge">{buyer.buyerCode}</span>
                     </td>
-                    <td>
+                    <td title={buyer.buyerName}>
                       <strong>{buyer.buyerName}</strong>
                     </td>
                     <td>{buyer.mobile || '—'}</td>
-                    <td title={buyer.address} style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <td title={buyer.address}>
                       {buyer.address || '—'}
                     </td>
-                    <td>{buyer.businessName || '—'}</td>
-                    <td>
+                    <td title={buyer.businessName}>{buyer.businessName || '—'}</td>
+                    <td title={buyer.gstin}>
                       {buyer.gstin ? (
-                        <code style={{ fontSize: '11px', background: '#f8fafc', padding: '2px 5px', borderRadius: '4px' }}>
+                        <code style={{ fontSize: '10.5px', background: '#f8fafc', padding: '2px 5px', borderRadius: '4px' }}>
                           {buyer.gstin}
                         </code>
                       ) : (
                         '—'
                       )}
                     </td>
-                    <td className="sales-bold-amount">{formatCurrency(buyer.openingBalance || 0)}</td>
+                    <td className="sales-bold-amount" style={{ textAlign: 'right' }}>{formatCurrency(buyer.openingBalance || 0)}</td>
                     <td>
                       <div className="sales-actions-cell" style={{ justifyContent: 'center' }}>
                         <TableActionMenu
@@ -450,7 +482,7 @@ export default function Customers({ onNavigate }) {
                     <input
                       type="text"
                       name="buyerName"
-                      placeholder="e.g. Sri Lakshmi Traders"
+                      placeholder="e.g. K. Venkateswara Rao (Owner)"
                       value={formData.buyerName}
                       onChange={handleFormChange}
                       required
@@ -478,7 +510,7 @@ export default function Customers({ onNavigate }) {
                     <input
                       type="text"
                       name="businessName"
-                      placeholder="e.g. Sri Lakshmi Agri Traders"
+                      placeholder="e.g. Sri Lakshmi Traders"
                       value={formData.businessName}
                       onChange={handleFormChange}
                     />
@@ -534,6 +566,7 @@ export default function Customers({ onNavigate }) {
                       value={formData.status}
                       onChange={handleFormChange}
                     >
+                      <option value="">Select Status</option>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
@@ -549,7 +582,7 @@ export default function Customers({ onNavigate }) {
                   Cancel
                 </button>
                 <button className="save-button" type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : buyerModal.isEdit ? 'Update Buyer' : 'Register Buyer'}
+                  {saving ? 'Saving...' : buyerModal.isEdit ? 'Update Buyer' : 'Add Buyer'}
                 </button>
               </div>
             </footer>
@@ -626,7 +659,12 @@ export default function Customers({ onNavigate }) {
                 <div style={{ marginTop: '10px' }}>
                   <div className="sales-section-title">Sales History for this Buyer</div>
                   {(() => {
-                    const buyerSales = sales.filter((s) => s.buyer === viewDetails.buyerName);
+                    const buyerSales = sales.filter(
+                      (s) =>
+                        s.buyer === viewDetails.buyerName ||
+                        s.buyer === viewDetails.businessName ||
+                        (s.buyerId && s.buyerId === viewDetails.id)
+                    );
                     const totalPurchased = buyerSales.reduce((sum, s) => sum + (Number(s.netAmount) || 0), 0);
 
                     if (buyerSales.length === 0) {

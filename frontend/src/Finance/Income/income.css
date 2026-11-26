@@ -99,7 +99,7 @@
 .income-page-heading p {
   margin: 6px 0 0;
   color: var(--inc-text-muted);
-  font-size: 13px;
+  font-size: 13.5px;
   max-width: 600px;
   line-height: 1.45;
 }
@@ -118,11 +118,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 9px 18px;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 18px;
   border: 0;
-  border-radius: 8px;
-  font-size: 12.5px;
+  border-radius: 7px;
+  font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   text-decoration: none;
@@ -188,7 +189,7 @@
   min-height: 102px;
   padding: 18px 20px;
   border: 1px solid var(--inc-border);
-  border-radius: var(--inc-radius);
+  border-radius: var(--inc-radius-lg);
   background: var(--inc-bg-card);
   box-shadow: var(--inc-shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -203,12 +204,12 @@
 
 .income-summary-icon {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 12px;
-  font-size: 22px;
+  border-radius: 10px;
+  font-size: 20px;
   font-weight: 700;
   transition: transform 0.2s;
 }
@@ -258,9 +259,9 @@
 
 .income-summary-info small {
   color: var(--inc-text-muted);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -297,6 +298,7 @@
   font-size: 21px;
   font-weight: 750;
   letter-spacing: -0.4px;
+  line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -304,7 +306,7 @@
 
 .income-summary-info span {
   color: var(--inc-text-muted);
-  font-size: 11px;
+  font-size: 11.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -327,13 +329,14 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 14px;
+  height: 34px;
+  padding: 0 16px;
   border-radius: 20px;
   border: 1px solid var(--inc-border);
   background: #ffffff;
   color: var(--inc-text-muted);
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -457,7 +460,7 @@
   border-radius: 7px;
   background: #ffffff;
   color: var(--inc-text-dark);
-  font-size: 12px;
+  font-size: 13.5px;
   font-family: inherit;
   outline: none;
   transition: all 0.15s ease;
@@ -583,7 +586,7 @@
   min-width: 1160px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .income-table thead {
@@ -591,21 +594,22 @@
 }
 
 .income-table th {
-  padding: 13px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid #e2e8f0;
   color: #475569;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   text-align: left;
   white-space: nowrap;
   text-transform: uppercase;
 }
 
 .income-table td {
-  padding: 13px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
+  font-size: 13.5px;
   vertical-align: middle;
   background: #ffffff;
   transition: background 0.12s;
@@ -642,7 +646,7 @@
   background: #f1f5f9;
   color: var(--inc-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   border: 1px solid #e2e8f0;
@@ -668,7 +672,7 @@
 }
 
 .income-farm-name {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--inc-text-muted);
 }
 
@@ -679,7 +683,7 @@
   gap: 5px;
   padding: 3px 9px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1440,4 +1444,392 @@
   .income-detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   10. Module Primary Tabs Switcher
+   ========================================================================== */
+
+.income-module-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--inc-border);
+  padding-bottom: 2px;
+}
+
+.income-module-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  color: var(--inc-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+  top: 1px;
+}
+
+.income-module-tab-btn:hover {
+  color: var(--inc-primary);
+  background: var(--inc-primary-light);
+}
+
+.income-module-tab-btn.active {
+  color: var(--inc-primary);
+  background: var(--inc-bg-card);
+  border-color: var(--inc-border) var(--inc-border) var(--inc-bg-card) var(--inc-border);
+  border-bottom: 2px solid var(--inc-primary);
+  font-weight: 700;
+}
+
+.income-module-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--inc-primary-light);
+  color: var(--inc-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   11. Quick Collection Modal & Dialogs
+   ========================================================================== */
+
+.income-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.income-modal-box {
+  width: 100%;
+  max-width: 520px;
+  background: var(--inc-bg-card);
+  border-radius: var(--inc-radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--inc-border);
+  overflow: hidden;
+  animation: incomeModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes incomeModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.income-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--inc-border);
+  background: var(--inc-primary-light);
+}
+
+.income-modal-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+  color: var(--inc-primary);
+}
+
+.income-modal-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--inc-text-muted);
+}
+
+.income-modal-header .modal-close {
+  background: transparent;
+  border: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--inc-text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.income-modal-header .modal-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   12. In-Module Reports & Analytics Styles
+   ========================================================================== */
+
+.income-reports-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.income-reports-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--inc-bg-card);
+  border: 1px solid var(--inc-border);
+  border-radius: var(--inc-radius);
+  box-shadow: var(--inc-shadow-sm);
+  flex-wrap: wrap;
+}
+
+.income-reports-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--inc-text-dark);
+}
+
+.income-reports-toolbar select {
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid var(--inc-border);
+  border-radius: var(--inc-radius-sm);
+  background: #ffffff;
+  color: var(--inc-text-dark);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.income-report-sheet {
+  background: var(--inc-bg-card);
+  border: 1px solid var(--inc-border);
+  border-radius: var(--inc-radius);
+  box-shadow: var(--inc-shadow-sm);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.income-report-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--inc-text-dark);
+}
+
+.income-report-sub {
+  margin: 0 0 20px;
+  font-size: 12.5px;
+  color: var(--inc-text-muted);
+}
+
+.income-report-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.income-report-kpi-card {
+  padding: 18px 20px;
+  border-radius: var(--inc-radius);
+  background: var(--inc-primary-light);
+  border: 1px solid var(--inc-primary-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.income-report-kpi-card span {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--inc-text-muted);
+}
+
+.income-report-kpi-card strong {
+  font-size: 22px;
+  font-weight: 750;
+  color: var(--inc-primary);
+}
+
+.income-report-kpi-card small {
+  font-size: 11.5px;
+  color: var(--inc-text-muted);
+}
+
+/* ==========================================================================
+   13. Comprehensive Dark Mode [data-theme="dark"]
+   ========================================================================== */
+
+[data-theme="dark"] .income-page {
+  --inc-primary: #34d399;
+  --inc-primary-hover: #10b981;
+  --inc-primary-light: rgba(16, 185, 129, 0.12);
+  --inc-primary-border: rgba(52, 211, 153, 0.25);
+  --inc-accent: #34d399;
+  --inc-text-dark: #f8fafc;
+  --inc-text-body: #e2e8f0;
+  --inc-text-muted: #94a3b8;
+  --inc-text-light: #64748b;
+  --inc-bg-page: #0f172a;
+  --inc-bg-card: #1e293b;
+  --inc-border: #334155;
+  --inc-border-light: #1e293b;
+}
+
+[data-theme="dark"] .income-module-tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .income-module-tab-btn:hover {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+[data-theme="dark"] .income-module-tab-btn.active {
+  color: #34d399;
+  background: #1e293b;
+  border-color: #334155 #334155 #1e293b #334155;
+  border-bottom: 2px solid #34d399;
+}
+
+[data-theme="dark"] .income-module-tab-badge {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+}
+
+[data-theme="dark"] .income-secondary-button {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .income-secondary-button:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .income-summary-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-toolbar {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-toolbar input,
+[data-theme="dark"] .income-toolbar select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .income-table-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-table th {
+  background: #1e293b;
+  color: #94a3b8;
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .income-table td {
+  border-bottom-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .income-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .income-table-footer {
+  background: #1e293b;
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .income-modal-box {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-modal-header {
+  background: #0f172a;
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .income-reports-toolbar {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-reports-toolbar select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .income-report-sheet {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-report-kpi-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-form-card,
+[data-theme="dark"] .income-detail-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .income-form-section {
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .income-form-section input,
+[data-theme="dark"] .income-form-section select,
+[data-theme="dark"] .income-form-section textarea {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .income-calc-banner {
+  background: #0f172a;
+  border-color: #334155;
 }

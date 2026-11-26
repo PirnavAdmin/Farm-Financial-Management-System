@@ -1,4 +1,5 @@
 import React from 'react'
+import { ChartNoAxesCombined } from 'lucide-react'
 
 // Workspace Small Leaf Icon
 export function LeafIcon({ className = '', size = 14, color = '#237A32' }) {
@@ -157,26 +158,9 @@ export function SalesIcon({ className = '', size = 18 }) {
   )
 }
 
-// 7. Reports: 3 Ascending Columns Chart
+// 7. Reports: Lucide ChartNoAxesCombined Icon
 export function ReportsIcon({ className = '', size = 18 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect x="4" y="13" width="4" height="7" rx="1" />
-      <rect x="10" y="8" width="4" height="12" rx="1" />
-      <rect x="16" y="4" width="4" height="16" rx="1" />
-    </svg>
-  )
+  return <ChartNoAxesCombined size={size} className={className} strokeWidth={1.8} aria-hidden="true" />
 }
 
 // 8. Notifications: Bell
@@ -1344,6 +1328,7 @@ export function getChildIcon(parentLabel, childLabel) {
         return FarmersIcon
       case 'Farms':
         return FarmsIcon
+      case 'Crop Management':
       case 'Crops':
       case 'Crop Master':
         return CropsIcon
