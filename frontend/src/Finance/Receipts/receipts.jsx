@@ -262,7 +262,7 @@ function ReceiptForm({
     discount: initialData?.discount != null ? String(initialData.discount) : '0',
     otherCharges: initialData?.otherCharges != null ? String(initialData.otherCharges) : '0',
     collectionMode: initialData?.collectionMode || 'Bank Transfer',
-    bankAccount: initialData?.bankAccount || (bankAccounts[0]?.name || 'HDFC Farm Account'),
+    bankAccount: initialData?.bankAccount || (bankAccounts[0]?.name || 'AGRIMAN Farm Account'),
     transactionRef: initialData?.transactionRef || '',
     chequeNo: initialData?.chequeNo || '',
     chequeDate: initialData?.chequeDate || '',
@@ -374,6 +374,11 @@ function ReceiptForm({
 
     onSave({
       ...form,
+      bankAccountId: bankAccounts.find((b) => b.name === form.bankAccount)?.id ?? initialData?.bankAccountId ?? null,
+      buyerId: buyers.find((b) => b.name === form.payerName)?.id ?? initialData?.buyerId ?? null,
+      saleId: form.refType === 'Sales Invoice'
+        ? (sales.find((s) => (s.salesNo || `SAL-${s.id}`) === form.refNo)?.id ?? initialData?.saleId ?? null)
+        : null,
       finalAmount: calculatedFinal,
     })
   }

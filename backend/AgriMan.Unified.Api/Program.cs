@@ -39,7 +39,7 @@ if (!Directory.Exists(webRootDir))
 // -----------------------------------------------------------------------------
 var mySqlConnectionString = builder.Configuration.GetConnectionString("FarmerDbConnection")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Port=3306;Database=agriman_db;User=root;Password=Pilli@1995;CharSet=utf8mb4;";
+    ?? "Server=localhost;Port=3306;Database=agriman_db;User=root;Password=root;CharSet=utf8mb4;";
 
 var mySqlServerVersion = new MySqlServerVersion(new Version(8, 0, 46));
 
@@ -94,6 +94,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<FarmManagementApi.Services.IInventoryService, FarmManagementApi.Services.InventoryService>();
+builder.Services.AddScoped<FarmManagementApi.Services.IPaymentReceiptService, FarmManagementApi.Services.PaymentReceiptService>();
 builder.Services.AddHttpContextAccessor();
 
 // -----------------------------------------------------------------------------
@@ -297,6 +298,13 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Wholesale buyers, commission agents, trader directories, and receivable accounts in `Farmersdb`."
     });
 
+    c.SwaggerDoc("payments-receipts", new OpenApiInfo
+    {
+        Title = "17. Payment & Receipt Management API - Farmersdb",
+        Version = "v1",
+        Description = "Module 17: Outgoing payments, incoming receipts, printable vouchers, 12-dimension outflow/collection analytics, CSV exports, bank balance auto-sync, and audit trail in `Farmersdb`."
+    });
+
     // Filter endpoints into dropdown views
     c.DocInclusionPredicate((docName, apiDesc) =>
     {
@@ -367,6 +375,10 @@ builder.Services.AddSwaggerGen(c =>
         if (docName == "buyers")
         {
             return name.StartsWith("Buyer");
+        }
+        if (docName == "payments-receipts")
+        {
+            return name.StartsWith("FinancePayment") || name.StartsWith("FinanceReceipt");
         }
 
         return false;
@@ -439,8 +451,6 @@ builder.Services.AddSwaggerGen(c =>
 
         // 11. Finance, Bank Accounts & Reports (Module 11)
         if (controllerName.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase) ||
-            controllerName.Equals("FinancePayments", StringComparison.OrdinalIgnoreCase) ||
-            controllerName.Equals("FinanceReceipts", StringComparison.OrdinalIgnoreCase) ||
             controllerName.Equals("Reports", StringComparison.OrdinalIgnoreCase))
         {
             return new[] { "11. Finance, Bank Accounts & Reports (Module 11)" };
@@ -468,6 +478,11 @@ builder.Services.AddSwaggerGen(c =>
 
         // 16. Buyer & Customer Management (Module 16)
         if (controllerName.Equals("Buyers", StringComparison.OrdinalIgnoreCase)) return new[] { "16. Buyers - Customers, Wholesalers & Traders (Module 16)" };
+
+        // 17. Payment & Receipt Management (Module 17)
+        if (controllerName.Equals("FinancePayments", StringComparison.OrdinalIgnoreCase)) return new[] { "17. Payment & Receipt Management - Payments (Module 17)" };
+        if (controllerName.Equals("FinanceReceipts", StringComparison.OrdinalIgnoreCase)) return new[] { "17. Payment & Receipt Management - Receipts (Module 17)" };
+
         return new[] { controllerName };
     });
 
@@ -527,17 +542,38 @@ using (var scope = app.Services.CreateScope())
         logger.LogWarning("[Farmersdb] 1. Auth & Users notice: " + ex.Message);
     }
 
-    // 2. Farm Management Database Tables -> Farmersdb
+    // 2. Farm Management Database Tables -> agriman_db
+    var farmDb = services.GetRequiredService<FarmDbContext>();
     try
     {
-        var farmDb = services.GetRequiredService<FarmDbContext>();
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
-        await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
-        logger.LogInformation("[agriman_db] 2. Farm Management, Inventory Master & Loans ready.");
+        logger.LogInformation("[agriman_db] 2a. Farm Management & Inventory Master ready.");
     }
     catch (Exception ex)
     {
-        logger.LogWarning("[Farmersdb] 2. Farm Management notice: " + ex.Message);
+        logger.LogWarning("[agriman_db] 2a. Farm Management notice: " + ex.Message);
+    }
+
+    try
+    {
+        farmDb.ChangeTracker.Clear();
+        await FarmManagementApi.Data.FarmDbContext.EnsureLoanTablesCreatedAsync(farmDb);
+        logger.LogInformation("[agriman_db] 2b. Loans, Bank Accounts & Module 17 (Payments & Receipts) ready.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning("[agriman_db] 2b. Loans & Finance tables notice: " + ex.Message);
+    }
+
+    try
+    {
+        farmDb.ChangeTracker.Clear();
+        await FarmManagementApi.Data.FarmDbContext.EnsurePaymentReceiptSchemaAsync(farmDb);
+        logger.LogInformation("[agriman_db] 2c. Module 17 (Payment & Receipt Management) verified.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning("[agriman_db] 2c. Module 17 notice: " + ex.Message);
     }
 
     // 3. Expenses Database Tables -> Farmersdb
@@ -618,6 +654,7 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/loans/swagger.json", "14. Loan & Finance (Module 14)");
     c.SwaggerEndpoint("/swagger/suppliers/swagger.json", "15. Supplier Management (Module 15)");
     c.SwaggerEndpoint("/swagger/buyers/swagger.json", "16. Buyer & Customer Management (Module 16)");
+    c.SwaggerEndpoint("/swagger/payments-receipts/swagger.json", "17. Payment & Receipt Management (Module 17)");
 
     c.RoutePrefix = "swagger";
     c.DocumentTitle = "AGRIMAN Unified Platform - All Modules (Farmersdb)";

@@ -262,7 +262,7 @@ function PaymentForm({
     additionalCharges: initialData?.additionalCharges != null ? String(initialData.additionalCharges) : '0',
     discount: initialData?.discount != null ? String(initialData.discount) : '0',
     paymentMode: initialData?.paymentMode || 'Bank Transfer',
-    bankAccount: initialData?.bankAccount || (bankAccounts[0]?.name || 'Main Operational Account'),
+    bankAccount: initialData?.bankAccount || (bankAccounts[0]?.name || 'AGRIMAN Farm Account'),
     transactionRef: initialData?.transactionRef || '',
     chequeNo: initialData?.chequeNo || '',
     chequeDate: initialData?.chequeDate || '',
@@ -356,6 +356,13 @@ function PaymentForm({
 
     onSave({
       ...form,
+      bankAccountId: bankAccounts.find((b) => b.name === form.bankAccount)?.id ?? initialData?.bankAccountId ?? null,
+      supplierId: form.payeeType === 'Supplier / Vendor'
+        ? (suppliers.find((s) => s.name === form.payeeName)?.id ?? initialData?.supplierId ?? null)
+        : null,
+      labourId: form.payeeType === 'Employee / Labourer'
+        ? (labours.find((l) => l.name === form.payeeName)?.id ?? initialData?.labourId ?? null)
+        : null,
       totalAmount: calculatedTotal,
     })
   }

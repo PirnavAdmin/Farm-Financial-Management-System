@@ -348,60 +348,73 @@ export function normalizeReceipt(raw) {
   }
 }
 
-// ─── API & Data Services ─────────────────────────────────────────────────────
+// ─── API Payload & Query Helpers ──────────────────────────────────────────────
 
-export async function listReceipts(filters = {}) {
-  // 1. Read local master records
-  let localList = readLocalReceipts().map(normalizeReceipt)
+function buildReceiptQueryParams(filters = {}) {
+  const params = {}
+  if (filters.search?.trim()) params.search = filters.search.trim()
+  if (filters.status && filters.status !== 'All') params.status = filters.status
+  if (filters.startDate) params.startDate = filters.startDate
+  if (filters.endDate) params.endDate = filters.endDate
+  if (filters.purpose && filters.purpose !== 'All Purposes') params.purpose = filters.purpose
+  if (filters.payerType && filters.payerType !== 'All Payers') params.payerType = filters.payerType
+  if (filters.collectionMode && filters.collectionMode !== 'All Modes') params.collectionMode = filters.collectionMode
+  if (filters.farm?.trim()) params.farm = filters.farm.trim()
+  if (filters.crop?.trim()) params.crop = filters.crop.trim()
+  if (filters.season?.trim()) params.season = filters.season.trim()
+  if (filters.sortBy) params.sortBy = filters.sortBy
+  if (typeof filters.sortDescending === 'boolean') params.sortDescending = filters.sortDescending
+  if (filters.page) params.page = filters.page
+  if (filters.pageSize) params.pageSize = filters.pageSize
+  return params
+}
 
-  // 2. Synchronize with live sales payments where available
-  try {
-    const liveSalesPayments = await salesService.getPayments().catch(() => [])
-    if (Array.isArray(liveSalesPayments) && liveSalesPayments.length > 0) {
-      const liveMapped = liveSalesPayments.map((sp) => ({
-        id: 50000 + Number(sp.id || 0),
-        receiptNo: sp.paymentNo || `REC-S-${sp.id}`,
-        receiptDate: sp.paymentDate ? String(sp.paymentDate).slice(0, 10) : localDate(),
-        purpose: 'Crop Sales Collection',
-        category: 'Crop Sales',
-        payerType: 'Wholesale Buyer / Trader',
-        payerName: sp.buyer || 'Registered Buyer',
-        contactInfo: '',
-        farm: '',
-        fieldParcel: '',
-        crop: '',
-        season: '',
-        refType: 'Sales Invoice',
-        refNo: sp.salesNo || '',
-        originalAmount: Number(sp.paymentAmount || 0),
-        outstandingAmount: Number(sp.remainingSaleBalance || 0),
-        amount: Number(sp.paymentAmount || 0),
-        discount: 0,
-        otherCharges: 0,
-        finalAmount: Number(sp.paymentAmount || 0),
-        collectionMode: sp.paymentMode || 'Bank Transfer',
-        bankAccount: 'HDFC Farm Account',
-        transactionRef: sp.referenceNo || '',
-        chequeNo: '',
-        chequeDate: '',
-        remarks: sp.remarks || 'Customer collection against sales invoice',
-        status: 'Completed',
-        createdAt: sp.createdAt || sp.paymentDate,
-      })).map(normalizeReceipt)
+function buildReceiptPayload(formValues, amount, discount, otherCharges) {
+  const purpose = formValues.purpose?.trim() || 'Crop Sales'
+  const payerName = (formValues.payerName ?? formValues.from ?? '').trim()
+  const refNo = (formValues.refNo ?? formValues.reference ?? '').trim()
+  const mode = (formValues.collectionMode ?? formValues.paymentMode ?? 'Bank Transfer').trim()
+  const orig = parseDecimal(formValues.originalAmount)
 
-      const existingCodes = new Set(localList.map((r) => r.receiptNo.toLowerCase()))
-      const newLive = liveMapped.filter((r) => !existingCodes.has(r.receiptNo.toLowerCase()))
-      localList = [...localList, ...newLive]
-    }
-  } catch (err) {
-    console.warn('[Receipts API] Falling back to cached receipts:', err)
+  return {
+    receiptNo: formValues.receiptNo?.trim() || null,
+    receiptDate: formValues.receiptDate || localDate(),
+    date: formValues.receiptDate || localDate(),
+    purpose,
+    category: formValues.category?.trim() || purpose,
+    payerType: formValues.payerType || 'Wholesale Buyer / Trader',
+    payerName,
+    from: payerName,
+    contactInfo: formValues.contactInfo?.trim() || null,
+    farm: formValues.farm?.trim() || null,
+    fieldParcel: formValues.fieldParcel?.trim() || null,
+    crop: formValues.crop?.trim() || null,
+    season: formValues.season?.trim() || null,
+    refType: formValues.refType || 'None',
+    refNo: refNo || null,
+    reference: refNo || null,
+    originalAmount: orig > 0 ? orig : amount,
+    outstandingAmount: Math.max(0, parseDecimal(formValues.outstandingAmount)),
+    amount,
+    discount,
+    otherCharges,
+    collectionMode: mode,
+    paymentMode: mode,
+    bankAccountId: formValues.bankAccountId ? Number(formValues.bankAccountId) : null,
+    bankAccount: formValues.bankAccount?.trim() || 'AGRIMAN Farm Account',
+    transactionRef: formValues.transactionRef?.trim() || null,
+    chequeNo: formValues.chequeNo?.trim() || null,
+    chequeDate: formValues.chequeDate?.trim() || null,
+    buyerId: formValues.buyerId ? Number(formValues.buyerId) : null,
+    saleId: formValues.saleId ? Number(formValues.saleId) : null,
+    remarks: formValues.remarks?.trim() || null,
+    status: formValues.status || 'Completed',
   }
+}
 
-  // Sort descending by date
-  localList.sort((a, b) => b.receiptDate.localeCompare(a.receiptDate))
-
-  // Apply filters
-  let result = localList
+function applyLocalReceiptFilters(list, filters = {}) {
+  let result = [...list]
+  result.sort((a, b) => b.receiptDate.localeCompare(a.receiptDate))
 
   if (filters.search?.trim()) {
     const q = filters.search.trim().toLowerCase()
@@ -415,35 +428,78 @@ export async function listReceipts(filters = {}) {
       r.remarks.toLowerCase().includes(q)
     )
   }
-
   if (filters.status && filters.status !== 'All') {
     result = result.filter((r) => r.status === filters.status)
   }
-
   if (filters.startDate) {
     result = result.filter((r) => r.receiptDate >= filters.startDate)
   }
-
   if (filters.endDate) {
     result = result.filter((r) => r.receiptDate <= filters.endDate)
   }
-
   if (filters.purpose && filters.purpose !== 'All Purposes') {
     result = result.filter((r) => r.purpose === filters.purpose)
   }
-
   if (filters.payerType && filters.payerType !== 'All Payers') {
     result = result.filter((r) => r.payerType === filters.payerType)
   }
-
   if (filters.collectionMode && filters.collectionMode !== 'All Modes') {
     result = result.filter((r) => r.collectionMode === filters.collectionMode)
   }
-
   return result
 }
 
+// ─── API & Data Services ─────────────────────────────────────────────────────
+
+export async function listReceipts(filters = {}) {
+  const params = buildReceiptQueryParams(filters)
+  const hasFilters = Object.keys(params).length > 0
+
+  try {
+    const res = await api.get('/api/receipts', { params })
+    const rawList = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.items ?? [])
+    const normalized = rawList.map(normalizeReceipt)
+    if (!hasFilters) {
+      writeLocalReceipts(normalized)
+    }
+    return normalized
+  } catch (err) {
+    console.warn('[Receipts API] Falling back to cached receipts:', err?.friendlyMessage || err?.message)
+    const cached = readLocalReceipts().map(normalizeReceipt)
+    return applyLocalReceiptFilters(cached, filters)
+  }
+}
+
+export async function getReceiptSummary(filters = {}) {
+  const params = buildReceiptQueryParams(filters)
+  const res = await api.get('/api/receipts/summary', { params })
+  return res.data
+}
+
+export async function getReceiptVoucher(id) {
+  const res = await api.get(`/api/receipts/${id}/voucher`)
+  return res.data
+}
+
+export async function getReceiptReport(reportType = 'summary', filters = {}) {
+  const params = buildReceiptQueryParams(filters)
+  const res = await api.get(`/api/receipts/reports/${encodeURIComponent(reportType)}`, { params })
+  return res.data
+}
+
+export async function exportReceiptsCsv(filters = {}) {
+  const params = buildReceiptQueryParams(filters)
+  const res = await api.get('/api/receipts/export/csv', { params, responseType: 'blob' })
+  return res.data
+}
+
 export async function getNextReceiptNo() {
+  try {
+    const res = await api.get('/api/receipts/next-number')
+    if (res.data?.nextNumber) return res.data.nextNumber
+  } catch {
+    // Fallback to local sequence
+  }
   const current = readLocalReceipts()
   const year = new Date().getFullYear()
   const prefix = `REC-${year}-`
@@ -469,123 +525,98 @@ export async function createReceipt(formValues) {
     throw new Error('Cheque number is required for Cheque payment mode.')
   }
 
-  const nextCode = formValues.receiptNo?.trim() || (await getNextReceiptNo())
-  const newId = Date.now()
+  const discount = Math.max(0, parseDecimal(formValues.discount))
+  const otherCharges = Math.max(0, parseDecimal(formValues.otherCharges))
+  const payload = buildReceiptPayload(formValues, amount, discount, otherCharges)
 
-  const discount = parseDecimal(formValues.discount)
-  const otherCharges = parseDecimal(formValues.otherCharges)
-  const finalAmount = Math.max(0, Math.round((amount - discount + otherCharges) * 100) / 100)
-
-  const record = {
-    id: newId,
-    receiptNo: nextCode,
-    receiptDate: formValues.receiptDate,
-    purpose: formValues.purpose.trim(),
-    category: formValues.category?.trim() || formValues.purpose.trim(),
-    payerType: formValues.payerType || 'Wholesale Buyer / Trader',
-    payerName: formValues.payerName.trim(),
-    contactInfo: formValues.contactInfo?.trim() || '',
-    farm: formValues.farm?.trim() || '',
-    fieldParcel: formValues.fieldParcel?.trim() || '',
-    crop: formValues.crop?.trim() || '',
-    season: formValues.season?.trim() || '',
-    refType: formValues.refType || 'None',
-    refNo: formValues.refNo?.trim() || '',
-    originalAmount: parseDecimal(formValues.originalAmount) || amount,
-    outstandingAmount: Math.max(0, parseDecimal(formValues.outstandingAmount)),
-    amount,
-    discount,
-    otherCharges,
-    finalAmount,
-    collectionMode: formValues.collectionMode.trim(),
-    bankAccount: formValues.bankAccount?.trim() || 'Main Farm Account',
-    transactionRef: formValues.transactionRef?.trim() || '',
-    chequeNo: formValues.chequeNo?.trim() || '',
-    chequeDate: formValues.chequeDate || '',
-    remarks: formValues.remarks?.trim() || '',
-    status: formValues.status || 'Completed',
-    createdAt: new Date().toISOString(),
+  try {
+    const res = await api.post('/api/receipts', payload)
+    const created = normalizeReceipt(res.data)
+    const list = readLocalReceipts().filter((r) => String(r.id) !== String(created.id))
+    list.unshift(created)
+    writeLocalReceipts(list)
+    return created
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to record receipt.')
+    }
+    throw new Error(err.friendlyMessage || 'Unable to connect to backend API to save receipt.')
   }
-
-  // Persist locally
-  const list = readLocalReceipts()
-  list.unshift(record)
-  writeLocalReceipts(list)
-
-  // Side-effect: sync with live backend sales payment when linked to a sales invoice
-  if (record.refType === 'Sales Invoice' && record.refNo) {
-    salesService.recordPayment({
-      paymentNo: record.receiptNo,
-      paymentDate: record.receiptDate,
-      buyer: record.payerName,
-      salesNo: record.refNo,
-      paymentAmount: record.finalAmount,
-      paymentMode: record.collectionMode,
-      referenceNo: record.transactionRef,
-      remarks: record.remarks,
-    }).catch(() => {})
-  }
-
-  return normalizeReceipt(record)
 }
 
 export async function updateReceipt(id, formValues) {
-  const list = readLocalReceipts()
-  const idx = list.findIndex((r) => String(r.id) === String(id))
-  if (idx === -1) throw new Error(`Receipt with ID ${id} was not found.`)
-
   const amount = parseDecimal(formValues.amount)
   if (amount <= 0) throw new Error('Receipt amount must be greater than zero.')
-
-  const discount = parseDecimal(formValues.discount)
-  const otherCharges = parseDecimal(formValues.otherCharges)
-  const finalAmount = Math.max(0, Math.round((amount - discount + otherCharges) * 100) / 100)
-
-  const updated = {
-    ...list[idx],
-    receiptDate: formValues.receiptDate || list[idx].receiptDate,
-    purpose: formValues.purpose?.trim() || list[idx].purpose,
-    category: formValues.category?.trim() || list[idx].category,
-    payerType: formValues.payerType || list[idx].payerType,
-    payerName: formValues.payerName?.trim() || list[idx].payerName,
-    contactInfo: formValues.contactInfo?.trim() ?? list[idx].contactInfo,
-    farm: formValues.farm?.trim() ?? list[idx].farm,
-    fieldParcel: formValues.fieldParcel?.trim() ?? list[idx].fieldParcel,
-    crop: formValues.crop?.trim() ?? list[idx].crop,
-    season: formValues.season?.trim() ?? list[idx].season,
-    refType: formValues.refType ?? list[idx].refType,
-    refNo: formValues.refNo?.trim() ?? list[idx].refNo,
-    amount,
-    discount,
-    otherCharges,
-    finalAmount,
-    collectionMode: formValues.collectionMode?.trim() || list[idx].collectionMode,
-    bankAccount: formValues.bankAccount?.trim() || list[idx].bankAccount,
-    transactionRef: formValues.transactionRef?.trim() ?? list[idx].transactionRef,
-    chequeNo: formValues.chequeNo?.trim() ?? list[idx].chequeNo,
-    chequeDate: formValues.chequeDate ?? list[idx].chequeDate,
-    remarks: formValues.remarks?.trim() ?? list[idx].remarks,
-    status: formValues.status || list[idx].status,
-    updatedAt: new Date().toISOString(),
+  if (formValues.collectionMode === 'Cheque' && !formValues.chequeNo?.trim()) {
+    throw new Error('Cheque number is required for Cheque payment mode.')
   }
 
-  list[idx] = updated
-  writeLocalReceipts(list)
-  return normalizeReceipt(updated)
+  const discount = Math.max(0, parseDecimal(formValues.discount))
+  const otherCharges = Math.max(0, parseDecimal(formValues.otherCharges))
+  const payload = {
+    id: Number(id),
+    ...buildReceiptPayload(formValues, amount, discount, otherCharges),
+  }
+
+  try {
+    const res = await api.put(`/api/receipts/${id}`, payload)
+    const updated = normalizeReceipt(res.data)
+    const list = readLocalReceipts()
+    const idx = list.findIndex((r) => String(r.id) === String(id))
+    if (idx !== -1) {
+      list[idx] = updated
+      writeLocalReceipts(list)
+    }
+    return updated
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update receipt.')
+    }
+    throw new Error(err.friendlyMessage || 'Unable to connect to backend API to update receipt.')
+  }
+}
+
+export async function updateReceiptStatus(id, status, reason = '') {
+  try {
+    const res = await api.patch(`/api/receipts/${id}/status`, { status, reason: reason || null })
+    const updated = normalizeReceipt(res.data)
+    const list = readLocalReceipts()
+    const idx = list.findIndex((r) => String(r.id) === String(id))
+    if (idx !== -1) {
+      list[idx] = updated
+      writeLocalReceipts(list)
+    }
+    return updated
+  } catch (err) {
+    throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update receipt status.')
+  }
 }
 
 export async function deleteReceipt(id) {
-  const list = readLocalReceipts()
-  const filtered = list.filter((r) => String(r.id) !== String(id))
-  writeLocalReceipts(filtered)
-  return { success: true }
+  try {
+    await api.delete(`/api/receipts/${id}`)
+    const list = readLocalReceipts().filter((r) => String(r.id) !== String(id))
+    writeLocalReceipts(list)
+    return { success: true }
+  } catch (err) {
+    throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to delete receipt.')
+  }
 }
 
 export async function cancelReceipt(id, reason = 'Receipt cancelled or reversed') {
-  return updateReceipt(id, {
-    status: 'Cancelled',
-    remarks: reason,
-  })
+  try {
+    const res = await api.post(`/api/receipts/${id}/cancel`, { reason })
+    const updated = normalizeReceipt(res.data)
+    const list = readLocalReceipts()
+    const idx = list.findIndex((r) => String(r.id) === String(id))
+    if (idx !== -1) {
+      list[idx] = updated
+      writeLocalReceipts(list)
+    }
+    return updated
+  } catch (err) {
+    throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to cancel receipt.')
+  }
 }
 
 // ─── Summary Calculation ──────────────────────────────────────────────────────
@@ -649,15 +680,38 @@ export async function listReceiptBuyers() {
 
 export async function listReceiptBankAccounts() {
   try {
+    const res = await api.get('/api/BankAccounts')
+    const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((a) => ({
+        id: a.id,
+        name: a.accountName || a.bankName,
+        bankName: a.bankName || '',
+        currentBalance: Number(a.currentBalance ?? 0),
+      }))
+    }
+  } catch {
+    // Fall back to farmerBankService
+  }
+
+  try {
     const list = await farmerBankService.getBankAccounts()
-    return Array.isArray(list)
+    return Array.isArray(list) && list.length > 0
       ? list.map((b) => ({
           id: b.id ?? b.bankAccountId,
           name: `${b.bankName || 'Bank'} - ${String(b.accountNumber || '').slice(-4)}`,
         }))
-      : []
+      : [
+          { id: 1, name: 'AGRIMAN Farm Account' },
+          { id: 2, name: 'Kisan Credit Account' },
+          { id: 3, name: 'Farm Cash' },
+        ]
   } catch {
-    return []
+    return [
+      { id: 1, name: 'AGRIMAN Farm Account' },
+      { id: 2, name: 'Kisan Credit Account' },
+      { id: 3, name: 'Farm Cash' },
+    ]
   }
 }
 

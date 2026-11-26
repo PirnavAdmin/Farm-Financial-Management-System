@@ -72,32 +72,61 @@ namespace FarmManagementApi.Controllers
         [HttpGet("cash-flow")]
         public async Task<IActionResult> GetCashFlow([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
-            var receiptsQuery = _farmDb.FinanceReceipts.AsQueryable();
-            var paymentsQuery = _farmDb.FinancePayments.AsQueryable();
+            var receiptsQuery = _farmDb.FinanceReceipts.AsNoTracking().AsQueryable();
+            var paymentsQuery = _farmDb.FinancePayments.AsNoTracking().AsQueryable();
 
             if (fromDate.HasValue)
             {
-                receiptsQuery = receiptsQuery.Where(r => r.Date >= fromDate.Value);
-                paymentsQuery = paymentsQuery.Where(p => p.Date >= fromDate.Value);
+                receiptsQuery = receiptsQuery.Where(r => r.Date >= fromDate.Value.Date);
+                paymentsQuery = paymentsQuery.Where(p => p.Date >= fromDate.Value.Date);
             }
             if (toDate.HasValue)
             {
-                receiptsQuery = receiptsQuery.Where(r => r.Date <= toDate.Value);
-                paymentsQuery = paymentsQuery.Where(p => p.Date <= toDate.Value);
+                var endExclusive = toDate.Value.Date.AddDays(1);
+                receiptsQuery = receiptsQuery.Where(r => r.Date < endExclusive);
+                paymentsQuery = paymentsQuery.Where(p => p.Date < endExclusive);
             }
 
-            var totalInflow = await receiptsQuery.SumAsync(r => r.Amount);
-            var totalOutflow = await paymentsQuery.SumAsync(p => p.Amount);
-            var netCashFlow = totalInflow - totalOutflow;
+            var receipts = await receiptsQuery.OrderByDescending(r => r.Date).ToListAsync();
+            var payments = await paymentsQuery.OrderByDescending(p => p.Date).ToListAsync();
 
-            var recentReceipts = await receiptsQuery.OrderByDescending(r => r.Date).Take(10).ToListAsync();
-            var recentPayments = await paymentsQuery.OrderByDescending(p => p.Date).Take(10).ToListAsync();
+            var totalInflow = receipts
+                .Where(r => string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                .Sum(r => r.FinalAmount > 0 ? r.FinalAmount : r.Amount);
+
+            var totalOutflow = payments
+                .Where(p => string.Equals(p.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                .Sum(p => p.TotalAmount > 0 ? p.TotalAmount : p.Amount);
+
+            var pendingInflow = receipts
+                .Where(r => string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(r.Status, "Processing", StringComparison.OrdinalIgnoreCase))
+                .Sum(r => r.FinalAmount > 0 ? r.FinalAmount : r.Amount);
+
+            var pendingOutflow = payments
+                .Where(p => string.Equals(p.Status, "Pending", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(p.Status, "Processing", StringComparison.OrdinalIgnoreCase))
+                .Sum(p => p.TotalAmount > 0 ? p.TotalAmount : p.Amount);
+
+            var netCashFlow = Math.Round(totalInflow - totalOutflow, 2);
+
+            var recentReceipts = receipts
+                .Where(r => !string.Equals(r.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                .Take(10)
+                .ToList();
+
+            var recentPayments = payments
+                .Where(p => !string.Equals(p.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                .Take(10)
+                .ToList();
 
             return Ok(new
             {
-                TotalCashInflow = totalInflow,
-                TotalCashOutflow = totalOutflow,
+                TotalCashInflow = Math.Round(totalInflow, 2),
+                TotalCashOutflow = Math.Round(totalOutflow, 2),
                 NetCashFlow = netCashFlow,
+                PendingCashInflow = Math.Round(pendingInflow, 2),
+                PendingCashOutflow = Math.Round(pendingOutflow, 2),
                 RecentReceipts = recentReceipts,
                 RecentPayments = recentPayments
             });
