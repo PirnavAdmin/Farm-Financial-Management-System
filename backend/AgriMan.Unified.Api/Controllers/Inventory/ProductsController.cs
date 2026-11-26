@@ -39,7 +39,6 @@ public class ProductsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-<<<<<<< Updated upstream
         var result = await _inventoryService.GetProductsAsync(categoryId, unitId, isActive, search, page, pageSize);
         return Ok(result.Data);
     }
@@ -56,66 +55,41 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Get product by ID with category details and current stock.
+    /// Get active product categories for dropdown selection.
     /// </summary>
-=======
-        var query = _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Units)
-            .AsQueryable();
-
-        if (categoryId.HasValue)
-            query = query.Where(p => p.CategoryId == categoryId.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search) || p.Code.Contains(search));
-
-        var list = await query.OrderBy(p => p.Id).ToListAsync();
-        return Ok(list);
-    }
-
     [HttpGet("categories")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories()
     {
-        var categories = await _context.ProductCategories
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.Id)
-            .ToListAsync();
-        return Ok(categories);
+        var result = await _inventoryService.GetCategoriesAsync(isActive: true);
+        return Ok(result.Data);
     }
 
+    /// <summary>
+    /// Get active units of measurement for dropdown selection.
+    /// </summary>
     [HttpGet("units")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUnits()
     {
-        var units = await _context.Units
-            .Where(u => u.IsActive)
-            .OrderBy(u => u.Id)
-            .ToListAsync();
-        return Ok(units);
+        var result = await _inventoryService.GetUnitsAsync(isActive: true);
+        return Ok(result.Data);
     }
 
->>>>>>> Stashed changes
+    /// <summary>
+    /// Get product by ID with category details and current stock.
+    /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
-<<<<<<< Updated upstream
         var result = await _inventoryService.GetProductByIdAsync(id);
         if (!result.Success)
         {
             return NotFound(new { message = result.Message });
         }
         return Ok(result.Data);
-=======
-        var product = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Units)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (product == null) return NotFound(new { message = $"Product with ID {id} not found." });
-        return Ok(product);
->>>>>>> Stashed changes
     }
 
     /// <summary>
@@ -127,71 +101,14 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
-<<<<<<< Updated upstream
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
-=======
-        if (string.IsNullOrWhiteSpace(dto.Code))
-            return BadRequest(new { message = "Product Code is required." });
-
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest(new { message = "Product Name is required." });
-
-        var trimmedCode = dto.Code.Trim();
-        var codeExists = await _context.Products.AnyAsync(p => p.Code.ToLower() == trimmedCode.ToLower());
-        if (codeExists)
-        {
-            return BadRequest(new { message = $"A product with code '{trimmedCode}' already exists." });
-        }
-
-        using var tx = await _context.Database.BeginTransactionAsync();
-
-        var product = new Products
-        {
-            Code = trimmedCode,
-            Name = dto.Name.Trim(),
-            CategoryId = dto.CategoryId,
-            UnitId = dto.UnitId,
-            ReorderLevel = dto.ReorderLevel,
-            StandardCost = dto.StandardCost,
-            IsActive = true
-        };
-
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        // Ensure inventory placeholder exists for product integrity
-        var inv = new Inventory
-        {
-            ProductId = product.Id,
-            StorageLocation = string.IsNullOrWhiteSpace(dto.StorageLocation) ? "Main Warehouse" : dto.StorageLocation,
-            CurrentStock = dto.InitialStock,
-            LastUpdated = DateTime.UtcNow
-        };
-        _context.Inventory.Add(inv);
-
-        if (dto.InitialStock > 0)
-        {
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ProductId = product.Id,
-                TransactionDate = DateTime.UtcNow,
-                TransactionType = "StockIn",
-                Quantity = dto.InitialStock,
-                UnitPrice = dto.StandardCost,
-                StorageLocation = inv.StorageLocation,
-                ReferenceType = "InitialStock",
-                BalanceAfterTransaction = dto.InitialStock,
-                Notes = "Initial balance on product creation"
-            });
->>>>>>> Stashed changes
         }
 
         var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-<<<<<<< Updated upstream
         var result = await _inventoryService.CreateProductAsync(dto, actorId, actorName, ip);
         if (!result.Success)
         {
@@ -199,12 +116,6 @@ public class ProductsController : ControllerBase
         }
 
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
-=======
-        await _context.Entry(product).Reference(p => p.Category).LoadAsync();
-        await _context.Entry(product).Reference(p => p.Units).LoadAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
->>>>>>> Stashed changes
     }
 
     /// <summary>
@@ -216,7 +127,6 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateProductDto dto)
     {
-<<<<<<< Updated upstream
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
@@ -236,38 +146,6 @@ public class ProductsController : ControllerBase
         }
 
         return Ok(result.Data);
-=======
-        var product = await _context.Products.FindAsync(id);
-        if (product == null) return NotFound(new { message = $"Product with ID {id} not found." });
-
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest(new { message = "Product Name is required." });
-
-        if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code.Trim().ToLower() != product.Code.ToLower())
-        {
-            var newCode = dto.Code.Trim();
-            var codeExists = await _context.Products.AnyAsync(p => p.Id != id && p.Code.ToLower() == newCode.ToLower());
-            if (codeExists)
-            {
-                return BadRequest(new { message = $"A product with code '{newCode}' already exists." });
-            }
-            product.Code = newCode;
-        }
-
-        product.Name = dto.Name.Trim();
-        product.CategoryId = dto.CategoryId;
-        product.UnitId = dto.UnitId;
-        product.ReorderLevel = dto.ReorderLevel;
-        product.StandardCost = dto.StandardCost;
-        product.IsActive = dto.IsActive;
-
-        await _context.SaveChangesAsync();
-
-        await _context.Entry(product).Reference(p => p.Category).LoadAsync();
-        await _context.Entry(product).Reference(p => p.Units).LoadAsync();
-
-        return Ok(product);
->>>>>>> Stashed changes
     }
 
     /// <summary>
@@ -308,7 +186,6 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-<<<<<<< Updated upstream
         var (actorId, actorName) = _auditService.GetActorFromPrincipal(User);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
@@ -323,27 +200,5 @@ public class ProductsController : ControllerBase
         }
 
         return Ok(new { success = true, message = result.Message });
-=======
-        var product = await _context.Products.FindAsync(id);
-        if (product == null) return NotFound(new { message = $"Product with ID {id} not found." });
-
-        var isReferenced = await _context.PurchaseItems.AnyAsync(pi => pi.ProductName.ToLower() == product.Name.ToLower())
-            || await _context.InventoryTransactions.AnyAsync(it => it.ProductId == id)
-            || await _context.Inventory.AnyAsync(inv => inv.ProductId == id && inv.CurrentStock > 0);
-
-        if (isReferenced)
-        {
-            product.IsActive = false; // Established safe deactivation behavior
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Product is referenced by existing records and has been safely deactivated instead of deleted.", deactivated = true });
-        }
-
-        var zeroInv = await _context.Inventory.Where(i => i.ProductId == id).ToListAsync();
-        if (zeroInv.Any()) _context.Inventory.RemoveRange(zeroInv);
-
-        _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "Product deleted successfully.", deactivated = false });
->>>>>>> Stashed changes
     }
 }
