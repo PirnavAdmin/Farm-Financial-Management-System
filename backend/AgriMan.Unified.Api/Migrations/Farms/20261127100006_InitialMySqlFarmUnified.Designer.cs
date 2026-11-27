@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AgriMan.Unified.Api.Migrations.Farms
 {
     [DbContext(typeof(FarmDbContext))]
-    [Migration("20261125124046_Module17_PaymentsAndReceipts")]
-    partial class Module17_PaymentsAndReceipts
+    [Migration("20261127100006_InitialMySqlFarmUnified")]
+    partial class InitialMySqlFarmUnified
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1036,8 +1036,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 1,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9094),
+                            Code = "INC-CAT-1",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Crop Sales",
                             Status = "Active"
@@ -1045,8 +1045,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 2,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9100),
+                            Code = "INC-CAT-2",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Milk Sales",
                             Status = "Active"
@@ -1054,8 +1054,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 3,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9101),
+                            Code = "INC-CAT-3",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Animal Sales",
                             Status = "Active"
@@ -1063,8 +1063,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 4,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9103),
+                            Code = "INC-CAT-4",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Government Subsidy",
                             Status = "Active"
@@ -1072,8 +1072,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 5,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9104),
+                            Code = "INC-CAT-5",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Loan Received",
                             Status = "Active"
@@ -1081,8 +1081,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 6,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9106),
+                            Code = "INC-CAT-6",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Rental Income",
                             Status = "Active"
@@ -1090,8 +1090,8 @@ namespace AgriMan.Unified.Api.Migrations.Farms
                         new
                         {
                             Id = 7,
-                            Code = "",
-                            CreatedAt = new DateTime(2026, 11, 25, 12, 40, 44, 513, DateTimeKind.Utc).AddTicks(9107),
+                            Code = "INC-CAT-7",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "Other Income",
                             Status = "Active"

@@ -1,7 +1,9 @@
 using System.Text;
 using FarmManagementApi.DTOs;
 using FarmManagementApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace FarmManagementApi.Controllers
 {
@@ -10,6 +12,7 @@ namespace FarmManagementApi.Controllers
     /// Supports full CRUD, KPI summary, 12-dimension outflow analytics, printable vouchers with INR words,
     /// CSV export, status transitions, soft cancellation, bank account balance sync, and audit logging.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/payments")]
@@ -178,7 +181,9 @@ namespace FarmManagementApi.Controllers
         [HttpPost("{id:int}/cancel")]
         [ProducesResponseType(typeof(FinancePaymentResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<FinancePaymentResponseDto>> CancelPayment(int id, [FromBody] CancelTransactionDto? dto)
+        public async Task<ActionResult<FinancePaymentResponseDto>> CancelPayment(
+            int id,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CancelTransactionDto? dto = null)
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _service.CancelPaymentAsync(id, dto, User, ip);
@@ -210,6 +215,7 @@ namespace FarmManagementApi.Controllers
     /// Supports full CRUD, KPI summary, 12-dimension collection analytics, official receipt vouchers with INR words,
     /// CSV export, status transitions, soft cancellation, bank account balance sync, and audit logging.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/receipts")]
@@ -378,7 +384,9 @@ namespace FarmManagementApi.Controllers
         [HttpPost("{id:int}/cancel")]
         [ProducesResponseType(typeof(FinanceReceiptResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<FinanceReceiptResponseDto>> CancelReceipt(int id, [FromBody] CancelTransactionDto? dto)
+        public async Task<ActionResult<FinanceReceiptResponseDto>> CancelReceipt(
+            int id,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CancelTransactionDto? dto = null)
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _service.CancelReceiptAsync(id, dto, User, ip);

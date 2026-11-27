@@ -52,10 +52,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         sqlOptions.CommandTimeout(120);
     }));
 
-// API 2: Farm Management DbContext (Farmers, Farms, Lands, Income, Purchases, Inventory) -> agriman_db
+// API 2: Farm Management DbContext (Farmers, Farms, Lands, Income, Purchases, Inventory, Loans, Payments & Receipts) -> agriman_db
 builder.Services.AddDbContext<FarmDbContext>(options =>
     options.UseMySql(mySqlConnectionString, mySqlServerVersion, sqlOptions =>
     {
+        sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_Farms");
         sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(120);
     }));
@@ -574,6 +575,11 @@ using (var scope = app.Services.CreateScope())
     var farmDb = services.GetRequiredService<FarmDbContext>();
     try
     {
+        if (farmDb.Database.IsRelational())
+        {
+            await farmDb.Database.MigrateAsync();
+            logger.LogInformation("[agriman_db] Applied EF Core Farm migrations (__EFMigrationsHistory_Farms).");
+        }
         await FarmManagementApi.Data.DbInitializer.InitializeAsync(farmDb, logger);
         logger.LogInformation("[agriman_db] 2a. Farm Management & Inventory Master ready.");
     }

@@ -122,6 +122,13 @@ public class ReportsService : IReportsService
         string.Equals(status?.Trim(), "Paid", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(status?.Trim(), "Completed", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsSettledCashStatus(string? status) =>
+        string.IsNullOrWhiteSpace(status) ||
+        string.Equals(status.Trim(), "Completed", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status.Trim(), "Paid", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status.Trim(), "Received", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status.Trim(), "Success", StringComparison.OrdinalIgnoreCase);
+
     private static bool MatchesFilter(string? value, string? filter) =>
         string.IsNullOrWhiteSpace(filter) ||
         filter.Equals("All", StringComparison.OrdinalIgnoreCase) ||
@@ -660,24 +667,38 @@ public class ReportsService : IReportsService
 
         bool InRange(DateTime d) => (!from.HasValue || d >= from.Value) && (!to.HasValue || d <= to.Value);
 
-        var fRec = finReceipts.Where(r => InRange(r.Date)).ToList();
+        var fRec = finReceipts.Where(r => InRange(r.Date) && IsSettledCashStatus(r.Status)).ToList();
         var sPay = salesPayments.Where(p => InRange(p.PaymentDate)).ToList();
         var iPay = incomePayments.Where(p => InRange(p.PaymentDate)).ToList();
 
-        var fPay = finPayments.Where(p => InRange(p.Date)).ToList();
+        var fPay = finPayments.Where(p => InRange(p.Date) && IsSettledCashStatus(p.Status)).ToList();
         var ePay = expPayments.Where(p => InRange(p.PaymentDate) && IsNotCancelled(p.Status)).ToList();
         var spPay = supPayments.Where(p => InRange(p.PaymentDate)).ToList();
         var puPay = purPayments.Where(p => InRange(p.PaymentDate)).ToList();
         var lbPay = labPayments.Where(p => InRange(p.PaymentDate)).ToList();
         var lnPay = loanPayments.Where(p => InRange(p.PaymentDate)).ToList();
 
+        static decimal EffectiveReceiptAmount(FarmManagementApi.Models.FinanceReceipt r) =>
+            r.FinalAmount > 0m ? r.FinalAmount : Math.Max(0m, Math.Round(r.Amount - r.Discount + r.OtherCharges, 2));
+
+        static decimal EffectivePaymentAmount(FarmManagementApi.Models.FinancePayment p) =>
+            p.TotalAmount > 0m ? p.TotalAmount : Math.Max(0m, Math.Round(p.Amount + p.AdditionalCharges - p.Discount, 2));
+
         var inflows = new List<(DateTime Date, string Mode, decimal Amount, object Raw)>();
-        inflows.AddRange(fRec.Select(r => (r.Date, NormalizeKey(r.PaymentMode, "Bank"), r.Amount, (object)new { r.Id, VoucherNo = r.ReceiptNo, r.Date, Party = r.From, r.PaymentMode, r.Amount, Source = "FinanceReceipt" })));
+        inflows.AddRange(fRec.Select(r =>
+        {
+            var net = EffectiveReceiptAmount(r);
+            return (r.Date, NormalizeKey(r.PaymentMode, "Bank"), net, (object)new { r.Id, VoucherNo = r.ReceiptNo, r.Date, Party = r.From, r.PaymentMode, Amount = net, Source = "FinanceReceipt" });
+        }));
         inflows.AddRange(sPay.Select(p => (p.PaymentDate, NormalizeKey(p.PaymentMode, "Bank"), p.PaymentAmount, (object)new { p.Id, VoucherNo = p.PaymentNo, Date = p.PaymentDate, Party = p.Buyer, p.PaymentMode, Amount = p.PaymentAmount, Source = "SalesPayment" })));
         inflows.AddRange(iPay.Select(p => (p.PaymentDate, NormalizeKey(p.PaymentMode, "Cash"), p.Amount, (object)new { p.Id, VoucherNo = $"INC-PAY-{p.Id}", Date = p.PaymentDate, Party = p.BankOrCash ?? "Farm Income", p.PaymentMode, p.Amount, Source = "IncomePayment" })));
 
         var outflows = new List<(DateTime Date, string Mode, decimal Amount, object Raw)>();
-        outflows.AddRange(fPay.Select(p => (p.Date, NormalizeKey(p.PaymentMode, "Bank"), p.Amount, (object)new { p.Id, VoucherNo = p.PaymentNo, p.Date, p.Party, p.PaymentMode, p.Amount, Source = "FinancePayment" })));
+        outflows.AddRange(fPay.Select(p =>
+        {
+            var net = EffectivePaymentAmount(p);
+            return (p.Date, NormalizeKey(p.PaymentMode, "Bank"), net, (object)new { p.Id, VoucherNo = p.PaymentNo, p.Date, p.Party, p.PaymentMode, Amount = net, Source = "FinancePayment" });
+        }));
         outflows.AddRange(ePay.Select(p => (p.PaymentDate, NormalizeKey(p.PaymentMode, "Cash"), p.Amount, (object)new { p.Id, VoucherNo = $"EXP-PAY-{p.Id}", Date = p.PaymentDate, Party = p.BankOrCash, p.PaymentMode, p.Amount, Source = "ExpensePayment" })));
         outflows.AddRange(spPay.Select(p => (p.PaymentDate, NormalizeKey(p.PaymentMode, "Bank"), p.AmountPaid, (object)new { p.Id, VoucherNo = p.PaymentCode, Date = p.PaymentDate, Party = p.SupplierName, p.PaymentMode, Amount = p.AmountPaid, Source = "SupplierPayment" })));
         outflows.AddRange(puPay.Select(p => (p.PaymentDate, NormalizeKey(p.PaymentMode, "Cash"), p.Amount, (object)new { p.Id, VoucherNo = $"PUR-PAY-{p.Id}", Date = p.PaymentDate, Party = p.BankOrCash, p.PaymentMode, p.Amount, Source = "PurchasePayment" })));
@@ -724,10 +745,10 @@ public class ReportsService : IReportsService
             TotalCashInflow = totalIn,
             TotalCashOutflow = totalOut,
             NetCashFlow = Math.Round(totalIn - totalOut, 2),
-            FinanceReceiptsInflow = Math.Round(fRec.Sum(x => x.Amount), 2),
+            FinanceReceiptsInflow = Math.Round(fRec.Sum(EffectiveReceiptAmount), 2),
             SalesCollectionsInflow = Math.Round(sPay.Sum(x => x.PaymentAmount), 2),
             IncomePaymentsInflow = Math.Round(iPay.Sum(x => x.Amount), 2),
-            FinancePaymentsOutflow = Math.Round(fPay.Sum(x => x.Amount), 2),
+            FinancePaymentsOutflow = Math.Round(fPay.Sum(EffectivePaymentAmount), 2),
             ExpensePaymentsOutflow = Math.Round(ePay.Sum(x => x.Amount), 2),
             SupplierPaymentsOutflow = Math.Round(spPay.Sum(x => x.AmountPaid), 2),
             PurchasePaymentsOutflow = Math.Round(puPay.Sum(x => x.Amount), 2),

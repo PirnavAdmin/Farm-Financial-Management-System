@@ -248,15 +248,16 @@ namespace FarmManagementApi.Data
                 entity.Property(e => e.Description).HasMaxLength(250);
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
 
-                // Seed predefined income categories
+                // Seed predefined income categories (static CreatedAt keeps EF model snapshot deterministic)
+                var seedCreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                 entity.HasData(
-                    new IncomeCategory { Id = 1, Name = "Crop Sales", IsActive = true },
-                    new IncomeCategory { Id = 2, Name = "Milk Sales", IsActive = true },
-                    new IncomeCategory { Id = 3, Name = "Animal Sales", IsActive = true },
-                    new IncomeCategory { Id = 4, Name = "Government Subsidy", IsActive = true },
-                    new IncomeCategory { Id = 5, Name = "Loan Received", IsActive = true },
-                    new IncomeCategory { Id = 6, Name = "Rental Income", IsActive = true },
-                    new IncomeCategory { Id = 7, Name = "Other Income", IsActive = true }
+                    new IncomeCategory { Id = 1, Code = "INC-CAT-1", Name = "Crop Sales", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 2, Code = "INC-CAT-2", Name = "Milk Sales", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 3, Code = "INC-CAT-3", Name = "Animal Sales", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 4, Code = "INC-CAT-4", Name = "Government Subsidy", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 5, Code = "INC-CAT-5", Name = "Loan Received", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 6, Code = "INC-CAT-6", Name = "Rental Income", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt },
+                    new IncomeCategory { Id = 7, Code = "INC-CAT-7", Name = "Other Income", IsActive = true, Status = "Active", CreatedAt = seedCreatedAt }
                 );
             });
 
@@ -990,9 +991,6 @@ CREATE TABLE IF NOT EXISTS `bank_accounts` (
                     );
                     await context.SaveChangesAsync();
                 }
-
-                // Ensure Module 17 (Payments & Receipts) schema, column upgrades & seed data
-                await EnsurePaymentReceiptSchemaAsync(context);
             }
             catch (Exception ex)
             {
