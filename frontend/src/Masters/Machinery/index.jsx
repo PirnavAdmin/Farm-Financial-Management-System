@@ -26,9 +26,19 @@ import {
   SprayCan,
   Cog,
   BatteryCharging,
+<<<<<<< Updated upstream
   Wheat,
   EllipsisVertical
 } from 'lucide-react';
+=======
+  Fuel,
+  Settings,
+  EllipsisVertical,
+  X,
+  ChevronDown,
+  Search
+} from './icons.jsx';
+>>>>>>> Stashed changes
 import {
   machineryService,
   normalizeMachine,
