@@ -145,6 +145,35 @@ export async function listIncome(params) {
   return list(response.data, 'Income').map(normalizeIncome).sort((a, b) => b.incomeDate.localeCompare(a.incomeDate))
 }
 
+const INCOME_REPORT_ENDPOINTS = {
+  summary: { path: '/api/Reports/financial/monthly-income', exportKey: 'monthly-income' },
+  monthly: { path: '/api/Reports/financial/monthly-income', exportKey: 'monthly-income' },
+  daily: { path: '/api/Reports/financial/daily-income', exportKey: 'daily-income' },
+  annual: { path: '/api/Reports/financial/annual-income', exportKey: 'annual-income' },
+  receivables: { path: '/api/Reports/financial/receivables', exportKey: 'receivables' },
+  crop: { path: '/api/Reports/agriculture/crop-income', exportKey: 'crop-income' },
+}
+
+export async function getIncomeReport(reportType, params = {}) {
+  const spec = INCOME_REPORT_ENDPOINTS[reportType] || INCOME_REPORT_ENDPOINTS.summary
+  const response = await api.get(spec.path, { ...config(), params })
+  return { ...unwrap(response.data), exportKey: spec.exportKey }
+}
+
+export async function exportIncomeReportCsv(reportType = 'monthly', params = {}) {
+  const spec = INCOME_REPORT_ENDPOINTS[reportType] || INCOME_REPORT_ENDPOINTS.monthly
+  const response = await api.get(`/api/Reports/export/${spec.exportKey}`, { ...config(), params, responseType: 'blob' })
+  const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+  const href = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = href
+  link.download = `AGRIMAN_Income_Report_${spec.exportKey}_${localDate()}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(href)
+}
+
 export async function getIncomeById(id) {
   const response = await api.get(`/api/Income/${encodeURIComponent(id)}`, config())
   return normalizeIncome(unwrap(response.data))
@@ -152,26 +181,10 @@ export async function getIncomeById(id) {
 
 export async function listIncomeCategories() {
   const response = await api.get('/api/Income/categories', config())
-  const loaded = list(response.data, 'Income categories').map((row) => {
+  return list(response.data, 'Income categories').map((row) => {
     if (row.id == null || typeof row.name !== 'string') throw new Error('The category API must supply an ID and name for each category.')
     return { ...row, code: row.code ?? '', source: row.source ?? '', description: row.description ?? '', status: row.status ?? '' }
   })
-
-  // Ensure all 9 standard agricultural categories are present
-  const existingNames = new Set(loaded.map((c) => c.name))
-  const fallback = STANDARD_AGRICULTURAL_CATEGORIES
-    .filter((cat) => !existingNames.has(cat))
-    .map((cat, idx) => ({
-      id: 1000 + idx,
-      name: cat,
-      code: `CAT-${idx + 1}`,
-      source: 'Standard',
-      description: `Standard agricultural category: ${cat}`,
-      status: 'Active',
-      isStandard: true,
-    }))
-
-  return [...loaded, ...fallback]
 }
 
 export async function listIncomeFarmers() {

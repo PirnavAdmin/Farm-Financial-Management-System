@@ -1,5 +1,27 @@
 @import '../../Settings/Users/Users.css';
 
+.users-page.finance-screen {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.loan-error-banner {
+  color: #b91c1c;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ── Standardized Page Header ── */
 .finance-screen .users-title-row {
   display: flex;
@@ -618,12 +640,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 38px !important;
+  height: 40px !important;
   flex: 1;
   min-width: 200px;
   padding: 0 12px !important;
   border: 1px solid #d5ded7;
-  border-radius: 7px;
+  border-radius: 8px;
   color: #657269;
   background: #ffffff;
 }
@@ -678,34 +700,49 @@
 
 /* ── Panel & Table Sizing Overrides ── */
 .finance-screen .users-panel {
+  width: 100%;
+  max-width: 100%;
   border: 1px solid #e0e8e1;
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+.finance-screen .users-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .finance-screen .users-table th {
   height: auto !important;
-  min-height: 44px !important;
-  padding: 12px 14px !important;
+  min-height: 42px !important;
+  padding: 11px 10px !important;
   color: #374840 !important;
   background: #fafbfa !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
   white-space: nowrap;
 }
 
 .finance-screen .users-table td {
   height: auto !important;
-  min-height: 52px !important;
-  padding: 12px 14px !important;
+  min-height: 48px !important;
+  padding: 10px 10px !important;
   border-top: 1px solid #edf0ed;
   color: #1a2e1e !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   line-height: 1.45 !important;
+  white-space: nowrap;
+}
+
+.finance-screen .users-table th:last-child,
+.finance-screen .users-table td:last-child {
+  min-width: 72px;
   white-space: nowrap;
 }
 
@@ -1008,4 +1045,41 @@
   background: var(--ag-secondary-surface) !important;
   border-color: var(--ag-border) !important;
   color: var(--ag-muted-text) !important;
+}
+
+[data-theme="dark"] .users-page.finance-screen {
+  background: #121814;
+  color: #e2e8e4;
+}
+
+[data-theme="dark"] .finance-screen .users-title-row h1,
+[data-theme="dark"] .finance-screen .users-table td,
+[data-theme="dark"] .finance-screen .modal-header h2 {
+  color: #e2e8e4 !important;
+}
+
+[data-theme="dark"] .finance-screen .users-panel,
+[data-theme="dark"] .finance-screen .user-search,
+[data-theme="dark"] .finance-screen .users-toolbar select,
+[data-theme="dark"] .finance-screen .reset-button,
+[data-theme="dark"] .finance-screen .form-grid input,
+[data-theme="dark"] .finance-screen .form-grid select {
+  background: #1a221d !important;
+  border-color: #29382e !important;
+  color: #e2e8e4 !important;
+}
+
+[data-theme="dark"] .finance-screen .users-table th {
+  background: #161f18 !important;
+  color: #a3b8aa !important;
+}
+
+[data-theme="dark"] .finance-screen .users-table td {
+  border-top-color: #29382e !important;
+}
+
+[data-theme="dark"] .loan-error-banner {
+  background: #2d1816;
+  border-color: #5c2420;
+  color: #fca5a5;
 }

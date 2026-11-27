@@ -115,6 +115,35 @@ export default function BankAccounts() {
   // Reports State
   const [reportType, setReportType] = useState('summary');
   const [reportAccountNo, setReportAccountNo] = useState('All');
+  const [txnMenuOpen, setTxnMenuOpen] = useState(false);
+  const txnMenuRef = React.useRef(null);
+  const pageRootRef = React.useRef(null);
+
+  const handleTabSwitch = (nextView) => {
+    setView(nextView);
+    const scrollHost = pageRootRef.current?.closest('.page-content') || pageRootRef.current?.parentElement;
+    if (scrollHost && typeof scrollHost.scrollTo === 'function') {
+      scrollHost.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (!txnMenuOpen) return undefined;
+    const handleOutside = (e) => {
+      if (txnMenuRef.current && !txnMenuRef.current.contains(e.target)) {
+        setTxnMenuOpen(false);
+      }
+    };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setTxnMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [txnMenuOpen]);
 
   // Toast auto-clear
   useEffect(() => {
@@ -143,7 +172,8 @@ export default function BankAccounts() {
       }
     } catch (err) {
       console.error('[BankAccounts] Error loading accounts data:', err);
-      setErrorBanner('Network error or API offline. Operating in resilient local workspace mode.');
+      setErrorBanner(err?.message || 'Unable to load bank accounts from the server. Please check your connection and retry.');
+      setRawAccounts([]);
     } finally {
       setLoading(false);
     }
@@ -628,78 +658,80 @@ export default function BankAccounts() {
   // ── Export CSV for Reports ──
 
   const handleExportCSV = () => {
-    let rows = [];
-    let headers = [];
-    let filename = `agriman-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`;
-
-    if (reportType === 'summary' || reportType === 'balance') {
-      headers = ['Account Name', 'Bank Name', 'Account Number', 'Account Type', 'Branch', 'Opening Balance', 'Current Balance', 'Status'];
-      rows = accounts.map((a) => [
-        a.accountName,
-        a.bankName,
-        a.accountNumber,
-        a.accountType,
-        a.branch,
-        a.openingBalance,
-        a.currentBalance,
-        a.status,
-      ]);
-    } else {
-      headers = ['Date', 'Reference No', 'Description', 'Bank Account', 'Type', 'Money In (Credit)', 'Money Out (Debit)', 'Running Balance', 'Status'];
-      rows = filteredTransactions.map((t) => [
-        t.date,
-        t.referenceNo,
-        t.description,
-        `${t.bankName} (${t.accountNumber})`,
-        t.type,
-        t.credit || 0,
-        t.debit || 0,
-        t.runningBalance || 0,
-        t.status,
-      ]);
-    }
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    setToast(`Report exported to ${filename}`);
+    setErrorBanner('Backend CSV export endpoint for Bank Accounts (/api/BankAccounts/export/csv) is not yet implemented on the server.');
   };
 
   return (
-    <div className="users-page finance-screen">
+    <div ref={pageRootRef} className="users-page finance-screen">
       {/* 1. Module Header */}
       <div className="users-title-row">
-        <div>
+        <div className="bank-title-left">
           <div className="users-eyebrow">
             FINANCE <span>/</span> BANK ACCOUNTS
           </div>
           <h1>Bank Accounts</h1>
           <p>
-            Manage agricultural bank accounts, monitor balances, track deposits & withdrawals, view transaction history, and reconcile statements.
+            Manage agricultural bank accounts, monitor balances, track deposits &amp; withdrawals, view transaction history, and reconcile statements.
           </p>
         </div>
 
         <div className="bank-header-actions">
-          <button className="bank-btn-primary" type="button" onClick={handleOpenAddAccount} disabled={loading}>
-            <PlusIcon size={16} /> Add Bank Account
-          </button>
-          <button className="bank-btn-secondary" type="button" onClick={() => handleOpenDeposit()} disabled={loading || !accounts.length}>
-            <ArrowDownLeftIcon size={16} /> Deposit
-          </button>
-          <button className="bank-btn-secondary" type="button" onClick={() => handleOpenWithdrawal()} disabled={loading || !accounts.length}>
-            <ArrowUpRightIcon size={16} /> Withdrawal
-          </button>
-          <button className="bank-btn-secondary" type="button" onClick={handleOpenTransfer} disabled={loading || accounts.length < 2}>
-            <ArrowLeftRightIcon size={16} /> Transfer
-          </button>
+          <div className="bank-txn-dropdown-wrap" ref={txnMenuRef}>
+            <button
+              className="bank-btn-secondary"
+              type="button"
+              onClick={() => setTxnMenuOpen((o) => !o)}
+              disabled={loading || !accounts.length}
+              aria-haspopup="menu"
+              aria-expanded={txnMenuOpen}
+            >
+              <ArrowLeftRightIcon size={15} />
+              <span>Transactions</span>
+              <span aria-hidden="true" style={{ fontSize: '11px', opacity: 0.75 }}>▾</span>
+            </button>
+            {txnMenuOpen && (
+              <div className="bank-txn-menu" role="menu" aria-label="Bank transaction actions">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="bank-txn-menu-item"
+                  onClick={() => { setTxnMenuOpen(false); handleOpenDeposit(); }}
+                  disabled={loading || !accounts.length}
+                >
+                  <ArrowDownLeftIcon size={14} />
+                  <span>Record Deposit</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="bank-txn-menu-item"
+                  onClick={() => { setTxnMenuOpen(false); handleOpenWithdrawal(); }}
+                  disabled={loading || !accounts.length}
+                >
+                  <ArrowUpRightIcon size={14} />
+                  <span>Record Withdrawal</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="bank-txn-menu-item"
+                  onClick={() => { setTxnMenuOpen(false); handleOpenTransfer(); }}
+                  disabled={loading || accounts.length < 2}
+                >
+                  <ArrowLeftRightIcon size={14} />
+                  <span>Internal Transfer</span>
+                </button>
+              </div>
+            )}
+          </div>
           {view === 'reports' && (
             <button className="bank-btn-secondary" type="button" onClick={handleExportCSV}>
               <DownloadIcon size={15} /> Export CSV
             </button>
           )}
+          <button className="bank-btn-primary" type="button" onClick={handleOpenAddAccount} disabled={loading}>
+            <PlusIcon size={15} /> Add Bank Account
+          </button>
         </div>
       </div>
 
@@ -718,30 +750,30 @@ export default function BankAccounts() {
 
       {/* 2. Top-Level Module Sub-Navigation Switch */}
       <div className="finance-view-switch">
-        <button className={view === 'accounts' ? 'selected' : ''} type="button" onClick={() => setView('accounts')}>
+        <button className={view === 'accounts' ? 'selected' : ''} type="button" onClick={() => handleTabSwitch('accounts')}>
           <LandmarkIcon size={15} />
           Bank Accounts Registry
           <span className="tab-count">{accounts.length}</span>
         </button>
 
-        <button className={view === 'transactions' ? 'selected' : ''} type="button" onClick={() => setView('transactions')}>
+        <button className={view === 'transactions' ? 'selected' : ''} type="button" onClick={() => handleTabSwitch('transactions')}>
           <FileTextIcon size={15} />
-          Ledger & Transactions
+          Ledger &amp; Transactions
           <span className="tab-count">{transactions.length}</span>
         </button>
 
-        <button className={view === 'transfers' ? 'selected' : ''} type="button" onClick={() => setView('transfers')}>
+        <button className={view === 'transfers' ? 'selected' : ''} type="button" onClick={() => handleTabSwitch('transfers')}>
           <ArrowLeftRightIcon size={15} />
           Internal Transfers
           <span className="tab-count">{transferTransactions.length}</span>
         </button>
 
-        <button className={view === 'reconciliation' ? 'selected' : ''} type="button" onClick={() => setView('reconciliation')}>
+        <button className={view === 'reconciliation' ? 'selected' : ''} type="button" onClick={() => handleTabSwitch('reconciliation')}>
           <ShieldCheckIcon size={15} />
           Bank Reconciliation
         </button>
 
-        <button className={view === 'reports' ? 'selected' : ''} type="button" onClick={() => setView('reports')}>
+        <button className={view === 'reports' ? 'selected' : ''} type="button" onClick={() => handleTabSwitch('reports')}>
           <DownloadIcon size={15} />
           Financial Reports
         </button>
@@ -850,7 +882,7 @@ export default function BankAccounts() {
           </div>
 
           <div className="users-table-wrap">
-            <table className="users-table">
+            <table className="users-table bank-registry-table">
               <thead>
                 <tr>
                   <th>ACCOUNT NAME</th>
@@ -858,8 +890,8 @@ export default function BankAccounts() {
                   <th>ACCOUNT NUMBER</th>
                   <th>ACCOUNT TYPE</th>
                   <th>BRANCH / IFSC</th>
-                  <th>OPENING BAL</th>
-                  <th>CURRENT BALANCE</th>
+                  <th className="bank-col-amount">OPENING BAL</th>
+                  <th className="bank-col-amount">CURRENT BALANCE</th>
                   <th>STATUS</th>
                   <th>ACTIONS</th>
                 </tr>
@@ -870,10 +902,12 @@ export default function BankAccounts() {
                   return (
                     <tr key={acc.id || acc.accountNumber}>
                       <td className="user-id">
-                        <strong>{acc.accountName}</strong>
-                        <div style={{ fontSize: '11px', color: '#687b6d' }}>{acc.accountHolderName}</div>
+                        <strong className="bank-account-name-cell" title={acc.accountName}>{acc.accountName}</strong>
+                        <div className="bank-holder-sub" title={acc.accountHolderName}>{acc.accountHolderName}</div>
                       </td>
-                      <td>{acc.bankName}</td>
+                      <td>
+                        <span className="bank-cell-ellipsis" title={acc.bankName}>{acc.bankName}</span>
+                      </td>
                       <td>
                         <div className="masked-acc-cell">
                           <span>{bankAccountService.maskAccountNumber(acc.accountNumber, isRevealed)}</span>
@@ -891,11 +925,11 @@ export default function BankAccounts() {
                         <span className="account-type-badge">{acc.accountType}</span>
                       </td>
                       <td>
-                        <div>{acc.branch || 'Main Branch'}</div>
-                        <small style={{ color: '#7a8c7e', fontSize: '10px' }}>{acc.ifsc}</small>
+                        <div className="bank-cell-ellipsis" title={acc.branch || 'Main Branch'}>{acc.branch || 'Main Branch'}</div>
+                        <small style={{ color: '#7a8c7e', fontSize: '10.5px' }}>{acc.ifsc}</small>
                       </td>
-                      <td>{bankAccountService.formatCurrency(acc.openingBalance)}</td>
-                      <td>
+                      <td className="bank-col-amount">{bankAccountService.formatCurrency(acc.openingBalance)}</td>
+                      <td className="bank-col-amount">
                         <strong className="running-balance-cell" style={{ color: acc.currentBalance < 0 ? '#b02828' : '#1e6d30' }}>
                           {bankAccountService.formatCurrency(acc.currentBalance)}
                         </strong>
@@ -1338,27 +1372,23 @@ export default function BankAccounts() {
 
       {/* VIEW E: REPORTS & ANALYTICS */}
       {view === 'reports' && (
-        <section className="users-panel" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1d2e20', margin: '0 0 4px' }}>
-                Bank & Cash Accounts Financial Reports
-              </h2>
-              <p style={{ fontSize: '12px', color: '#687b6d', margin: 0 }}>
+        <section className="users-panel bank-reports-panel">
+          <div className="bank-reports-header">
+            <div className="bank-reports-heading">
+              <h2>Bank &amp; Cash Accounts Financial Reports</h2>
+              <p>
                 Comprehensive financial reporting and audit exports for farm bank accounts and liquidity.
               </p>
             </div>
             <button className="bank-btn-primary" type="button" onClick={handleExportCSV}>
-              <DownloadIcon size={16} /> Download CSV Report
+              <DownloadIcon size={15} /> Download CSV Report
             </button>
           </div>
 
-          <div className="form-grid-2" style={{ marginBottom: 20 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#445648', marginBottom: 4 }}>
-                SELECT REPORT TYPE
-              </label>
-              <select className="bank-filter-select" style={{ width: '100%' }} value={reportType} onChange={(e) => setReportType(e.target.value)}>
+          <div className="bank-reports-filters">
+            <div className="bank-report-field">
+              <label htmlFor="bank-report-type">Select Report Type</label>
+              <select id="bank-report-type" className="bank-filter-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
                 <option value="summary">1. Bank Account Summary</option>
                 <option value="balance">2. Account-wise Balance Report</option>
                 <option value="history">3. Complete Transaction History</option>
@@ -1372,11 +1402,9 @@ export default function BankAccounts() {
               </select>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#445648', marginBottom: 4 }}>
-                TARGET ACCOUNT
-              </label>
-              <select className="bank-filter-select" style={{ width: '100%' }} value={reportAccountNo} onChange={(e) => setReportAccountNo(e.target.value)}>
+            <div className="bank-report-field">
+              <label htmlFor="bank-report-account">Target Account</label>
+              <select id="bank-report-account" className="bank-filter-select" value={reportAccountNo} onChange={(e) => setReportAccountNo(e.target.value)}>
                 <option value="All">All Bank Accounts</option>
                 {accounts.map((a) => (
                   <option key={a.accountNumber} value={a.accountNumber}>
@@ -1389,31 +1417,31 @@ export default function BankAccounts() {
 
           {/* Render Active Report Preview */}
           <div className="users-table-wrap">
-            <table className="users-table">
+            <table className="users-table bank-reports-table">
               <thead>
                 {reportType === 'summary' || reportType === 'balance' ? (
                   <tr>
-                    <th>ACCOUNT NAME</th>
-                    <th>BANK</th>
-                    <th>ACCOUNT NO</th>
-                    <th>TYPE</th>
-                    <th>OPENING BALANCE</th>
-                    <th>TOTAL CREDITS</th>
-                    <th>TOTAL DEBITS</th>
-                    <th>NET CURRENT BALANCE</th>
-                    <th>STATUS</th>
+                    <th>Account Name</th>
+                    <th>Bank</th>
+                    <th>Account Number</th>
+                    <th>Type</th>
+                    <th className="bank-col-amount">Opening Balance</th>
+                    <th className="bank-col-amount">Total Credits</th>
+                    <th className="bank-col-amount">Total Debit</th>
+                    <th className="bank-col-amount">Current Balance</th>
+                    <th>Status</th>
                   </tr>
                 ) : (
                   <tr>
-                    <th>DATE</th>
-                    <th>REF NO</th>
-                    <th>DESCRIPTION</th>
-                    <th>BANK ACCOUNT</th>
-                    <th>TYPE</th>
-                    <th>MONEY IN</th>
-                    <th>MONEY OUT</th>
-                    <th>BALANCE</th>
-                    <th>STATUS</th>
+                    <th>Date</th>
+                    <th>Ref No</th>
+                    <th>Description</th>
+                    <th>Bank Account</th>
+                    <th>Type</th>
+                    <th className="bank-col-amount">Money In</th>
+                    <th className="bank-col-amount">Money Out</th>
+                    <th className="bank-col-amount">Balance</th>
+                    <th>Status</th>
                   </tr>
                 )}
               </thead>
@@ -1422,19 +1450,19 @@ export default function BankAccounts() {
                   ? accounts.map((a) => (
                       <tr key={a.id || a.accountNumber}>
                         <td>
-                          <strong>{a.accountName}</strong>
+                          <strong className="bank-account-name-cell" title={a.accountName}>{a.accountName}</strong>
                         </td>
                         <td>{a.bankName}</td>
                         <td>{bankAccountService.maskAccountNumber(a.accountNumber, false)}</td>
                         <td>{a.accountType}</td>
-                        <td>{bankAccountService.formatCurrency(a.openingBalance)}</td>
-                        <td>
+                        <td className="bank-col-amount">{bankAccountService.formatCurrency(a.openingBalance)}</td>
+                        <td className="bank-col-amount">
                           <span className="money-in">+{bankAccountService.formatCurrency(a.totalCredits)}</span>
                         </td>
-                        <td>
+                        <td className="bank-col-amount">
                           <span className="money-out">-{bankAccountService.formatCurrency(a.totalDebits)}</span>
                         </td>
-                        <td>
+                        <td className="bank-col-amount">
                           <strong className="running-balance-cell">{bankAccountService.formatCurrency(a.currentBalance)}</strong>
                         </td>
                         <td>
@@ -1448,12 +1476,14 @@ export default function BankAccounts() {
                         <td className="user-id">
                           <strong>{t.referenceNo}</strong>
                         </td>
-                        <td>{t.description}</td>
+                        <td>
+                          <span className="bank-account-name-cell" title={t.description}>{t.description}</span>
+                        </td>
                         <td>{t.bankName}</td>
                         <td>{t.type}</td>
-                        <td>{Number(t.credit) > 0 ? `+${bankAccountService.formatCurrency(t.credit)}` : '—'}</td>
-                        <td>{Number(t.debit) > 0 ? `-${bankAccountService.formatCurrency(t.debit)}` : '—'}</td>
-                        <td>
+                        <td className="bank-col-amount">{Number(t.credit) > 0 ? `+${bankAccountService.formatCurrency(t.credit)}` : '—'}</td>
+                        <td className="bank-col-amount">{Number(t.debit) > 0 ? `-${bankAccountService.formatCurrency(t.debit)}` : '—'}</td>
+                        <td className="bank-col-amount">
                           <strong>{bankAccountService.formatCurrency(t.runningBalance)}</strong>
                         </td>
                         <td>

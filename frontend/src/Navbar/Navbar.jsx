@@ -9,11 +9,19 @@ export default function Navbar({
   userEmail = '',
   userRole = 'User',
   userInitials = 'U',
-  handleLogout
+  handleLogout,
+  hidden = false,
 }) {
   const { theme, toggleTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifMenu, setShowNotifMenu] = useState(false)
+
+  useEffect(() => {
+    if (hidden) {
+      setShowUserMenu(false)
+      setShowNotifMenu(false)
+    }
+  }, [hidden])
   // Active modal state: null | 'profile' | 'settings' | 'security' | 'notifications' | 'support'
   const [activeModal, setActiveModal] = useState(null)
 
@@ -210,7 +218,7 @@ export default function Navbar({
 
   return (
     <>
-      <header className="navbar-container">
+      <header className={`navbar-container${hidden ? ' navbar-hidden' : ''}`}>
         {/* 1. LEFT SECTION - Breadcrumb */}
         <div className="navbar-left">
           <div className="navbar-breadcrumb">

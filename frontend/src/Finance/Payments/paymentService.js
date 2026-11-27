@@ -455,20 +455,12 @@ function applyLocalPaymentFilters(list, filters = {}) {
 
 export async function listPayments(filters = {}) {
   const params = buildPaymentQueryParams(filters)
-  const hasFilters = Object.keys(params).length > 0
-
   try {
     const res = await api.get('/api/payments', { params })
     const rawList = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.items ?? [])
-    const normalized = rawList.map(normalizePayment)
-    if (!hasFilters) {
-      writeLocalPayments(normalized)
-    }
-    return normalized
+    return rawList.map(normalizePayment)
   } catch (err) {
-    console.warn('[Payments API] Falling back to cached ledger:', err?.friendlyMessage || err?.message)
-    const cached = readLocalPayments().map(normalizePayment)
-    return applyLocalPaymentFilters(cached, filters)
+    throw new Error(err?.friendlyMessage || err?.message || 'Unable to connect to Payments service.')
   }
 }
 
@@ -495,17 +487,17 @@ export async function exportPaymentsCsv(filters = {}) {
   return res.data
 }
 
-export async function getNextPaymentNo() {
+export async function getNextPaymentNo(existingRecords = []) {
   try {
     const res = await api.get('/api/payments/next-number')
     if (res.data?.nextNumber) return res.data.nextNumber
   } catch {
-    // Fallback to local sequence
+    // Fallback to sequential calculation from existingRecords
   }
-  const current = readLocalPayments()
+  const current = Array.isArray(existingRecords) ? existingRecords : []
   const year = new Date().getFullYear()
   const prefix = `PAY-${year}-`
-  let maxNum = 316
+  let maxNum = 0
   current.forEach((p) => {
     if (p.paymentNo && p.paymentNo.startsWith(prefix)) {
       const numPart = parseInt(p.paymentNo.replace(prefix, ''), 10)
@@ -515,7 +507,7 @@ export async function getNextPaymentNo() {
   return `${prefix}${String(maxNum + 1).padStart(4, '0')}`
 }
 
-export async function createPayment(formValues) {
+export async function createPayment(formValues, existingRecords = []) {
   const amount = parseDecimal(formValues.amount)
   if (amount <= 0) throw new Error('Payment amount must be greater than zero.')
   if (!formValues.paymentDate) throw new Error('Payment date is required.')
@@ -528,20 +520,33 @@ export async function createPayment(formValues) {
 
   const additionalCharges = Math.max(0, parseDecimal(formValues.additionalCharges))
   const discount = Math.max(0, parseDecimal(formValues.discount))
+  const totalAmount = Math.max(0, Math.round((amount + additionalCharges - discount) * 100) / 100)
+  const outstanding = parseDecimal(formValues.outstandingAmount)
+  if (formValues.refType && formValues.refType !== 'None' && outstanding > 0 && totalAmount > outstanding) {
+    throw new Error('Payment amount cannot exceed the outstanding balance.')
+  }
+
+  if (Array.isArray(existingRecords) && existingRecords.length > 0) {
+    const pNo = formValues.paymentNo?.trim().toLowerCase()
+    const txnRef = formValues.transactionRef?.trim().toLowerCase()
+    if (pNo && existingRecords.some((r) => String(r.paymentNo || '').trim().toLowerCase() === pNo)) {
+      throw new Error(`Duplicate payment number "${formValues.paymentNo}" already exists.`)
+    }
+    if (txnRef && existingRecords.some((r) => r.status !== 'Cancelled' && String(r.transactionRef || '').trim().toLowerCase() === txnRef)) {
+      throw new Error(`Duplicate transaction reference "${formValues.transactionRef}" already exists.`)
+    }
+  }
+
   const payload = buildPaymentPayload(formValues, amount, additionalCharges, discount)
 
   try {
     const res = await api.post('/api/payments', payload)
-    const created = normalizePayment(res.data)
-    const list = readLocalPayments().filter((p) => String(p.id) !== String(created.id))
-    list.unshift(created)
-    writeLocalPayments(list)
-    return created
+    return normalizePayment(res.data)
   } catch (err) {
     if (err.response) {
       throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to record payment.')
     }
-    throw new Error(err.friendlyMessage || 'Unable to connect to backend API to save payment.')
+    throw new Error(err.friendlyMessage || err.message || 'Unable to connect to backend API to save payment.')
   }
 }
 
@@ -561,14 +566,7 @@ export async function updatePayment(id, formValues) {
 
   try {
     const res = await api.put(`/api/payments/${id}`, payload)
-    const updated = normalizePayment(res.data)
-    const list = readLocalPayments()
-    const idx = list.findIndex((p) => String(p.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalPayments(list)
-    }
-    return updated
+    return normalizePayment(res.data)
   } catch (err) {
     if (err.response) {
       throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update payment.')
@@ -580,14 +578,7 @@ export async function updatePayment(id, formValues) {
 export async function updatePaymentStatus(id, status, reason = '') {
   try {
     const res = await api.patch(`/api/payments/${id}/status`, { status, reason: reason || null })
-    const updated = normalizePayment(res.data)
-    const list = readLocalPayments()
-    const idx = list.findIndex((p) => String(p.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalPayments(list)
-    }
-    return updated
+    return normalizePayment(res.data)
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update payment status.')
   }
@@ -596,8 +587,6 @@ export async function updatePaymentStatus(id, status, reason = '') {
 export async function deletePayment(id) {
   try {
     await api.delete(`/api/payments/${id}`)
-    const list = readLocalPayments().filter((p) => String(p.id) !== String(id))
-    writeLocalPayments(list)
     return { success: true }
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to delete payment.')
@@ -607,14 +596,7 @@ export async function deletePayment(id) {
 export async function cancelPayment(id, reason = 'Payment cancelled or reversed') {
   try {
     const res = await api.post(`/api/payments/${id}/cancel`, { reason })
-    const updated = normalizePayment(res.data)
-    const list = readLocalPayments()
-    const idx = list.findIndex((p) => String(p.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalPayments(list)
-    }
-    return updated
+    return normalizePayment(res.data)
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to cancel payment.')
   }
@@ -662,19 +644,15 @@ export async function listPaymentBankAccounts() {
 
   try {
     const accounts = await farmerBankService.getBankAccounts()
-    return Array.isArray(accounts) && accounts.length > 0
-      ? accounts.map((a) => ({ id: a.id, name: `${a.bankName} (${a.accountNumber ? '...' + String(a.accountNumber).slice(-4) : 'Account'})` }))
-      : [
-          { id: 1, name: 'AGRIMAN Farm Account' },
-          { id: 2, name: 'Kisan Credit Account' },
-          { id: 3, name: 'Farm Cash' },
-        ]
+    return Array.isArray(accounts)
+      ? accounts.map((a) => ({
+          id: a.id,
+          name: `${a.bankName}${a.accountNumber ? ' (...' + String(a.accountNumber).slice(-4) : ''}${a.accountNumber ? ')' : ''}`,
+          bankName: a.bankName || '',
+        }))
+      : []
   } catch {
-    return [
-      { id: 1, name: 'AGRIMAN Farm Account' },
-      { id: 2, name: 'Kisan Credit Account' },
-      { id: 3, name: 'Farm Cash' },
-    ]
+    return []
   }
 }
 
@@ -684,12 +662,7 @@ export async function listPaymentFarms() {
     const data = res.data?.data ?? res.data ?? []
     return Array.isArray(data) ? data.map((f) => ({ id: f.id ?? f.farmId, name: f.name ?? f.farmName ?? '' })).filter((f) => f.name) : []
   } catch {
-    return [
-      { id: 1, name: 'North Field' },
-      { id: 2, name: 'South Orchard' },
-      { id: 3, name: 'Lake Farm' },
-      { id: 4, name: 'East Meadow' },
-    ]
+    return []
   }
 }
 
@@ -699,14 +672,7 @@ export async function listPaymentCrops() {
     const data = res.data?.data ?? res.data ?? []
     return Array.isArray(data) ? data.map((c) => ({ id: c.id ?? c.cropId, name: c.name ?? c.cropName ?? '' })).filter((c) => c.name) : []
   } catch {
-    return [
-      { id: 1, name: 'Paddy' },
-      { id: 2, name: 'Cotton' },
-      { id: 3, name: 'Wheat' },
-      { id: 4, name: 'Maize' },
-      { id: 5, name: 'Chilli' },
-      { id: 6, name: 'Tomatoes' },
-    ]
+    return []
   }
 }
 

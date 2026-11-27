@@ -453,20 +453,22 @@ function applyLocalReceiptFilters(list, filters = {}) {
 
 export async function listReceipts(filters = {}) {
   const params = buildReceiptQueryParams(filters)
-  const hasFilters = Object.keys(params).length > 0
-
   try {
     const res = await api.get('/api/receipts', { params })
     const rawList = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.items ?? [])
-    const normalized = rawList.map(normalizeReceipt)
-    if (!hasFilters) {
-      writeLocalReceipts(normalized)
-    }
-    return normalized
+    return rawList.map(normalizeReceipt)
   } catch (err) {
-    console.warn('[Receipts API] Falling back to cached receipts:', err?.friendlyMessage || err?.message)
-    const cached = readLocalReceipts().map(normalizeReceipt)
-    return applyLocalReceiptFilters(cached, filters)
+    throw new Error(err?.friendlyMessage || err?.message || 'Unable to connect to Receipts service.')
+  }
+}
+
+export async function getExternalReceivablesTotal() {
+  try {
+    const res = await api.get('/api/Sales/receivables')
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.items ?? [])
+    return items.reduce((sum, item) => sum + Math.max(0, Number(item.pendingAmount ?? item.balanceDue ?? item.outstandingAmount ?? 0)), 0)
+  } catch {
+    return 0
   }
 }
 
@@ -493,17 +495,17 @@ export async function exportReceiptsCsv(filters = {}) {
   return res.data
 }
 
-export async function getNextReceiptNo() {
+export async function getNextReceiptNo(existingRecords = []) {
   try {
     const res = await api.get('/api/receipts/next-number')
     if (res.data?.nextNumber) return res.data.nextNumber
   } catch {
-    // Fallback to local sequence
+    // Fallback to sequential calculation from existingRecords
   }
-  const current = readLocalReceipts()
+  const current = Array.isArray(existingRecords) ? existingRecords : []
   const year = new Date().getFullYear()
   const prefix = `REC-${year}-`
-  let maxNum = 194
+  let maxNum = 0
   current.forEach((r) => {
     if (r.receiptNo && r.receiptNo.startsWith(prefix)) {
       const numPart = parseInt(r.receiptNo.replace(prefix, ''), 10)
@@ -513,7 +515,7 @@ export async function getNextReceiptNo() {
   return `${prefix}${String(maxNum + 1).padStart(4, '0')}`
 }
 
-export async function createReceipt(formValues) {
+export async function createReceipt(formValues, existingRecords = []) {
   const amount = parseDecimal(formValues.amount)
   if (amount <= 0) throw new Error('Receipt amount must be greater than zero.')
   if (!formValues.receiptDate) throw new Error('Receipt date is required.')
@@ -527,20 +529,33 @@ export async function createReceipt(formValues) {
 
   const discount = Math.max(0, parseDecimal(formValues.discount))
   const otherCharges = Math.max(0, parseDecimal(formValues.otherCharges))
+  const finalAmount = Math.max(0, Math.round((amount + otherCharges - discount) * 100) / 100)
+  const outstanding = parseDecimal(formValues.outstandingAmount)
+  if (formValues.refType && formValues.refType !== 'None' && outstanding > 0 && finalAmount > outstanding) {
+    throw new Error('Receipt amount cannot exceed the outstanding receivable balance.')
+  }
+
+  if (Array.isArray(existingRecords) && existingRecords.length > 0) {
+    const rNo = formValues.receiptNo?.trim().toLowerCase()
+    const txnRef = formValues.transactionRef?.trim().toLowerCase()
+    if (rNo && existingRecords.some((r) => String(r.receiptNo || '').trim().toLowerCase() === rNo)) {
+      throw new Error(`Duplicate receipt number "${formValues.receiptNo}" already exists.`)
+    }
+    if (txnRef && existingRecords.some((r) => r.status !== 'Cancelled' && String(r.transactionRef || '').trim().toLowerCase() === txnRef)) {
+      throw new Error(`Duplicate transaction reference "${formValues.transactionRef}" already exists.`)
+    }
+  }
+
   const payload = buildReceiptPayload(formValues, amount, discount, otherCharges)
 
   try {
     const res = await api.post('/api/receipts', payload)
-    const created = normalizeReceipt(res.data)
-    const list = readLocalReceipts().filter((r) => String(r.id) !== String(created.id))
-    list.unshift(created)
-    writeLocalReceipts(list)
-    return created
+    return normalizeReceipt(res.data)
   } catch (err) {
     if (err.response) {
       throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to record receipt.')
     }
-    throw new Error(err.friendlyMessage || 'Unable to connect to backend API to save receipt.')
+    throw new Error(err.friendlyMessage || err.message || 'Unable to connect to backend API to save receipt.')
   }
 }
 
@@ -560,14 +575,7 @@ export async function updateReceipt(id, formValues) {
 
   try {
     const res = await api.put(`/api/receipts/${id}`, payload)
-    const updated = normalizeReceipt(res.data)
-    const list = readLocalReceipts()
-    const idx = list.findIndex((r) => String(r.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalReceipts(list)
-    }
-    return updated
+    return normalizeReceipt(res.data)
   } catch (err) {
     if (err.response) {
       throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update receipt.')
@@ -579,14 +587,7 @@ export async function updateReceipt(id, formValues) {
 export async function updateReceiptStatus(id, status, reason = '') {
   try {
     const res = await api.patch(`/api/receipts/${id}/status`, { status, reason: reason || null })
-    const updated = normalizeReceipt(res.data)
-    const list = readLocalReceipts()
-    const idx = list.findIndex((r) => String(r.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalReceipts(list)
-    }
-    return updated
+    return normalizeReceipt(res.data)
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to update receipt status.')
   }
@@ -595,8 +596,6 @@ export async function updateReceiptStatus(id, status, reason = '') {
 export async function deleteReceipt(id) {
   try {
     await api.delete(`/api/receipts/${id}`)
-    const list = readLocalReceipts().filter((r) => String(r.id) !== String(id))
-    writeLocalReceipts(list)
     return { success: true }
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to delete receipt.')
@@ -606,14 +605,7 @@ export async function deleteReceipt(id) {
 export async function cancelReceipt(id, reason = 'Receipt cancelled or reversed') {
   try {
     const res = await api.post(`/api/receipts/${id}/cancel`, { reason })
-    const updated = normalizeReceipt(res.data)
-    const list = readLocalReceipts()
-    const idx = list.findIndex((r) => String(r.id) === String(id))
-    if (idx !== -1) {
-      list[idx] = updated
-      writeLocalReceipts(list)
-    }
-    return updated
+    return normalizeReceipt(res.data)
   } catch (err) {
     throw new Error(err.friendlyMessage || err.response?.data?.message || 'Failed to cancel receipt.')
   }
@@ -696,22 +688,14 @@ export async function listReceiptBankAccounts() {
 
   try {
     const list = await farmerBankService.getBankAccounts()
-    return Array.isArray(list) && list.length > 0
+    return Array.isArray(list)
       ? list.map((b) => ({
           id: b.id ?? b.bankAccountId,
-          name: `${b.bankName || 'Bank'} - ${String(b.accountNumber || '').slice(-4)}`,
+          name: `${b.bankName || 'Bank'}${b.accountNumber ? ' - ' + String(b.accountNumber).slice(-4) : ''}`,
         }))
-      : [
-          { id: 1, name: 'AGRIMAN Farm Account' },
-          { id: 2, name: 'Kisan Credit Account' },
-          { id: 3, name: 'Farm Cash' },
-        ]
+      : []
   } catch {
-    return [
-      { id: 1, name: 'AGRIMAN Farm Account' },
-      { id: 2, name: 'Kisan Credit Account' },
-      { id: 3, name: 'Farm Cash' },
-    ]
+    return []
   }
 }
 
@@ -721,12 +705,7 @@ export async function listReceiptFarms() {
     const list = res.data?.data ?? res.data?.items ?? res.data ?? []
     return Array.isArray(list) ? list.map((f) => ({ id: f.id, name: f.name ?? f.farmName ?? '' })).filter((f) => f.name) : []
   } catch {
-    return [
-      { id: 1, name: 'North Field' },
-      { id: 2, name: 'South Orchard' },
-      { id: 3, name: 'East Meadow' },
-      { id: 4, name: 'Main Dairy Shed' },
-    ]
+    return []
   }
 }
 
@@ -736,14 +715,7 @@ export async function listReceiptCrops() {
     const list = res.data?.data ?? res.data?.items ?? res.data ?? []
     return Array.isArray(list) ? list.map((c) => ({ id: c.id, name: c.name ?? c.cropName ?? '' })).filter((c) => c.name) : []
   } catch {
-    return [
-      { id: 1, name: 'Paddy' },
-      { id: 2, name: 'Cotton' },
-      { id: 3, name: 'Wheat' },
-      { id: 4, name: 'Maize' },
-      { id: 5, name: 'Tomatoes' },
-      { id: 6, name: 'Cow Milk' },
-    ]
+    return []
   }
 }
 

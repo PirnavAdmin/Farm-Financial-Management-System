@@ -1,14 +1,16 @@
 ﻿import TableActionMenu from '../../TableActionMenu'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  computeReceiptSummaryCards,
   createReceipt,
   deleteReceipt,
   cancelReceipt,
   displayDateToIso,
+  exportReceiptsCsv,
   formatCurrency,
   formatDate,
   getNextReceiptNo,
+  getReceiptReport,
+  getReceiptSummary,
   isoToDisplayDate,
   listOutstandingIncomes,
   listOutstandingSales,
@@ -31,7 +33,14 @@ import './receipts.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_TABS = ['All', 'Completed', 'Pending', 'Processing', 'Failed', 'Cancelled']
+const STATUS_OPTIONS = [
+  { value: 'All', label: 'All Statuses' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Processing', label: 'Processing' },
+  { value: 'Failed', label: 'Failed' },
+  { value: 'Cancelled', label: 'Cancelled' },
+]
 const PAGE_SIZE = 10
 
 const REPORT_TYPES = [
@@ -110,10 +119,10 @@ function StatusBadge({ status }) {
 
 function SummaryCards({ summary, loading }) {
   const cards = [
-    { label: 'Total Receipts', value: formatCurrency(summary.totalReceived), icon: '₹', hint: `${summary.totalReceipts} recorded receipts`, color: 'primary' },
+    { label: 'Receipt Count', value: String(summary.totalReceipts ?? 0), icon: '#', hint: 'Valid recorded receipts', color: 'primary' },
     { label: 'Total Amount Received', value: formatCurrency(summary.totalReceived), icon: '✓', hint: 'Completed collections', color: 'success' },
-    { label: 'Pending Receivables', value: formatCurrency(summary.pendingReceivables), icon: '⏳', hint: 'Pending & in-transit', color: 'warning' },
-    { label: 'This Month', value: formatCurrency(summary.thisMonthAmount), icon: '📅', hint: 'Current month total', color: 'info' },
+    { label: 'Outstanding Receivables', value: formatCurrency(summary.pendingReceivables), icon: '⏳', hint: 'Pending & uncollected', color: 'warning' },
+    { label: 'Received This Month', value: formatCurrency(summary.thisMonthAmount), icon: '📅', hint: 'Current month collections', color: 'info' },
   ]
   return (
     <div className="rec-summary">
@@ -125,103 +134,300 @@ function SummaryCards({ summary, loading }) {
             <strong className={loading ? 'rec-skeleton' : ''}>{loading ? '—' : card.value}</strong>
             <span className="rec-card-hint">{card.hint}</span>
           </div>
-          <b className="rec-card-arrow">↗</b>
         </article>
       ))}
     </div>
   )
 }
 
-// ─── Filter Date Input (Displays dd/mm/yyyy with calendar trigger) ─────────────
+// ─── Date Range Presets & Interactive Calendar Popup ─────────────────────────
 
-function FilterDateInput({ id, value, min, max, onChange, placeholder, ariaLabel }) {
-  const [typedText, setTypedText] = useState('')
-  const nativePickerRef = useRef(null)
+const RECEIPT_DATE_PRESETS = [
+  { value: 'all_time', label: 'All Time' },
+  { value: 'last_1_month', label: 'Last 1 Month' },
+  { value: 'last_3_months', label: 'Last 3 Months' },
+  { value: 'last_6_months', label: 'Last 6 Months' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'last_year', label: 'Last Year' },
+  { value: 'custom', label: 'Custom Range' },
+]
+
+const REC_CAL_WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const REC_CAL_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function formatRecYMD(year, monthIndex, day) {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function computeRecPresetRange(presetKey) {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const d = now.getDate()
+  const todayStr = formatRecYMD(y, m, d)
+  const shiftMonths = (monthsAgo) => {
+    const dt = new Date(y, m - monthsAgo, d)
+    return formatRecYMD(dt.getFullYear(), dt.getMonth(), dt.getDate())
+  }
+  switch (presetKey) {
+    case 'last_1_month': return { from: shiftMonths(1), to: todayStr }
+    case 'last_3_months': return { from: shiftMonths(3), to: todayStr }
+    case 'last_6_months': return { from: shiftMonths(6), to: todayStr }
+    case 'this_month': return { from: formatRecYMD(y, m, 1), to: todayStr }
+    case 'this_year': return { from: formatRecYMD(y, 0, 1), to: todayStr }
+    case 'last_year': return { from: formatRecYMD(y - 1, 0, 1), to: formatRecYMD(y - 1, 11, 31) }
+    case 'all_time':
+    default:
+      return { from: '', to: '' }
+  }
+}
+
+function ReceiptDateRangeFilter({ preset, dateFrom, dateTo, onPresetChange, onApplyCustomRange }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [calOpen, setCalOpen] = useState(false)
+  const [draftFrom, setDraftFrom] = useState(dateFrom || '')
+  const [draftTo, setDraftTo] = useState(dateTo || '')
+  const [hoverDate, setHoverDate] = useState('')
+  const [calError, setCalError] = useState('')
+  const containerRef = useRef(null)
+
+  const today = new Date()
+  const todayIso = formatRecYMD(today.getFullYear(), today.getMonth(), today.getDate())
+  const initBase = dateFrom ? new Date(`${dateFrom}T00:00:00`) : today
+  const [viewYear, setViewYear] = useState(initBase.getFullYear())
+  const [viewMonth, setViewMonth] = useState(initBase.getMonth())
 
   useEffect(() => {
-    setTypedText(value ? isoToDisplayDate(value) : '')
-  }, [value])
+    if (!menuOpen && !calOpen) return undefined
+    const handleOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setMenuOpen(false)
+        setCalOpen(false)
+      }
+    }
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+        setCalOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [menuOpen, calOpen])
 
-  const handleTextChange = (e) => {
-    const raw = e.target.value
-    setTypedText(raw)
-    if (!raw.trim()) {
-      onChange('')
+  const openCustomCalendar = () => {
+    setDraftFrom(dateFrom || '')
+    setDraftTo(dateTo || '')
+    setHoverDate('')
+    setCalError('')
+    const base = dateFrom ? new Date(`${dateFrom}T00:00:00`) : new Date()
+    setViewYear(base.getFullYear())
+    setViewMonth(base.getMonth())
+    setMenuOpen(false)
+    setCalOpen(true)
+  }
+
+  const handleSelectPreset = (opt) => {
+    if (opt.value === 'custom') {
+      openCustomCalendar()
       return
     }
-    const iso = displayDateToIso(raw)
-    if (iso) onChange(iso)
+    setMenuOpen(false)
+    setCalOpen(false)
+    onPresetChange(opt.value)
   }
 
-  const handleBlur = () => {
-    if (typedText && !displayDateToIso(typedText)) {
-      setTypedText(value ? isoToDisplayDate(value) : '')
+  const handleDayClick = (iso) => {
+    setCalError('')
+    if (!draftFrom || (draftFrom && draftTo)) {
+      setDraftFrom(iso)
+      setDraftTo('')
+      return
     }
+    if (iso < draftFrom) {
+      setCalError('End date cannot be earlier than start date.')
+      return
+    }
+    setDraftTo(iso)
   }
 
-  const handleNativeChange = (e) => {
-    const iso = e.target.value
-    if (iso) {
-      setTypedText(isoToDisplayDate(iso))
-      onChange(iso)
-    } else {
-      setTypedText('')
-      onChange('')
+  const handleApply = () => {
+    if (!draftFrom) {
+      setCalError('Select a start date.')
+      return
     }
+    const finalTo = draftTo || draftFrom
+    if (finalTo < draftFrom) {
+      setCalError('End date cannot be earlier than start date.')
+      return
+    }
+    setCalOpen(false)
+    onApplyCustomRange(draftFrom, finalTo)
   }
 
-  const openPicker = () => {
-    if (!nativePickerRef.current) return
-    try {
-      if (nativePickerRef.current.showPicker) {
-        nativePickerRef.current.showPicker()
-      } else {
-        nativePickerRef.current.click()
-      }
-    } catch {
-      nativePickerRef.current.click()
-    }
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay()
+  const calendarCells = []
+  for (let i = 0; i < firstWeekday; i += 1) calendarCells.push(null)
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    calendarCells.push({ day, iso: formatRecYMD(viewYear, viewMonth, day) })
   }
+
+  const rangePreviewEnd = draftFrom && !draftTo && hoverDate && hoverDate >= draftFrom ? hoverDate : draftTo
+  const selectedPresetObj = RECEIPT_DATE_PRESETS.find((p) => p.value === preset) || RECEIPT_DATE_PRESETS[0]
+  const displayLabel = preset === 'custom' && dateFrom
+    ? `${isoToDisplayDate(dateFrom)} – ${isoToDisplayDate(dateTo || dateFrom)}`
+    : selectedPresetObj.label
+  const currentYear = today.getFullYear()
+  const yearOptions = Array.from({ length: 16 }, (_, idx) => currentYear - 10 + idx)
 
   return (
-    <div className="rec-date-filter-wrap">
-      <input
-        type="text"
-        id={id}
-        className="rec-input rec-date-text-input"
-        placeholder={placeholder}
-        value={typedText}
-        onChange={handleTextChange}
-        onBlur={handleBlur}
-        aria-label={ariaLabel}
-        autoComplete="off"
-      />
+    <div className="rec-date-dropdown-wrap" ref={containerRef}>
       <button
         type="button"
-        className="rec-date-picker-trigger"
-        onClick={openPicker}
-        aria-label={`Open calendar for ${ariaLabel}`}
-        title="Open calendar picker"
-        tabIndex={-1}
+        className={`rec-date-trigger ${preset !== 'all_time' ? 'rec-date-trigger-active' : ''}`}
+        onClick={() => {
+          setCalOpen(false)
+          setMenuOpen((o) => !o)
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={menuOpen || calOpen}
+        aria-label="Filter by date range"
+        title={dateFrom && dateTo ? `${isoToDisplayDate(dateFrom)} – ${isoToDisplayDate(dateTo)}` : displayLabel}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg className="rec-date-trigger-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
+        <span className="rec-date-trigger-text">{displayLabel}</span>
+        <svg className="rec-date-trigger-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </button>
-      <input
-        ref={nativePickerRef}
-        type="date"
-        className="rec-date-native-hidden"
-        value={value || ''}
-        min={min}
-        max={max}
-        onChange={handleNativeChange}
-        tabIndex={-1}
-        aria-hidden="true"
-      />
+
+      {menuOpen && (
+        <div className="rec-date-menu" role="listbox" aria-label="Date range presets">
+          {RECEIPT_DATE_PRESETS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="option"
+              aria-selected={preset === opt.value}
+              className={`rec-date-menu-item ${preset === opt.value ? 'active' : ''}`}
+              onClick={() => handleSelectPreset(opt)}
+            >
+              <span>{opt.label}</span>
+              {opt.value === 'custom' && <span className="rec-date-menu-hint">Calendar</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {calOpen && (
+        <div className="rec-date-popover" role="dialog" aria-label="Select custom date range">
+          <div className="rec-cal-header">
+            <button
+              type="button"
+              className="rec-cal-nav-btn"
+              onClick={() => {
+                if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11) }
+                else { setViewMonth((m) => m - 1) }
+              }}
+              aria-label="Previous month"
+            >
+              ‹
+            </button>
+            <div className="rec-cal-month-year">
+              <select className="rec-cal-select" value={viewMonth} onChange={(e) => setViewMonth(Number(e.target.value))} aria-label="Month">
+                {REC_CAL_MONTHS.map((mName, idx) => <option key={mName} value={idx}>{mName}</option>)}
+              </select>
+              <select className="rec-cal-select" value={viewYear} onChange={(e) => setViewYear(Number(e.target.value))} aria-label="Year">
+                {yearOptions.map((yr) => <option key={yr} value={yr}>{yr}</option>)}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="rec-cal-nav-btn"
+              onClick={() => {
+                if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0) }
+                else { setViewMonth((m) => m + 1) }
+              }}
+              aria-label="Next month"
+            >
+              ›
+            </button>
+          </div>
+
+          <div className="rec-cal-selected-bar">
+            <div className={`rec-cal-pill ${draftFrom ? 'filled' : ''}`}>
+              <small>Start Date</small>
+              <strong>{draftFrom ? isoToDisplayDate(draftFrom) : 'DD/MM/YYYY'}</strong>
+            </div>
+            <span className="rec-cal-arrow" aria-hidden="true">→</span>
+            <div className={`rec-cal-pill ${draftTo ? 'filled' : ''}`}>
+              <small>End Date</small>
+              <strong>{draftTo ? isoToDisplayDate(draftTo) : 'DD/MM/YYYY'}</strong>
+            </div>
+          </div>
+
+          <div className="rec-cal-weekdays">
+            {REC_CAL_WEEKDAYS.map((wd) => <span key={wd} className="rec-cal-weekday">{wd}</span>)}
+          </div>
+
+          <div className="rec-cal-grid" onMouseLeave={() => setHoverDate('')}>
+            {calendarCells.map((cell, idx) => {
+              if (!cell) return <span key={`empty-${idx}`} className="rec-cal-empty" />
+              const isStart = draftFrom === cell.iso
+              const isEnd = draftTo === cell.iso
+              const inRange = Boolean(draftFrom && rangePreviewEnd && cell.iso > draftFrom && cell.iso < rangePreviewEnd)
+              const isBeforeStart = Boolean(draftFrom && !draftTo && cell.iso < draftFrom)
+              const isToday = cell.iso === todayIso
+              const cls = [
+                'rec-cal-day',
+                isToday ? 'today' : '',
+                inRange ? 'in-range' : '',
+                isStart ? 'range-start' : '',
+                isEnd ? 'range-end' : '',
+                isBeforeStart ? 'disabled-hint' : '',
+              ].filter(Boolean).join(' ')
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  className={cls}
+                  onClick={() => handleDayClick(cell.iso)}
+                  onMouseEnter={() => setHoverDate(cell.iso)}
+                  aria-label={isoToDisplayDate(cell.iso)}
+                  aria-pressed={isStart || isEnd}
+                >
+                  {cell.day}
+                </button>
+              )
+            })}
+          </div>
+
+          {calError && <p className="rec-cal-error">{calError}</p>}
+
+          <div className="rec-cal-footer">
+            <button type="button" className="rec-btn rec-btn-secondary rec-cal-btn" onClick={() => { setCalOpen(false); setCalError('') }}>
+              Cancel
+            </button>
+            <button type="button" className="rec-btn rec-btn-primary rec-cal-btn" onClick={handleApply}>
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -365,6 +571,11 @@ function ReceiptForm({
 
     if (form.collectionMode === 'Cheque' && !form.chequeNo.trim()) {
       errs.chequeNo = 'Cheque number is required for Cheque payment mode.'
+    }
+
+    const outstanding = parseDecimal(form.outstandingAmount)
+    if (form.refType && form.refType !== 'None' && outstanding > 0 && calculatedFinal > outstanding) {
+      errs.amount = `Final receipt amount (${formatCurrency(calculatedFinal)}) cannot exceed outstanding receivable (${formatCurrency(outstanding)}).`
     }
 
     if (Object.keys(errs).length > 0) {
@@ -1248,127 +1459,49 @@ function CancelDialog({ record, onConfirm, onCancel, busy }) {
 
 // ─── Reports & Analytics Section ──────────────────────────────────────────────
 
-function ReportsSection({ records = [] }) {
+function ReportsSection({ filters = {}, onError }) {
   const [selectedReport, setSelectedReport] = useState('summary')
+  const [report, setReport] = useState({ isGrouped: false, groups: [], items: [], totalCount: 0, grandTotal: 0 })
+  const [loadingReport, setLoadingReport] = useState(false)
+  const [reportError, setReportError] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [reportRefreshKey, setReportRefreshKey] = useState(0)
 
-  const reportData = useMemo(() => {
-    switch (selectedReport) {
-      case 'by-purpose': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.purpose || 'Other'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
+  useEffect(() => {
+    let active = true
+    setLoadingReport(true)
+    setReportError('')
+    getReceiptReport(selectedReport, filters)
+      .then((res) => {
+        if (!active) return
+        setReport({
+          isGrouped: Boolean(res?.isGrouped),
+          groups: Array.isArray(res?.groups) ? res.groups : [],
+          items: Array.isArray(res?.items) ? res.items : [],
+          totalCount: Number(res?.totalCount ?? 0),
+          grandTotal: Number(res?.grandTotal ?? 0),
         })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'by-payer': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.payerName || 'Unknown Customer'
-          if (!map[key]) map[key] = { label: key, type: r.payerType, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'by-payer-type': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.payerType || 'Other'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'by-mode': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.collectionMode || 'Unknown'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'by-farm': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.farm || 'General Farm Produce'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'by-crop': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.crop || 'Unallocated Crop'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'monthly-receipts': {
-        const map = {}
-        records.forEach((r) => {
-          const month = (r.receiptDate || '').slice(0, 7) || 'Unknown'
-          if (!map[month]) map[month] = { label: month, count: 0, total: 0 }
-          map[month].count += 1
-          map[month].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.label.localeCompare(a.label))
-      }
-      case 'seasonal-receipts': {
-        const map = {}
-        records.forEach((r) => {
-          const key = r.season || 'General / Non-Seasonal'
-          if (!map[key]) map[key] = { label: key, count: 0, total: 0 }
-          map[key].count += 1
-          map[key].total += Number(r.finalAmount || 0)
-        })
-        return Object.values(map).sort((a, b) => b.total - a.total)
-      }
-      case 'pending-receivables': {
-        return records.filter((r) => r.status === 'Pending' || r.status === 'Processing')
-      }
-      case 'cheques-register': {
-        return records.filter((r) => r.collectionMode === 'Cheque' || r.chequeNo)
-      }
-      case 'top-collections': {
-        return [...records].sort((a, b) => Number(b.finalAmount || 0) - Number(a.finalAmount || 0)).slice(0, 10)
-      }
-      case 'summary':
-      default: {
-        return records
-      }
-    }
-  }, [records, selectedReport])
+      })
+      .catch((err) => {
+        if (!active) return
+        setReportError(err?.message || 'Unable to load receipt report from the server.')
+        setReport({ isGrouped: false, groups: [], items: [], totalCount: 0, grandTotal: 0 })
+      })
+      .finally(() => {
+        if (active) setLoadingReport(false)
+      })
+    return () => { active = false }
+  }, [selectedReport, filters, reportRefreshKey])
 
-  const exportCSV = () => {
-    let csvContent = 'data:text/csv;charset=utf-8,'
-    if (['by-purpose', 'by-payer', 'by-payer-type', 'by-mode', 'by-farm', 'by-crop', 'monthly-receipts', 'seasonal-receipts'].includes(selectedReport)) {
-      csvContent += 'Category/Group,Transaction Count,Total Received (INR)\n'
-      reportData.forEach((row) => {
-        csvContent += `"${row.label}",${row.count},${row.total}\n`
-      })
-    } else {
-      csvContent += 'Receipt No,Date,Purpose,Customer Name,Type,Farm,Crop,Amount (INR),Payment Mode,Bank Account,Ref No,Status\n'
-      records.forEach((r) => {
-        csvContent += `"${r.receiptNo}","${r.receiptDate}","${r.purpose}","${r.payerName}","${r.payerType}","${r.farm}","${r.crop}",${r.finalAmount},"${r.collectionMode}","${r.bankAccount}","${r.refNo}","${r.status}"\n`
-      })
+  const exportCSV = async () => {
+    setExporting(true)
+    try {
+      await exportReceiptsCsv({ ...filters, reportType: selectedReport })
+    } catch (err) {
+      onError?.(err?.message || 'Unable to export receipt report CSV from the server.')
+    } finally {
+      setExporting(false)
     }
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement('a')
-    link.setAttribute('href', encodedUri)
-    link.setAttribute('download', `agriman_receipt_report_${selectedReport}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
   }
 
   return (
@@ -1394,16 +1527,26 @@ function ReportsSection({ records = [] }) {
         <div className="rec-report-top">
           <div>
             <h2>{REPORT_TYPES.find((r) => r.key === selectedReport)?.label}</h2>
-            <p>Aggregated analysis across recorded customer collections.</p>
+            <p>Authoritative server-aggregated analysis across recorded customer collections.</p>
           </div>
-          <button type="button" className="rec-btn rec-btn-secondary" onClick={exportCSV}>
-            ⬇ Export Report CSV
+          <button type="button" className="rec-btn rec-btn-secondary" onClick={exportCSV} disabled={exporting}>
+            {exporting ? 'Exporting…' : '⬇ Export Report CSV'}
           </button>
         </div>
 
+        {reportError && (
+          <div className="rec-error-banner">
+            <span>⚠ {reportError}</span>
+            <button type="button" className="rec-error-retry-btn" onClick={() => setReportRefreshKey((k) => k + 1)}>Retry</button>
+          </div>
+        )}
+
         <div className="rec-table-card">
+          {loadingReport ? (
+            <div className="rec-empty-state">Loading report from backend…</div>
+          ) : (
           <table className="rec-table">
-            {['by-purpose', 'by-payer', 'by-payer-type', 'by-mode', 'by-farm', 'by-crop', 'monthly-receipts', 'seasonal-receipts'].includes(selectedReport) ? (
+            {report.isGrouped ? (
               <>
                 <thead>
                   <tr>
@@ -1414,18 +1557,16 @@ function ReportsSection({ records = [] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.map((row, idx) => {
-                    const grandTotal = records.reduce((sum, r) => sum + Number(r.finalAmount || 0), 0)
-                    const pct = grandTotal > 0 ? ((row.total / grandTotal) * 100).toFixed(1) : 0
-                    return (
-                      <tr key={idx}>
-                        <td><strong>{row.label}</strong></td>
-                        <td>{row.count} collections</td>
-                        <td className="rec-col-amount"><strong>{formatCurrency(row.total)}</strong></td>
-                        <td className="rec-col-amount">{pct}%</td>
-                      </tr>
-                    )
-                  })}
+                  {report.groups.length === 0 ? (
+                    <tr><td colSpan={4} className="rec-empty-cell"><div className="rec-empty-state">No grouped report data found.</div></td></tr>
+                  ) : report.groups.map((row, idx) => (
+                    <tr key={idx}>
+                      <td><strong>{row.label}</strong></td>
+                      <td>{row.count} collections</td>
+                      <td className="rec-col-amount"><strong>{formatCurrency(row.totalAmount ?? row.total ?? 0)}</strong></td>
+                      <td className="rec-col-amount">{Number(row.sharePercent ?? 0).toFixed(1)}%</td>
+                    </tr>
+                  ))}
                 </tbody>
               </>
             ) : (
@@ -1442,7 +1583,9 @@ function ReportsSection({ records = [] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.map((r) => (
+                  {report.items.length === 0 ? (
+                    <tr><td colSpan={7} className="rec-empty-cell"><div className="rec-empty-state">No records found for this report.</div></td></tr>
+                  ) : report.items.map((r) => (
                     <tr key={r.id}>
                       <td className="rec-col-id">{r.receiptNo}</td>
                       <td>{r.receiptDateDisplay || r.receiptDate}</td>
@@ -1457,6 +1600,7 @@ function ReportsSection({ records = [] }) {
               </>
             )}
           </table>
+          )}
         </div>
       </section>
     </div>
@@ -1483,13 +1627,17 @@ export default function Receipts() {
   const [activeTab, setActiveTab] = useState('registry') // 'registry' | 'reports'
   const [statusFilter, setStatusFilter] = useState('All')
   const [search, setSearch] = useState('')
+  const [datePreset, setDatePreset] = useState('all_time')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [purposeFilter, setPurposeFilter] = useState('All Purposes')
   const [payerTypeFilter, setPayerTypeFilter] = useState('All Payers')
   const [modeFilter, setModeFilter] = useState('All Modes')
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
 
-  // Pagination
+  // Sorting & Pagination
+  const [sortBy, setSortBy] = useState('receiptDate')
+  const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
 
   // Modals & Screens
@@ -1531,40 +1679,68 @@ export default function Receipts() {
     })
   }, [])
 
-  // ─── Fetch Receipts ──────────────────────────────────────────────────────────
+  const [summary, setSummary] = useState({ totalReceipts: 0, totalReceived: 0, pendingReceivables: 0, thisMonthAmount: 0 })
+
+  const queryFilters = useMemo(() => ({
+    status: statusFilter,
+    search,
+    startDate: dateFrom,
+    endDate: dateTo,
+    purpose: purposeFilter,
+    payerType: payerTypeFilter,
+    collectionMode: modeFilter,
+  }), [statusFilter, search, dateFrom, dateTo, purposeFilter, payerTypeFilter, modeFilter])
+
+  // ─── Fetch Receipts & Summary ────────────────────────────────────────────────
   const fetchReceipts = useCallback(async () => {
     setLoading(true)
     setLoadError('')
     try {
-      const data = await listReceipts({
-        status: statusFilter,
-        search,
-        startDate: dateFrom,
-        endDate: dateTo,
-        purpose: purposeFilter,
-        payerType: payerTypeFilter,
-        collectionMode: modeFilter,
-      })
+      const [data, summaryData] = await Promise.all([
+        listReceipts(queryFilters),
+        getReceiptSummary(queryFilters),
+      ])
       setRecords(data)
+      setSummary({
+        totalReceipts: Number(summaryData?.totalReceipts ?? 0),
+        totalReceived: Number(summaryData?.totalReceived ?? 0),
+        pendingReceivables: Number(summaryData?.pendingReceivables ?? 0),
+        thisMonthAmount: Number(summaryData?.thisMonthAmount ?? 0),
+      })
     } catch (err) {
       console.error('[Receipts Fetch] Error:', err)
-      setLoadError('Failed to load receipts data. Offline ledger active.')
+      setLoadError(err?.message || 'Unable to load receipts from the server. Please check your connection and retry.')
+      setRecords([])
+      setSummary({ totalReceipts: 0, totalReceived: 0, pendingReceivables: 0, thisMonthAmount: 0 })
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, search, dateFrom, dateTo, purposeFilter, payerTypeFilter, modeFilter])
+  }, [queryFilters])
 
   useEffect(() => {
     fetchReceipts()
   }, [fetchReceipts])
 
-  // Summary Metrics
-  const summary = useMemo(() => computeReceiptSummaryCards(records), [records])
+  // Date Preset & Reset Filters
+  const handleDatePresetChange = (nextPreset) => {
+    setDatePreset(nextPreset)
+    const { from, to } = computeRecPresetRange(nextPreset)
+    setDateFrom(from)
+    setDateTo(to)
+    setPage(1)
+  }
 
-  // Reset Filters
+  const handleApplyCustomRange = (from, to) => {
+    setDatePreset('custom')
+    setDateFrom(from)
+    setDateTo(to)
+    setPage(1)
+  }
+
   const resetFilters = () => {
     setStatusFilter('All')
     setSearch('')
+    setDatePreset('all_time')
     setDateFrom('')
     setDateTo('')
     setPurposeFilter('All Purposes')
@@ -1572,6 +1748,16 @@ export default function Receipts() {
     setModeFilter('All Modes')
     setPage(1)
   }
+
+  const advancedFilterCount = [
+    purposeFilter !== 'All Purposes' ? purposeFilter : '',
+    payerTypeFilter !== 'All Payers' ? payerTypeFilter : '',
+    modeFilter !== 'All Modes' ? modeFilter : '',
+  ].filter(Boolean).length
+
+  const safeLoadError = loadError && /ERR_NGROK|ngrok|Failed to fetch|NetworkError|ECONNREFUSED|502|503/i.test(loadError)
+    ? 'Unable to connect to the Receipts service right now. Please check your connection and try again.'
+    : loadError
 
   // Filter Active Count Helper
   const hasActiveFilters = Boolean(
@@ -1584,13 +1770,39 @@ export default function Receipts() {
     modeFilter !== 'All Modes'
   )
 
-  // Pagination Slice
-  const totalRecords = records.length
+  // Sorting & Pagination Slice
+  const sortedRecords = useMemo(() => {
+    const arr = [...records]
+    arr.sort((a, b) => {
+      let cmp = 0
+      if (sortBy === 'finalAmount') {
+        cmp = Number(a.finalAmount || 0) - Number(b.finalAmount || 0)
+      } else if (sortBy === 'receiptNo') {
+        cmp = String(a.receiptNo || '').localeCompare(String(b.receiptNo || ''))
+      } else {
+        cmp = String(a.receiptDate || '').localeCompare(String(b.receiptDate || ''))
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return arr
+  }, [records, sortBy, sortDir])
+
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(col)
+      setSortDir(col === 'receiptDate' ? 'desc' : 'asc')
+    }
+    setPage(1)
+  }
+
+  const totalRecords = sortedRecords.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE))
   const paginatedRecords = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE
-    return records.slice(start, start + PAGE_SIZE)
-  }, [records, page])
+    return sortedRecords.slice(start, start + PAGE_SIZE)
+  }, [sortedRecords, page])
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
@@ -1611,7 +1823,7 @@ export default function Receipts() {
         await updateReceipt(editRecord.id, formValues)
         showToast(`Receipt ${formValues.receiptNo} updated successfully!`)
       } else {
-        await createReceipt(formValues)
+        await createReceipt(formValues, records)
         showToast(`Receipt ${formValues.receiptNo} recorded successfully!`)
       }
       setScreen('list')
@@ -1643,7 +1855,7 @@ export default function Receipts() {
     if (!cancelTarget) return
     setBusy(true)
     try {
-      await cancelReceipt(cancelTarget.id, reason)
+      await cancelReceipt(cancelTarget.id, reason, cancelTarget)
       showToast(`Receipt ${cancelTarget.receiptNo} marked as Cancelled.`)
       setCancelTarget(null)
       fetchReceipts()
@@ -1654,18 +1866,12 @@ export default function Receipts() {
     }
   }
 
-  const handleExportCSV = () => {
-    let csv = 'data:text/csv;charset=utf-8,Receipt No,Date,Purpose,Category,Customer Name,Payer Type,Farm,Crop,Amount (INR),Payment Mode,Bank Account,Ref No,Status,Remarks\n'
-    records.forEach((r) => {
-      csv += `"${r.receiptNo}","${r.receiptDate}","${r.purpose}","${r.category}","${r.payerName}","${r.payerType}","${r.farm}","${r.crop}",${r.finalAmount},"${r.collectionMode}","${r.bankAccount}","${r.refNo}","${r.status}","${r.remarks}"\n`
-    })
-    const encoded = encodeURI(csv)
-    const link = document.createElement('a')
-    link.setAttribute('href', encoded)
-    link.setAttribute('download', `agriman_receipts_${localDate()}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleExportCSV = async () => {
+    try {
+      await exportReceiptsCsv(queryFilters)
+    } catch (err) {
+      showToast(err?.message || 'Unable to export receipts CSV from the server.', 'error')
+    }
   }
 
   return (
@@ -1724,33 +1930,14 @@ export default function Receipts() {
           {/* Load Error Banner */}
           {loadError && (
             <div className="rec-error-banner" role="alert">
-              <span>⚠️ {loadError}</span>
+              <span>⚠ {safeLoadError}</span>
               <button type="button" className="rec-error-retry-btn" onClick={fetchReceipts}>Retry</button>
             </div>
           )}
 
-          {/* Status Filter Tabs (Pill style) */}
-          <div className="rec-status-tabs" role="tablist" aria-label="Filter by receipt status">
-            {STATUS_TABS.map((st) => (
-              <button
-                key={st}
-                type="button"
-                role="tab"
-                aria-selected={statusFilter === st}
-                className={`rec-status-tab ${statusFilter === st ? 'active' : ''}`}
-                onClick={() => {
-                  setStatusFilter(st)
-                  setPage(1)
-                }}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
-
-          {/* Toolbar (Single Horizontal Row on Desktop) */}
+          {/* Compact Primary Filter Toolbar */}
           <div className="rec-toolbar">
-            {/* 1. Search */}
+            {/* 1. Search Receipts */}
             <div className="rec-search-wrap">
               <span className="rec-search-icon" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1771,86 +1958,44 @@ export default function Receipts() {
               />
             </div>
 
-            {/* 2. From Date */}
-            <FilterDateInput
-              id="rec-filter-from-date"
-              value={dateFrom}
-              onChange={(val) => {
-                setDateFrom(val)
-                setPage(1)
-              }}
-              placeholder="dd/mm/yyyy"
-              ariaLabel="Filter start date"
+            {/* 2. Date Range Dropdown + Calendar */}
+            <ReceiptDateRangeFilter
+              preset={datePreset}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onPresetChange={handleDatePresetChange}
+              onApplyCustomRange={handleApplyCustomRange}
             />
 
-            {/* 3. To Date */}
-            <FilterDateInput
-              id="rec-filter-to-date"
-              value={dateTo}
-              min={dateFrom || undefined}
-              onChange={(val) => {
-                setDateTo(val)
-                setPage(1)
-              }}
-              placeholder="dd/mm/yyyy"
-              ariaLabel="Filter end date"
-            />
-
-            {/* 4. Purpose Dropdown */}
+            {/* 3. Status Dropdown */}
             <div className="rec-select-wrap">
               <select
                 className="rec-input rec-select"
-                value={purposeFilter}
+                value={statusFilter}
                 onChange={(e) => {
-                  setPurposeFilter(e.target.value)
+                  setStatusFilter(e.target.value)
                   setPage(1)
                 }}
-                aria-label="Filter by receipt purpose"
+                aria-label="Filter by receipt status"
               >
-                <option value="All Purposes">All Purposes</option>
-                {RECEIPT_PURPOSES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
 
-            {/* 5. Payer Type Dropdown */}
-            <div className="rec-select-wrap">
-              <select
-                className="rec-input rec-select"
-                value={payerTypeFilter}
-                onChange={(e) => {
-                  setPayerTypeFilter(e.target.value)
-                  setPage(1)
-                }}
-                aria-label="Filter by payer type"
-              >
-                <option value="All Payers">All Payers</option>
-                {PAYER_TYPES.map((pt) => (
-                  <option key={pt} value={pt}>{pt}</option>
-                ))}
-              </select>
-            </div>
+            {/* 4. More Filters */}
+            <button
+              type="button"
+              className={`rec-more-filters-btn ${showMoreFilters || advancedFilterCount > 0 ? 'active' : ''}`}
+              onClick={() => setShowMoreFilters((v) => !v)}
+              aria-expanded={showMoreFilters}
+            >
+              <span>More Filters</span>
+              {advancedFilterCount > 0 && <span className="rec-filter-count">{advancedFilterCount}</span>}
+            </button>
 
-            {/* 6. Collection Mode Dropdown */}
-            <div className="rec-select-wrap">
-              <select
-                className="rec-input rec-select"
-                value={modeFilter}
-                onChange={(e) => {
-                  setModeFilter(e.target.value)
-                  setPage(1)
-                }}
-                aria-label="Filter by collection mode"
-              >
-                <option value="All Modes">All Modes</option>
-                {COLLECTION_MODES.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* 7. Reset Filters Button */}
+            {/* 5. Reset Filters Button */}
             <button
               type="button"
               className="rec-reset-btn"
@@ -1868,18 +2013,105 @@ export default function Receipts() {
             </button>
           </div>
 
+          {/* Expandable More Filters Panel */}
+          {showMoreFilters && (
+            <div className="rec-advanced-filters">
+              <div className="rec-advanced-field">
+                <label htmlFor="rec-purpose-filter">Receipt Purpose / Category</label>
+                <select
+                  id="rec-purpose-filter"
+                  className="rec-input rec-select"
+                  value={purposeFilter}
+                  onChange={(e) => {
+                    setPurposeFilter(e.target.value)
+                    setPage(1)
+                  }}
+                >
+                  <option value="All Purposes">All Purposes</option>
+                  {RECEIPT_PURPOSES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="rec-advanced-field">
+                <label htmlFor="rec-payer-filter">Payer / Customer</label>
+                <select
+                  id="rec-payer-filter"
+                  className="rec-input rec-select"
+                  value={payerTypeFilter}
+                  onChange={(e) => {
+                    setPayerTypeFilter(e.target.value)
+                    setPage(1)
+                  }}
+                >
+                  <option value="All Payers">All Payers</option>
+                  {PAYER_TYPES.map((pt) => (
+                    <option key={pt} value={pt}>{pt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="rec-advanced-field">
+                <label htmlFor="rec-mode-filter">Payment Mode</label>
+                <select
+                  id="rec-mode-filter"
+                  className="rec-input rec-select"
+                  value={modeFilter}
+                  onChange={(e) => {
+                    setModeFilter(e.target.value)
+                    setPage(1)
+                  }}
+                >
+                  <option value="All Modes">All Modes</option>
+                  {COLLECTION_MODES.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Active Advanced Filter Chips */}
+          {advancedFilterCount > 0 && (
+            <div className="rec-active-chips">
+              {purposeFilter !== 'All Purposes' && (
+                <span className="rec-filter-chip">
+                  Purpose: {purposeFilter}
+                  <button type="button" onClick={() => { setPurposeFilter('All Purposes'); setPage(1) }} aria-label="Clear purpose filter">×</button>
+                </span>
+              )}
+              {payerTypeFilter !== 'All Payers' && (
+                <span className="rec-filter-chip">
+                  Payer: {payerTypeFilter}
+                  <button type="button" onClick={() => { setPayerTypeFilter('All Payers'); setPage(1) }} aria-label="Clear payer filter">×</button>
+                </span>
+              )}
+              {modeFilter !== 'All Modes' && (
+                <span className="rec-filter-chip">
+                  Mode: {modeFilter}
+                  <button type="button" onClick={() => { setModeFilter('All Modes'); setPage(1) }} aria-label="Clear mode filter">×</button>
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Receipt Registry Table */}
           <div className="rec-table-card">
             <div className="rec-table-wrap">
               <table className="rec-table" aria-label="Receipts registry table">
                 <thead>
                   <tr>
-                    <th>Receipt No</th>
-                    <th>Date</th>
+                    <th onClick={() => toggleSort('receiptNo')} style={{ cursor: 'pointer' }}>
+                      Receipt No {sortBy === 'receiptNo' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    </th>
+                    <th onClick={() => toggleSort('receiptDate')} style={{ cursor: 'pointer' }}>
+                      Date {sortBy === 'receiptDate' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    </th>
                     <th>Purpose / Category</th>
                     <th>Customer / Payer</th>
                     <th>Reference</th>
-                    <th className="rec-col-amount">Received Amount</th>
+                    <th className="rec-col-amount" onClick={() => toggleSort('finalAmount')} style={{ cursor: 'pointer' }}>
+                      Received Amount {sortBy === 'finalAmount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    </th>
                     <th>Mode &amp; Account</th>
                     <th>Txn / Cheque Ref</th>
                     <th>Status</th>
@@ -1893,16 +2125,40 @@ export default function Receipts() {
                         <div className="rec-loading-spinner">Loading receipts...</div>
                       </td>
                     </tr>
+                  ) : loadError && records.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="rec-empty-cell">
+                        <div className="rec-empty-state">
+                          <strong>Unable to load receipt records</strong>
+                          <p>{safeLoadError}</p>
+                          <div className="rec-empty-actions">
+                            <button type="button" className="rec-btn rec-btn-primary" onClick={fetchReceipts}>
+                              Retry Connection
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   ) : paginatedRecords.length === 0 ? (
                     <tr>
                       <td colSpan="10" className="rec-empty-cell">
                         <div className="rec-empty-state">
-                          <p>No receipt records found matching your filters.</p>
-                          {hasActiveFilters && (
-                            <button type="button" className="rec-btn rec-btn-secondary" onClick={resetFilters}>
-                              Clear All Filters
+                          <strong>No receipt records found</strong>
+                          <p>
+                            {hasActiveFilters
+                              ? 'No receipt records match your current search or filters.'
+                              : 'Record your first receipt to track crop sales collections and customer settlements.'}
+                          </p>
+                          <div className="rec-empty-actions">
+                            {hasActiveFilters && (
+                              <button type="button" className="rec-btn rec-btn-secondary" onClick={resetFilters}>
+                                Clear All Filters
+                              </button>
+                            )}
+                            <button type="button" className="rec-btn rec-btn-primary" onClick={handleAddClick} disabled={busy}>
+                              + Record Receipt
                             </button>
-                          )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -1915,19 +2171,19 @@ export default function Receipts() {
                         <td>{rec.receiptDateDisplay || rec.receiptDate}</td>
                         <td>
                           <div className="rec-purpose-cell">
-                            <strong>{rec.purpose}</strong>
-                            {rec.category && <small>{rec.category}</small>}
+                            <strong title={rec.purpose}>{rec.purpose}</strong>
+                            {rec.category && <small title={rec.category}>{rec.category}</small>}
                           </div>
                         </td>
                         <td>
                           <div className="rec-payer-cell">
-                            <strong>{rec.payerName}</strong>
+                            <strong title={rec.payerName}>{rec.payerName}</strong>
                             <small>{rec.payerType}</small>
                           </div>
                         </td>
                         <td>
                           {rec.refType !== 'None' && rec.refNo ? (
-                            <span className="rec-ref-pill">{rec.refType}: {rec.refNo}</span>
+                            <span className="rec-ref-pill" title={`${rec.refType}: ${rec.refNo}`}>{rec.refType}: {rec.refNo}</span>
                           ) : (
                             <span className="rec-muted">—</span>
                           )}
@@ -1938,13 +2194,13 @@ export default function Receipts() {
                         <td>
                           <div className="rec-mode-cell">
                             <span>{rec.collectionMode}</span>
-                            <small>{rec.bankAccount}</small>
+                            <small title={rec.bankAccount}>{rec.bankAccount}</small>
                           </div>
                         </td>
                         <td>
                           <div className="rec-ref-cell">
-                            {rec.transactionRef && <span>{rec.transactionRef}</span>}
-                            {rec.chequeNo && <small>CHQ: {rec.chequeNo}</small>}
+                            {rec.transactionRef && <span title={rec.transactionRef}>{rec.transactionRef}</span>}
+                            {rec.chequeNo && <small title={`CHQ: ${rec.chequeNo}`}>CHQ: {rec.chequeNo}</small>}
                             {!rec.transactionRef && !rec.chequeNo && <span className="rec-muted">—</span>}
                           </div>
                         </td>
@@ -2000,7 +2256,7 @@ export default function Receipts() {
       )}
 
       {/* Reports Section View */}
-      {activeTab === 'reports' && <ReportsSection records={records} />}
+      {activeTab === 'reports' && <ReportsSection filters={queryFilters} onError={(msg) => showToast(msg, 'error')} />}
 
       {/* Add / Edit Form Modal */}
       {(screen === 'add' || screen === 'edit') && (

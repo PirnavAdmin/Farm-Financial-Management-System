@@ -122,22 +122,6 @@ function todayDate() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function computeEmiClient(principal, ratePercent, tenureMonths, frequency = 'Monthly') {
-  const P = parseAmount(principal)
-  const R = parseRate(ratePercent)
-  const N = tenureMonths !== undefined && tenureMonths !== null && tenureMonths !== '' ? parseInt(tenureMonths, 10) : 12
-  if (P <= 0 || !Number.isFinite(N) || N <= 0) return 0
-  if (R <= 0) return Math.round(P / N)
-
-  const periodsPerYear = frequency === 'Quarterly' ? 4 : frequency === 'Half-Yearly' ? 2 : frequency === 'Yearly' ? 1 : 12
-  const totalPeriods = frequency === 'Quarterly' ? Math.ceil(N / 3) : frequency === 'Half-Yearly' ? Math.ceil(N / 6) : frequency === 'Yearly' ? Math.ceil(N / 12) : N
-  const r = R / (100 * periodsPerYear)
-
-  const factor = Math.pow(1 + r, totalPeriods)
-  const emi = (P * r * factor) / (factor - 1)
-  return Math.round(emi)
-}
-
 function normalizeLoan(raw) {
   const id = raw.loanId ?? raw.id
   return {
@@ -320,18 +304,18 @@ export default function Loans() {
     setPage(1)
   }, [query, statusFilter, typeFilter, bankFilter, paymentModeFilter, selectedLoanFilter, view])
 
-  // Aggregate KPI Calculations
-  const totalSanctioned = summary?.totalSanctioned ?? loans.reduce((acc, l) => acc + (l.sanctionAmount || 0), 0)
-  const totalDisbursed = summary?.totalDisbursed ?? loans.reduce((acc, l) => acc + (l.disbursedAmount || 0), 0)
-  const totalOutstanding = summary?.totalOutstanding ?? loans.reduce((acc, l) => acc + (l.outstandingPrincipal || l.outstandingAmount || 0), 0)
-  const activeLoansCount = summary?.activeLoans ?? loans.filter(l => l.status === 'Active').length
-  const totalLoansCount = summary?.totalLoans ?? loans.length
+  // Authoritative Backend KPI Figures (from GET /api/Loan/summary & /api/Loan/payment-summary)
+  const totalSanctioned = Number(summary?.totalSanctioned ?? 0)
+  const totalDisbursed = Number(summary?.totalDisbursed ?? 0)
+  const totalOutstanding = Number(summary?.totalOutstanding ?? 0)
+  const activeLoansCount = Number(summary?.activeLoans ?? 0)
+  const totalLoansCount = Number(summary?.totalLoans ?? 0)
 
-  const totalAmountPaid = paymentSummary?.totalAmountPaid ?? payments.reduce((acc, p) => acc + (p.totalPayment || 0), 0)
-  const totalPrincipalPaid = paymentSummary?.principalReductions ?? payments.reduce((acc, p) => acc + (p.principal || 0), 0)
-  const totalInterestPaid = paymentSummary?.interestAndCharges ?? payments.reduce((acc, p) => acc + (p.interest + p.penalty || 0), 0)
-  const upcomingPaymentsCount = summary?.upcomingPaymentsCount ?? 0
-  const overdueInstallmentsCount = summary?.overdueInstallmentsCount ?? 0
+  const totalAmountPaid = Number(paymentSummary?.totalAmountPaid ?? 0)
+  const totalPrincipalPaid = Number(paymentSummary?.principalReductions ?? 0)
+  const totalInterestPaid = Number(paymentSummary?.interestAndCharges ?? 0)
+  const upcomingPaymentsCount = Number(summary?.upcomingPaymentsCount ?? 0)
+  const overdueInstallmentsCount = Number(summary?.overdueInstallmentsCount ?? 0)
 
   const totalRepaidPct = totalSanctioned > 0 ? (totalPrincipalPaid / totalSanctioned) * 100 : 0
 
@@ -379,9 +363,10 @@ export default function Loans() {
           list.push({ ...d, loanNo: l.loanNo, bankName: l.bankName, loanType: l.loanType })
         })
       } else if (l.disbursedAmount > 0) {
+        const loanCode = l.loanNo || `LN-${l.loanId}`
         list.push({
           id: `DSB-${l.loanId}-INIT`,
-          disbursementNo: `DSB-${l.startDate ? l.startDate.slice(0, 4) : '2026'}-001`,
+          disbursementNo: `DSB-${loanCode}-001`,
           disbursementDate: l.startDate,
           disbursedAmount: l.disbursedAmount,
           bankAccount: l.bankName,
@@ -467,18 +452,13 @@ export default function Loans() {
       return
     }
 
-    const calculatedEmi = computeEmiClient(disbursed, rate, tenure, frequency)
-    const emiVal = formData.get('emi') !== '' ? parseAmount(formData.get('emi')) : calculatedEmi
-
+    const emiVal = formData.get('emi') !== '' ? parseAmount(formData.get('emi')) : undefined
     const startDate = formData.get('startDate') || todayDate()
-    const calcEndDate = new Date(startDate)
-    calcEndDate.setMonth(calcEndDate.getMonth() + tenure)
-    const endDateStr = formData.get('endDate') || calcEndDate.toISOString().slice(0, 10)
-
-    const outVal = formData.get('outstandingAmount') !== '' ? parseAmount(formData.get('outstandingAmount')) : disbursed
+    const endDateStr = formData.get('endDate') || undefined
+    const outVal = formData.get('outstandingAmount') !== '' ? parseAmount(formData.get('outstandingAmount')) : undefined
 
     const newLoanObj = {
-      loanNo: formData.get('loanNo')?.trim() || `LOAN-${Date.now().toString().slice(-4)}`,
+      loanNo: formData.get('loanNo')?.trim() || undefined,
       loanAccountNo: formData.get('loanAccountNo')?.trim() || '',
       bankName: formData.get('bankName')?.trim() || 'Cooperative Bank',
       loanType: formData.get('loanType') || 'Crop Loan (KCC)',
@@ -494,7 +474,7 @@ export default function Loans() {
       emi: emiVal,
       outstandingAmount: outVal,
       processingFees: parseAmount(formData.get('processingFees')),
-      status: outVal <= 0 ? 'Closed' : (formData.get('status') || 'Active'),
+      status: formData.get('status') || 'Active',
       remarks: formData.get('remarks')?.trim() || '',
     }
 
@@ -609,7 +589,17 @@ export default function Loans() {
 
   // Open Disbursement Modal
   const handleOpenDisbursement = (loan) => {
-    const nextDsbNo = `DSB-${new Date().getFullYear()}-${String((loan.disbursementsCount || 0) + 1).padStart(3, '0')}`
+    const year = new Date().getFullYear()
+    const prefix = `DSB-${year}-`
+    let maxSeq = Number(loan.disbursementsCount ?? loan.disbursements?.length ?? 0)
+    if (loan.disbursedAmount > 0 && maxSeq === 0) maxSeq = 1
+    allDisbursements.forEach((d) => {
+      if (d.disbursementNo && d.disbursementNo.startsWith(prefix)) {
+        const n = parseInt(d.disbursementNo.slice(prefix.length), 10)
+        if (!Number.isNaN(n) && n > maxSeq) maxSeq = n
+      }
+    })
+    const nextDsbNo = `${prefix}${String(maxSeq + 1).padStart(3, '0')}`
     const availableToDisburse = Math.max(0, loan.sanctionAmount - (loan.disbursedAmount || 0))
 
     setDisbursementModal({
@@ -645,8 +635,14 @@ export default function Loans() {
       return
     }
 
+    const dsbNo = formData.get('disbursementNo')?.trim()
+    if (dsbNo && allDisbursements.some((d) => String(d.disbursementNo || '').toLowerCase() === dsbNo.toLowerCase())) {
+      alert(`Disbursement number "${dsbNo}" already exists. Please use a unique disbursement number.`)
+      return
+    }
+
     const dsbObj = {
-      disbursementNo: formData.get('disbursementNo')?.trim(),
+      disbursementNo: dsbNo,
       disbursementDate: formData.get('disbursementDate') || todayDate(),
       disbursedAmount: amount,
       bankAccount: formData.get('bankAccount')?.trim() || disbursementModal.bankName,
@@ -763,9 +759,12 @@ export default function Loans() {
 
       {/* API / Network Alert Banner */}
       {apiError && (
-        <div role="alert" style={{ color: '#b91c1c', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <div className="loan-error-banner" role="alert">
           <div>
-            <strong>Notice:</strong> {apiError}
+            <strong>Notice:</strong>{' '}
+            {/ERR_NGROK|ngrok|Failed to fetch|NetworkError|ECONNREFUSED|502|503/i.test(apiError)
+              ? 'Unable to connect to the Loan & Finance service right now. Please check your connection and retry.'
+              : apiError}
           </div>
           <button
             type="button"
@@ -1042,7 +1041,37 @@ export default function Loans() {
                 </tr>
               </thead>
               <tbody>
-                {pagedRecords.length === 0 ? (
+                {loading && pagedRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '40px 16px', color: '#64748b', fontSize: '13px' }}>
+                      Loading loan records…
+                    </td>
+                  </tr>
+                ) : apiError && pagedRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '44px 16px' }}>
+                      <div style={{ color: '#b91c1c', fontSize: '13px' }}>
+                        <strong>Unable to load loan records</strong>
+                        <p style={{ margin: '4px 0 12px', fontSize: '12px', color: '#64748b' }}>
+                          {/ERR_NGROK|ngrok|Failed to fetch|NetworkError|ECONNREFUSED|502|503/i.test(apiError)
+                            ? 'Unable to connect to the Loan & Finance service right now.'
+                            : apiError}
+                        </p>
+                        <button
+                          type="button"
+                          className="loan-btn-action"
+                          onClick={async () => {
+                            setLoading(true)
+                            await loadData()
+                            setLoading(false)
+                          }}
+                        >
+                          Retry Connection
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : pagedRecords.length === 0 ? (
                   <tr>
                     <td colSpan={11} style={{ textAlign: 'center', padding: '48px 16px' }}>
                       <div style={{ color: '#64748b', fontSize: '13px' }}>

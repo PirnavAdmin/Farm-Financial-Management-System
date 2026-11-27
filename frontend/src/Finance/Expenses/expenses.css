@@ -32,9 +32,11 @@
 /* ─── Page Layout ──────────────────────────────────────────── */
 
 .expense-page {
-  padding: 24px 28px 48px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 20px 24px 36px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
   font-family: var(--sans, 'Inter', system-ui, sans-serif);
   color: var(--exp-text);
   background: var(--exp-bg-page);
@@ -305,56 +307,15 @@
   color: #ffffff;
 }
 
-/* ─── Status Filter Tabs ───────────────────────────────────── */
-
-.exp-status-tabs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-
-.exp-status-tab {
-  height: 34px;
-  padding: 0 16px;
-  border-radius: 9999px;
-  border: 1px solid var(--exp-border);
-  background: var(--exp-bg-card);
-  color: var(--exp-text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  transition: all 0.15s ease-in-out;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.exp-status-tab:hover {
-  border-color: var(--exp-primary-border);
-  color: var(--exp-primary);
-  background: var(--exp-primary-bg);
-}
-
-.exp-status-tab.active {
-  background: var(--exp-primary);
-  border-color: var(--exp-primary);
-  color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(36, 90, 54, 0.2);
-}
-
 /* ─── Toolbar (Single Aligned Horizontal Row on Desktop) ─────── */
 
 .exp-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 14px;
   width: 100%;
+  position: relative;
 }
 
 @media (min-width: 1120px) {
@@ -366,14 +327,13 @@
 /* 1. Search Input */
 .exp-search-wrap {
   position: relative;
-  flex: 1 1 200px;
-  min-width: 170px;
-  max-width: 280px;
+  flex: 1.4 1 240px;
+  min-width: 200px;
 }
 
 .exp-search-icon {
   position: absolute;
-  left: 11px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--exp-text-muted);
@@ -383,79 +343,319 @@
 }
 
 .exp-search-input {
-  height: 38px !important;
-  padding: 0 12px 0 34px !important;
+  height: 40px !important;
+  padding: 0 12px 0 36px !important;
   font-size: 13.5px !important;
-  border-radius: 7px !important;
+  border-radius: 8px !important;
   width: 100%;
 }
 
-/* 2 & 3. Date Filters (Equal widths, dd/mm/yyyy display convention) */
-.exp-date-filter-wrap {
+/* 2. Date Range Dropdown & Anchored Calendar Popup */
+.exp-date-dropdown-wrap {
   position: relative;
-  flex: 0 0 142px;
-  width: 142px;
-  min-width: 135px;
+  flex: 0 0 210px;
+  min-width: 190px;
 }
 
-.exp-date-text-input {
-  height: 38px !important;
-  padding: 0 32px 0 10px !important;
-  font-size: 13.5px !important;
-  border-radius: 7px !important;
-  font-variant-numeric: tabular-nums;
-  cursor: text;
+.exp-date-trigger {
   width: 100%;
-}
-
-.exp-date-picker-trigger {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: 32px;
-  display: flex;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--exp-border);
+  background: var(--exp-bg-card);
+  color: var(--exp-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: var(--exp-text-muted);
+  gap: 8px;
   cursor: pointer;
-  padding: 0;
-  border-radius: 0 6px 6px 0;
-  transition: color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-.exp-date-picker-trigger:hover {
+.exp-date-trigger:hover {
+  border-color: var(--exp-primary-border);
+}
+
+.exp-date-trigger-active {
+  border-color: var(--exp-primary);
+  background: var(--exp-primary-bg);
+  color: var(--exp-primary);
+  font-weight: 600;
+}
+
+.exp-date-trigger-icon {
+  flex-shrink: 0;
+  color: var(--exp-text-muted);
+}
+
+.exp-date-trigger-active .exp-date-trigger-icon {
   color: var(--exp-primary);
 }
 
-.exp-date-native-hidden {
-  position: absolute;
-  bottom: 0;
-  right: 10px;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none;
+.exp-date-trigger-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 4, 5, 6. Category, Supplier, Farm Dropdowns (Consistent widths) */
+.exp-date-trigger-chevron {
+  flex-shrink: 0;
+  color: var(--exp-text-muted);
+}
+
+.exp-date-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: var(--exp-bg-card);
+  border: 1.5px solid var(--exp-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exp-date-menu-item {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--exp-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.12s, color 0.12s;
+}
+
+.exp-date-menu-item:hover {
+  background: var(--exp-primary-bg);
+  color: var(--exp-primary);
+}
+
+.exp-date-menu-item.active {
+  background: var(--exp-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.exp-date-menu-hint {
+  font-size: 11px;
+  opacity: 0.72;
+}
+
+.exp-date-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 304px;
+  background: var(--exp-bg-card);
+  border: 1.5px solid var(--exp-border);
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+  padding: 14px;
+  z-index: 70;
+}
+
+.exp-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.exp-cal-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--exp-border);
+  background: var(--exp-bg-card);
+  color: var(--exp-text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exp-cal-nav-btn:hover {
+  background: var(--exp-primary-bg);
+  border-color: var(--exp-primary-border);
+  color: var(--exp-primary);
+}
+
+.exp-cal-month-year {
+  display: flex;
+  gap: 6px;
+}
+
+.exp-cal-select {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid var(--exp-border);
+  background: var(--exp-bg-card);
+  color: var(--exp-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exp-cal-selected-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--exp-bg-muted);
+  border: 1px solid var(--exp-border);
+}
+
+.exp-cal-pill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exp-cal-pill small {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--exp-text-muted);
+}
+
+.exp-cal-pill strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--exp-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.exp-cal-pill.filled strong {
+  color: var(--exp-primary);
+}
+
+.exp-cal-arrow {
+  color: var(--exp-text-muted);
+  font-size: 12px;
+}
+
+.exp-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.exp-cal-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--exp-text-muted);
+  padding: 4px 0;
+}
+
+.exp-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.exp-cal-empty {
+  height: 32px;
+}
+
+.exp-cal-day {
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--exp-text);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.1s, color 0.1s;
+}
+
+.exp-cal-day:hover {
+  background: var(--exp-primary-bg);
+  color: var(--exp-primary);
+}
+
+.exp-cal-day.today {
+  box-shadow: inset 0 0 0 1.5px var(--exp-primary-border);
+  font-weight: 700;
+}
+
+.exp-cal-day.in-range {
+  background: var(--exp-primary-bg);
+  color: var(--exp-primary);
+  border-radius: 2px;
+}
+
+.exp-cal-day.range-start,
+.exp-cal-day.range-end {
+  background: var(--exp-primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.exp-cal-day.disabled-hint {
+  opacity: 0.45;
+}
+
+.exp-cal-error {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--exp-danger);
+}
+
+.exp-cal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--exp-border);
+}
+
+.exp-cal-btn {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12.5px;
+}
+
+/* 3 & 4. Category & Status Dropdowns */
 .exp-select-wrap {
   position: relative;
-  flex: 0 0 150px;
-  width: 150px;
-  min-width: 140px;
+  flex: 1 1 155px;
+  min-width: 145px;
 }
 
 .exp-select {
-  height: 38px !important;
-  padding: 0 28px 0 11px !important;
+  height: 40px !important;
+  padding: 0 30px 0 12px !important;
   font-size: 13.5px !important;
-  border-radius: 7px !important;
+  border-radius: 8px !important;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -468,12 +668,52 @@
   width: 100%;
 }
 
-/* 7. Reset Button */
-.exp-reset-btn {
-  height: 38px;
+/* 5. More Filters Button */
+.exp-more-filters-btn {
+  height: 40px;
   padding: 0 14px;
-  border-radius: 7px;
-  border: 1px solid var(--exp-border);
+  border-radius: 8px;
+  border: 1.5px solid var(--exp-border);
+  background: var(--exp-bg-card);
+  color: var(--exp-text-label);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  transition: all 0.15s ease-in-out;
+}
+
+.exp-more-filters-btn:hover,
+.exp-more-filters-btn.active {
+  background: var(--exp-primary-bg);
+  border-color: var(--exp-primary-border);
+  color: var(--exp-primary);
+}
+
+.exp-filter-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--exp-primary);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 6. Reset Button */
+.exp-reset-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--exp-border);
   background: var(--exp-bg-card);
   color: var(--exp-text-label);
   font-size: 13px;
@@ -488,14 +728,85 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.exp-reset-btn:hover {
+.exp-reset-btn:hover:not(:disabled) {
   background: var(--exp-primary-bg);
   border-color: var(--exp-primary-border);
   color: var(--exp-primary);
 }
 
-.exp-reset-btn:active {
+.exp-reset-btn:active:not(:disabled) {
   background: #e2ede5;
+}
+
+.exp-reset-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Expandable Secondary Filters */
+.exp-advanced-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 280px));
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--exp-bg-card);
+  border: 1.5px solid var(--exp-border);
+  border-radius: 10px;
+  box-shadow: var(--exp-shadow-sm);
+}
+
+.exp-advanced-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.exp-advanced-field label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--exp-text-muted);
+}
+
+/* Active Filter Chips */
+.exp-active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exp-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--exp-primary-bg);
+  border: 1px solid var(--exp-primary-border);
+  color: var(--exp-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.exp-filter-chip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.exp-empty-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 /* ─── Input base ───────────────────────────────────────────── */
@@ -1143,8 +1454,8 @@
     flex: 1 1 240px;
     max-width: 100%;
   }
-  .exp-date-filter-wrap {
-    flex: 1 1 140px;
+  .exp-date-dropdown-wrap {
+    flex: 1 1 190px;
   }
   .exp-select-wrap {
     flex: 1 1 150px;
@@ -1177,19 +1488,22 @@
     gap: 8px;
   }
   .exp-search-wrap,
-  .exp-date-filter-wrap,
+  .exp-date-dropdown-wrap,
   .exp-select-wrap,
+  .exp-more-filters-btn,
   .exp-reset-btn {
     width: 100%;
     max-width: 100%;
     flex: 1 1 100%;
   }
+  .exp-more-filters-btn,
   .exp-reset-btn {
     justify-content: center;
   }
+  .exp-advanced-filters {
+    grid-template-columns: 1fr;
+  }
   .exp-module-tabs { overflow-x: auto; }
-  .exp-status-tabs { gap: 6px; }
-  .exp-status-tab { font-size: 11.5px; padding: 0 12px; height: 30px; }
   .exp-form-overlay { padding: 0; }
   .exp-form-card { border-radius: 0; min-height: 100vh; }
   .exp-modal-backdrop { padding: 12px; }
@@ -1284,35 +1598,55 @@
 [data-theme="dark"] .exp-module-tab-btn.active { color: #6bbf80; }
 [data-theme="dark"] .exp-module-tab-btn.active { border-bottom-color: #4a9966; }
 
-[data-theme="dark"] .exp-status-tab {
-  background: #18281c;
-  border-color: #2d4533;
-  color: #9cbca4;
-}
-
-[data-theme="dark"] .exp-status-tab:hover {
-  background: #1e3624;
-  border-color: #4a7a56;
-  color: #72cf8d;
-}
-
-[data-theme="dark"] .exp-status-tab.active {
-  background: #245a36;
-  border-color: #245a36;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
 [data-theme="dark"] .exp-search-input,
-[data-theme="dark"] .exp-date-text-input,
-[data-theme="dark"] .exp-select {
+[data-theme="dark"] .exp-date-trigger,
+[data-theme="dark"] .exp-select,
+[data-theme="dark"] .exp-more-filters-btn,
+[data-theme="dark"] .exp-reset-btn,
+[data-theme="dark"] .exp-advanced-filters,
+[data-theme="dark"] .exp-date-menu,
+[data-theme="dark"] .exp-date-popover,
+[data-theme="dark"] .exp-cal-nav-btn,
+[data-theme="dark"] .exp-cal-select {
   background-color: #18281c;
   border-color: #2d4533;
   color: #d4e6d8;
 }
 
+[data-theme="dark"] .exp-date-trigger-active,
+[data-theme="dark"] .exp-more-filters-btn.active,
+[data-theme="dark"] .exp-more-filters-btn:hover,
+[data-theme="dark"] .exp-reset-btn:hover:not(:disabled),
+[data-theme="dark"] .exp-filter-chip {
+  background-color: #1e3a25;
+  border-color: #4a7a56;
+  color: #72cf8d;
+}
+
+[data-theme="dark"] .exp-cal-selected-bar {
+  background: #142218;
+  border-color: #2d4533;
+}
+
+[data-theme="dark"] .exp-cal-day {
+  color: #d4e6d8;
+}
+
+[data-theme="dark"] .exp-cal-day:hover,
+[data-theme="dark"] .exp-cal-day.in-range,
+[data-theme="dark"] .exp-date-menu-item:hover {
+  background: #1e3a25;
+  color: #72cf8d;
+}
+
+[data-theme="dark"] .exp-cal-day.range-start,
+[data-theme="dark"] .exp-cal-day.range-end,
+[data-theme="dark"] .exp-date-menu-item.active {
+  background: #245a36;
+  color: #ffffff;
+}
+
 [data-theme="dark"] .exp-search-input:focus,
-[data-theme="dark"] .exp-date-text-input:focus,
 [data-theme="dark"] .exp-select:focus {
   border-color: #4a7a56;
   box-shadow: 0 0 0 2px rgba(74, 122, 86, 0.25);
@@ -1320,14 +1654,6 @@
 
 [data-theme="dark"] .exp-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239cbca4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-}
-
-[data-theme="dark"] .exp-date-picker-trigger {
-  color: #9cbca4;
-}
-
-[data-theme="dark"] .exp-date-picker-trigger:hover {
-  color: #72cf8d;
 }
 
 [data-theme="dark"] .exp-reset-btn {

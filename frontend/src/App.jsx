@@ -156,6 +156,10 @@ function App() {
   const [transitionStage, setTransitionStage] = useState('active') // 'active' | 'exiting' | 'entering'
   const isTransitioningRef = useRef(false)
   const publicScrollRef = useRef(null)
+  const mainContentRef = useRef(null)
+  const [headerHidden, setHeaderHidden] = useState(() => false)
+  const headerHiddenRef = useRef(false)
+  const headerCooldownRef = useRef(0)
   const sidebarCollapsed = false
 
   const handleNavigateToLogin = useCallback(() => {
@@ -280,6 +284,94 @@ function App() {
     return () => { mounted = false }
   }, [])
 
+  useEffect(() => {
+    if (!loggedIn) return undefined
+
+    let rafId = null
+    let activeTarget = null
+    const lastPositions = new WeakMap()
+    const anchorPositions = new WeakMap()
+    const lastDirections = new WeakMap()
+
+    const applyHeaderHidden = (next) => {
+      if (headerHiddenRef.current === next) return
+      headerHiddenRef.current = next
+      headerCooldownRef.current = performance.now() + 320
+      setHeaderHidden(next)
+    }
+
+    const handleScroll = (e) => {
+      const rawTarget = e.target
+      const target = rawTarget === document ? document.scrollingElement : rawTarget
+      if (!target || typeof target.scrollTop !== 'number') return
+      // Ignore horizontal-only scrollbars (tables with horizontal overflow only)
+      if (target.scrollHeight <= target.clientHeight + 8) return
+      // Ignore navbar's own dropdowns, sidebar, and tooltip/menu popovers
+      if (target.closest?.('.navbar-dropdown, .sidebar, .pay-date-menu, .rec-date-menu, .exp-date-menu')) return
+
+      if (performance.now() < headerCooldownRef.current) {
+        lastPositions.set(target, target.scrollTop || 0)
+        return
+      }
+
+      activeTarget = target
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        const el = activeTarget
+        if (!el) return
+        if (performance.now() < headerCooldownRef.current) {
+          lastPositions.set(el, el.scrollTop || 0)
+          return
+        }
+
+        const currentTop = el.scrollTop || 0
+        const prevTop = lastPositions.get(el) ?? currentTop
+        lastPositions.set(el, currentTop)
+
+        const stepDelta = currentTop - prevTop
+        if (Math.abs(stepDelta) < 1) return
+
+        const dir = stepDelta > 0 ? 'down' : 'up'
+        if (lastDirections.get(el) !== dir) {
+          lastDirections.set(el, dir)
+          anchorPositions.set(el, prevTop)
+        }
+
+        const anchorTop = anchorPositions.get(el) ?? prevTop
+        const accumulated = currentTop - anchorTop
+
+        // Returning to top from a scrolled position reveals the header
+        if (dir === 'up' && prevTop > 16 && currentTop <= 16) {
+          anchorPositions.set(el, currentTop)
+          applyHeaderHidden(false)
+          return
+        }
+
+        if (!headerHiddenRef.current && dir === 'down' && accumulated >= 16 && currentTop > 40) {
+          applyHeaderHidden(true)
+        } else if (headerHiddenRef.current && dir === 'up' && accumulated <= -14) {
+          applyHeaderHidden(false)
+        }
+      })
+    }
+
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true })
+    return () => {
+      document.removeEventListener('scroll', handleScroll, { capture: true })
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+    }
+  }, [loggedIn])
+
+  useEffect(() => {
+    const shouldHideOnNavigate = active !== 'Dashboard'
+    headerHiddenRef.current = shouldHideOnNavigate
+    headerCooldownRef.current = performance.now() + 320
+    setHeaderHidden(shouldHideOnNavigate)
+    const scroller = mainContentRef.current?.querySelector('.page-content, .users-page')
+    if (scroller) scroller.scrollTop = 0
+  }, [active])
+
   function handleLogin(user, token, rememberMe, identifier, refreshToken) {
     const storage = rememberMe ? localStorage : sessionStorage
     const displayName = user.fullName || user.name || user.email || user.phoneNumber || identifier || 'User'
@@ -363,7 +455,7 @@ function App() {
         sidebarCollapsed={sidebarCollapsed}
       />
 
-      <main className="main-content">
+      <main ref={mainContentRef} className={`main-content${headerHidden ? ' header-is-hidden' : ''}`}>
         <Navbar
           active={active}
           selectItem={selectItem}
@@ -372,6 +464,7 @@ function App() {
           userRole={userRole}
           userInitials={userInitials}
           handleLogout={handleLogout}
+          hidden={headerHidden}
         />
 
         <ModuleErrorBoundary active={active}>

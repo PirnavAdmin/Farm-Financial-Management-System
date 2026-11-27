@@ -209,6 +209,40 @@ export async function getExpenseSummary(params = {}) {
   return unwrap(response.data)
 }
 
+const EXPENSE_REPORT_ENDPOINTS = {
+  'expense-summary': { path: '/api/Reports/financial/monthly-expense', exportKey: 'monthly-expense' },
+  'monthly-trend': { path: '/api/Reports/financial/monthly-expense', exportKey: 'monthly-expense' },
+  'annual-summary': { path: '/api/Reports/financial/annual-expense', exportKey: 'annual-expense' },
+  'daily-expense': { path: '/api/Reports/financial/daily-expense', exportKey: 'daily-expense' },
+  'pending-payables': { path: '/api/Reports/financial/payables', exportKey: 'payables' },
+  'overdue-report': { path: '/api/Reports/financial/payables', exportKey: 'payables' },
+  'by-crop': { path: '/api/Reports/agriculture/crop-expense', exportKey: 'crop-expense' },
+}
+
+export async function getExpenseReport(reportType, params = {}) {
+  const spec = EXPENSE_REPORT_ENDPOINTS[reportType]
+  if (!spec) {
+    throw new Error(`Backend report endpoint not available for '${reportType}'. Supported backend reports: monthly-trend, annual-summary, pending-payables, by-crop.`)
+  }
+  const response = await api.get(spec.path, { ...cfg(), params })
+  return { ...unwrap(response.data), exportKey: spec.exportKey }
+}
+
+export async function exportExpenseReportCsv(reportType, params = {}) {
+  const spec = EXPENSE_REPORT_ENDPOINTS[reportType]
+  const url = spec ? `/api/Reports/export/${spec.exportKey}` : `${ROOT}/export/csv`
+  const response = await api.get(url, { ...cfg(), params, responseType: 'blob' })
+  const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+  const href = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = href
+  link.download = `agriman_expense_${reportType || 'registry'}_${localDate()}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(href)
+}
+
 export async function getExpenseById(id) {
   const response = await api.get(`${ROOT}/${encodeURIComponent(id)}`, cfg())
   const raw = unwrap(response.data)
@@ -356,10 +390,10 @@ export function buildExpensePayload(formValues, categories = []) {
 
 // ─── Summary computation helpers ─────────────────────────────────────────────
 
-export function computeSummaryCards(allMetrics, paidMetrics, thisMonthMetrics) {
+export function computeSummaryCards(allMetrics, paidMetrics, thisMonthMetrics, pendingMetrics) {
   const totalExpenses = Number(allMetrics?.totalAmount ?? allMetrics?.metrics?.totalAmount ?? 0)
   const paidExpenses = Number(paidMetrics?.totalAmount ?? paidMetrics?.metrics?.totalAmount ?? 0)
   const thisMonth = Number(thisMonthMetrics?.totalAmount ?? thisMonthMetrics?.metrics?.totalAmount ?? 0)
-  const pendingPayables = Math.max(0, totalExpenses - paidExpenses)
+  const pendingPayables = Number(pendingMetrics?.totalAmount ?? pendingMetrics?.metrics?.totalAmount ?? 0)
   return { totalExpenses, paidExpenses, pendingPayables, thisMonth }
 }

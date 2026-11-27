@@ -70,6 +70,7 @@ html, body {
 
 /* Main Content Area */
 .main-content {
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 100vh;
@@ -703,9 +704,20 @@ html, body {
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
-  padding: 20px 24px 28px;
+  padding: 80px 24px 28px;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: padding-top 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-content.header-is-hidden > .page-content,
+.main-content.header-is-hidden > .users-page {
+  padding-top: 20px;
+}
+
+.main-content > .users-page {
+  padding-top: 80px;
+  transition: padding-top 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .page-content::-webkit-scrollbar {
@@ -796,7 +808,7 @@ html, body {
     padding: 0 18px;
   }
   .page-content {
-    padding: 16px 18px 24px;
+    padding: 76px 18px 24px;
   }
 }
 
@@ -841,7 +853,7 @@ html, body {
     display: none;
   }
   .page-content {
-    padding: 14px 12px 20px;
+    padding: 74px 12px 20px;
   }
 }
 

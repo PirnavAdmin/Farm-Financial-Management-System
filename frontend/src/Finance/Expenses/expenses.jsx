@@ -6,9 +6,11 @@ import {
   createExpense,
   deleteExpense,
   displayDateToIso,
+  exportExpenseReportCsv,
   formatCurrency,
   formatDate,
   getExpenseById,
+  getExpenseReport,
   getExpenseSummary,
   getNextExpenseNo,
   isoToDisplayDate,
@@ -29,7 +31,14 @@ import './expenses.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_TABS = ['All', 'Paid', 'Partially Paid', 'Pending', 'Overdue', 'Cancelled']
+const STATUS_OPTIONS = [
+  { value: 'All', label: 'All Statuses' },
+  { value: 'Paid', label: 'Paid' },
+  { value: 'Partially Paid', label: 'Partially Paid' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Overdue', label: 'Overdue' },
+  { value: 'Cancelled', label: 'Cancelled' },
+]
 const PAGE_SIZE = 10
 
 const REPORT_TYPES = [
@@ -81,105 +90,340 @@ function SummaryCards({ summary, loading }) {
             <strong className={loading ? 'exp-skeleton' : ''}>{loading ? '—' : card.value}</strong>
             <span className="exp-card-hint">{card.hint}</span>
           </div>
-          <b className="exp-card-arrow">↗</b>
         </article>
       ))}
     </div>
   )
 }
 
-// ─── Filter Date Input (Displays dd/mm/yyyy with native calendar picker) ─────────
+// ─── Date Range Presets & Interactive Calendar Popup ─────────────────────────
 
-function FilterDateInput({ id, value, min, max, onChange, placeholder, ariaLabel }) {
-  const [typedText, setTypedText] = useState('')
-  const nativePickerRef = useRef(null)
+const EXPENSE_DATE_PRESETS = [
+  { value: 'all_time', label: 'All Time' },
+  { value: 'last_1_month', label: 'Last 1 Month' },
+  { value: 'last_3_months', label: 'Last 3 Months' },
+  { value: 'last_6_months', label: 'Last 6 Months' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'last_year', label: 'Last Year' },
+  { value: 'custom', label: 'Custom Range' },
+]
+
+const CAL_WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const CAL_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function formatYMD(year, monthIndex, day) {
+  const mm = String(monthIndex + 1).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  return `${year}-${mm}-${dd}`
+}
+
+function computePresetRange(presetKey) {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const d = now.getDate()
+  const todayStr = formatYMD(y, m, d)
+
+  const shiftMonths = (monthsAgo) => {
+    const dt = new Date(y, m - monthsAgo, d)
+    return formatYMD(dt.getFullYear(), dt.getMonth(), dt.getDate())
+  }
+
+  switch (presetKey) {
+    case 'last_1_month':
+      return { from: shiftMonths(1), to: todayStr }
+    case 'last_3_months':
+      return { from: shiftMonths(3), to: todayStr }
+    case 'last_6_months':
+      return { from: shiftMonths(6), to: todayStr }
+    case 'this_month':
+      return { from: formatYMD(y, m, 1), to: todayStr }
+    case 'this_year':
+      return { from: formatYMD(y, 0, 1), to: todayStr }
+    case 'last_year':
+      return { from: formatYMD(y - 1, 0, 1), to: formatYMD(y - 1, 11, 31) }
+    case 'all_time':
+    default:
+      return { from: '', to: '' }
+  }
+}
+
+function ExpenseDateRangeFilter({
+  preset,
+  dateFrom,
+  dateTo,
+  onPresetChange,
+  onApplyCustomRange,
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [calOpen, setCalOpen] = useState(false)
+  const [draftFrom, setDraftFrom] = useState(dateFrom || '')
+  const [draftTo, setDraftTo] = useState(dateTo || '')
+  const [hoverDate, setHoverDate] = useState('')
+  const [calError, setCalError] = useState('')
+  const containerRef = useRef(null)
+
+  const today = new Date()
+  const todayIso = formatYMD(today.getFullYear(), today.getMonth(), today.getDate())
+  const initBase = dateFrom ? new Date(`${dateFrom}T00:00:00`) : today
+  const [viewYear, setViewYear] = useState(initBase.getFullYear())
+  const [viewMonth, setViewMonth] = useState(initBase.getMonth())
 
   useEffect(() => {
-    setTypedText(value ? isoToDisplayDate(value) : '')
-  }, [value])
+    if (!menuOpen && !calOpen) return undefined
+    const handleOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setMenuOpen(false)
+        setCalOpen(false)
+      }
+    }
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+        setCalOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [menuOpen, calOpen])
 
-  const handleTextChange = (e) => {
-    const raw = e.target.value
-    setTypedText(raw)
-    if (!raw.trim()) {
-      onChange('')
+  const openCustomCalendar = () => {
+    setDraftFrom(dateFrom || '')
+    setDraftTo(dateTo || '')
+    setHoverDate('')
+    setCalError('')
+    const base = dateFrom ? new Date(`${dateFrom}T00:00:00`) : new Date()
+    setViewYear(base.getFullYear())
+    setViewMonth(base.getMonth())
+    setMenuOpen(false)
+    setCalOpen(true)
+  }
+
+  const handleSelectPreset = (opt) => {
+    if (opt.value === 'custom') {
+      openCustomCalendar()
       return
     }
-    const iso = displayDateToIso(raw)
-    if (iso) {
-      onChange(iso)
-    }
+    setMenuOpen(false)
+    setCalOpen(false)
+    onPresetChange(opt.value)
   }
 
-  const handleBlur = () => {
-    if (typedText && !displayDateToIso(typedText)) {
-      setTypedText(value ? isoToDisplayDate(value) : '')
+  const handleDayClick = (iso) => {
+    setCalError('')
+    if (!draftFrom || (draftFrom && draftTo)) {
+      setDraftFrom(iso)
+      setDraftTo('')
+      return
     }
+    if (iso < draftFrom) {
+      setCalError('End date cannot be earlier than start date.')
+      return
+    }
+    setDraftTo(iso)
   }
 
-  const handleNativeChange = (e) => {
-    const iso = e.target.value
-    if (iso) {
-      setTypedText(isoToDisplayDate(iso))
-      onChange(iso)
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1)
+      setViewMonth(11)
     } else {
-      setTypedText('')
-      onChange('')
+      setViewMonth((m) => m - 1)
     }
   }
 
-  const openPicker = () => {
-    if (!nativePickerRef.current) return
-    try {
-      if (nativePickerRef.current.showPicker) {
-        nativePickerRef.current.showPicker()
-      } else {
-        nativePickerRef.current.click()
-      }
-    } catch {
-      nativePickerRef.current.click()
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1)
+      setViewMonth(0)
+    } else {
+      setViewMonth((m) => m + 1)
     }
   }
+
+  const handleApply = () => {
+    if (!draftFrom) {
+      setCalError('Select a start date.')
+      return
+    }
+    const finalTo = draftTo || draftFrom
+    if (finalTo < draftFrom) {
+      setCalError('End date cannot be earlier than start date.')
+      return
+    }
+    setCalOpen(false)
+    onApplyCustomRange(draftFrom, finalTo)
+  }
+
+  const handleCancel = () => {
+    setCalOpen(false)
+    setCalError('')
+  }
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay()
+  const calendarCells = []
+  for (let i = 0; i < firstWeekday; i += 1) calendarCells.push(null)
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    calendarCells.push({ day, iso: formatYMD(viewYear, viewMonth, day) })
+  }
+
+  const rangePreviewEnd = draftFrom && !draftTo && hoverDate && hoverDate >= draftFrom ? hoverDate : draftTo
+  const selectedPresetObj = EXPENSE_DATE_PRESETS.find((p) => p.value === preset) || EXPENSE_DATE_PRESETS[0]
+  const displayLabel = preset === 'custom' && dateFrom
+    ? `${isoToDisplayDate(dateFrom)} – ${isoToDisplayDate(dateTo || dateFrom)}`
+    : selectedPresetObj.label
+
+  const currentYear = today.getFullYear()
+  const yearOptions = Array.from({ length: 16 }, (_, idx) => currentYear - 10 + idx)
 
   return (
-    <div className="exp-date-filter-wrap">
-      <input
-        type="text"
-        id={id}
-        className="exp-input exp-date-text-input"
-        placeholder={placeholder}
-        value={typedText}
-        onChange={handleTextChange}
-        onBlur={handleBlur}
-        aria-label={ariaLabel}
-        autoComplete="off"
-      />
+    <div className="exp-date-dropdown-wrap" ref={containerRef}>
       <button
         type="button"
-        className="exp-date-picker-trigger"
-        onClick={openPicker}
-        aria-label={`Open calendar for ${ariaLabel}`}
-        title="Open calendar picker"
-        tabIndex={-1}
+        className={`exp-date-trigger ${preset !== 'all_time' ? 'exp-date-trigger-active' : ''}`}
+        onClick={() => {
+          setCalOpen(false)
+          setMenuOpen((o) => !o)
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={menuOpen || calOpen}
+        aria-label="Filter by date range"
+        title={dateFrom && dateTo ? `${isoToDisplayDate(dateFrom)} – ${isoToDisplayDate(dateTo)}` : displayLabel}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg className="exp-date-trigger-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
+        <span className="exp-date-trigger-text">{displayLabel}</span>
+        <svg className="exp-date-trigger-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </button>
-      <input
-        ref={nativePickerRef}
-        type="date"
-        className="exp-date-native-hidden"
-        value={value || ''}
-        min={min}
-        max={max}
-        onChange={handleNativeChange}
-        tabIndex={-1}
-        aria-hidden="true"
-      />
+
+      {menuOpen && (
+        <div className="exp-date-menu" role="listbox" aria-label="Date range presets">
+          {EXPENSE_DATE_PRESETS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="option"
+              aria-selected={preset === opt.value}
+              className={`exp-date-menu-item ${preset === opt.value ? 'active' : ''}`}
+              onClick={() => handleSelectPreset(opt)}
+            >
+              <span>{opt.label}</span>
+              {opt.value === 'custom' && <span className="exp-date-menu-hint">Calendar</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {calOpen && (
+        <div className="exp-date-popover" role="dialog" aria-label="Select custom date range">
+          <div className="exp-cal-header">
+            <button type="button" className="exp-cal-nav-btn" onClick={handlePrevMonth} aria-label="Previous month">
+              ‹
+            </button>
+            <div className="exp-cal-month-year">
+              <select
+                className="exp-cal-select"
+                value={viewMonth}
+                onChange={(e) => setViewMonth(Number(e.target.value))}
+                aria-label="Month"
+              >
+                {CAL_MONTHS.map((mName, idx) => (
+                  <option key={mName} value={idx}>{mName}</option>
+                ))}
+              </select>
+              <select
+                className="exp-cal-select"
+                value={viewYear}
+                onChange={(e) => setViewYear(Number(e.target.value))}
+                aria-label="Year"
+              >
+                {yearOptions.map((yr) => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+            </div>
+            <button type="button" className="exp-cal-nav-btn" onClick={handleNextMonth} aria-label="Next month">
+              ›
+            </button>
+          </div>
+
+          <div className="exp-cal-selected-bar">
+            <div className={`exp-cal-pill ${draftFrom ? 'filled' : ''}`}>
+              <small>Start Date</small>
+              <strong>{draftFrom ? isoToDisplayDate(draftFrom) : 'DD/MM/YYYY'}</strong>
+            </div>
+            <span className="exp-cal-arrow" aria-hidden="true">→</span>
+            <div className={`exp-cal-pill ${draftTo ? 'filled' : ''}`}>
+              <small>End Date</small>
+              <strong>{draftTo ? isoToDisplayDate(draftTo) : 'DD/MM/YYYY'}</strong>
+            </div>
+          </div>
+
+          <div className="exp-cal-weekdays">
+            {CAL_WEEKDAYS.map((wd) => (
+              <span key={wd} className="exp-cal-weekday">{wd}</span>
+            ))}
+          </div>
+
+          <div className="exp-cal-grid" onMouseLeave={() => setHoverDate('')}>
+            {calendarCells.map((cell, idx) => {
+              if (!cell) return <span key={`empty-${idx}`} className="exp-cal-empty" />
+              const isStart = draftFrom === cell.iso
+              const isEnd = draftTo === cell.iso
+              const inRange = Boolean(draftFrom && rangePreviewEnd && cell.iso > draftFrom && cell.iso < rangePreviewEnd)
+              const isBeforeStart = Boolean(draftFrom && !draftTo && cell.iso < draftFrom)
+              const isToday = cell.iso === todayIso
+              const cls = [
+                'exp-cal-day',
+                isToday ? 'today' : '',
+                inRange ? 'in-range' : '',
+                isStart ? 'range-start' : '',
+                isEnd ? 'range-end' : '',
+                isBeforeStart ? 'disabled-hint' : '',
+              ].filter(Boolean).join(' ')
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  className={cls}
+                  onClick={() => handleDayClick(cell.iso)}
+                  onMouseEnter={() => setHoverDate(cell.iso)}
+                  aria-label={isoToDisplayDate(cell.iso)}
+                  aria-pressed={isStart || isEnd}
+                >
+                  {cell.day}
+                </button>
+              )
+            })}
+          </div>
+
+          {calError && <p className="exp-cal-error">{calError}</p>}
+
+          <div className="exp-cal-footer">
+            <button type="button" className="exp-btn exp-btn-outline exp-cal-btn" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button type="button" className="exp-btn exp-btn-primary exp-cal-btn" onClick={handleApply}>
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -637,11 +881,45 @@ function ReportsSection({ summary }) {
   const [activeReport, setActiveReport] = useState('expense-summary')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [reportData, setReportData] = useState(null)
+  const [loadingReport, setLoadingReport] = useState(false)
+  const [reportError, setReportError] = useState('')
 
-  function handleCSV() {
-    const url = `/api/expenses/export/csv?${new URLSearchParams({ startDate: dateFrom || '', endDate: dateTo || '' })}`
-    window.open(url, '_blank')
+  useEffect(() => {
+    let active = true
+    setLoadingReport(true)
+    setReportError('')
+    const params = {}
+    if (dateFrom) params.fromDate = dateFrom
+    if (dateTo) params.toDate = dateTo
+    getExpenseReport(activeReport, params)
+      .then((res) => {
+        if (!active) return
+        setReportData(res || null)
+      })
+      .catch((err) => {
+        if (!active) return
+        setReportData(null)
+        setReportError(err?.message || 'Unable to load expense report from backend.')
+      })
+      .finally(() => {
+        if (active) setLoadingReport(false)
+      })
+    return () => { active = false }
+  }, [activeReport, dateFrom, dateTo])
+
+  async function handleCSV() {
+    try {
+      const params = {}
+      if (dateFrom) params.fromDate = dateFrom
+      if (dateTo) params.toDate = dateTo
+      await exportExpenseReportCsv(activeReport, params)
+    } catch (err) {
+      setReportError(err?.message || 'Unable to export CSV from backend.')
+    }
   }
+
+  const rows = Array.isArray(reportData?.rows) ? reportData.rows : (Array.isArray(reportData?.items) ? reportData.items : [])
 
   return (
     <div className="exp-reports-wrapper">
@@ -686,10 +964,16 @@ function ReportsSection({ summary }) {
               <strong>{formatCurrency(summary.thisMonth)}</strong>
             </div>
           </div>
-          <p className="exp-report-note">
-            Use the <strong>Export CSV</strong> button to download detailed data for this report type.
-            Connect your backend report endpoint (<code>/api/Loan/reports/{activeReport}</code>) to populate charts here.
-          </p>
+          {reportError && <p className="exp-report-note">{reportError}</p>}
+          {loadingReport ? (
+            <p className="exp-report-note">Loading report from backend…</p>
+          ) : rows.length > 0 ? (
+            <p className="exp-report-note">
+              Loaded {rows.length} authoritative backend report rows from <code>/api/Reports</code>. Use <strong>Export CSV</strong> to download the full backend CSV.
+            </p>
+          ) : !reportError && (
+            <p className="exp-report-note">No backend report rows returned for the selected filters.</p>
+          )}
         </div>
       </div>
     </div>
@@ -714,12 +998,14 @@ export default function Expenses() {
   const [activeTab, setActiveTab] = useState('registry')
   const [statusFilter, setStatusFilter] = useState('All')
   const [search, setSearch] = useState('')
+  const [datePreset, setDatePreset] = useState('all_time')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('')
   const [farmFilter, setFarmFilter] = useState('')
   const [cropFilter, setCropFilter] = useState('')
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -777,11 +1063,12 @@ export default function Expenses() {
       const today = new Date()
       const firstOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
 
-      const [listData, allMetrics, paidList, monthList] = await Promise.all([
+      const [listData, allMetrics, paidList, monthList, pendingList] = await Promise.all([
         listExpenses(params),
         getExpenseSummary({}).catch(() => null),
         listExpenses({ status: 'Paid', pageSize: 1 }).catch(() => null),
         listExpenses({ startDate: firstOfMonth, pageSize: 1 }).catch(() => null),
+        listExpenses({ status: 'Pending', pageSize: 1 }).catch(() => null),
       ])
 
       const rawRows = Array.isArray(listData?.data) ? listData.data : (Array.isArray(listData) ? listData : [])
@@ -791,7 +1078,7 @@ export default function Expenses() {
       setTotalCount(Number(listData?.totalRecords ?? listData?.totalCount ?? normalized.length) || 0)
       setTotalPages(Number(listData?.totalPages ?? listData?.pageCount) || Math.max(1, Math.ceil(normalized.length / PAGE_SIZE)))
 
-      const cards = computeSummaryCards(allMetrics || listData, paidList, monthList)
+      const cards = computeSummaryCards(allMetrics || listData, paidList, monthList, pendingList)
       setSummary(cards)
     } catch (err) {
       setLoadError(err.friendlyMessage || err.message || 'Unable to load expenses from the API.')
@@ -887,8 +1174,24 @@ export default function Expenses() {
   }
 
   // ── Reset filters ────────────────────────────────────────────────────────
+  function handleDatePresetChange(nextPreset) {
+    setDatePreset(nextPreset)
+    const { from, to } = computePresetRange(nextPreset)
+    setDateFrom(from)
+    setDateTo(to)
+    setPage(1)
+  }
+
+  function handleApplyCustomRange(from, to) {
+    setDatePreset('custom')
+    setDateFrom(from)
+    setDateTo(to)
+    setPage(1)
+  }
+
   function resetFilters() {
     setSearch('')
+    setDatePreset('all_time')
     setDateFrom('')
     setDateTo('')
     setCategoryFilter('')
@@ -901,6 +1204,30 @@ export default function Expenses() {
 
   const pageCount = Math.max(totalPages, 1)
   const catNames = categories.map((c) => c.name)
+  const advancedFilterCount = [supplierFilter, farmFilter].filter(Boolean).length
+  const hasAnyFilter = Boolean(
+    search.trim() ||
+    dateFrom ||
+    dateTo ||
+    categoryFilter ||
+    supplierFilter ||
+    farmFilter ||
+    cropFilter ||
+    statusFilter !== 'All'
+  )
+  const handleExportRegistryCSV = async () => {
+    try {
+      const params = {}
+      if (dateFrom) params.startDate = dateFrom
+      if (dateTo) params.endDate = dateTo
+      await exportExpenseReportCsv(null, params)
+    } catch (err) {
+      showToast(err?.message || 'Unable to export expenses CSV from backend.', 'error')
+    }
+  }
+  const safeLoadError = loadError && /ERR_NGROK|ngrok|Failed to fetch|NetworkError|ECONNREFUSED|502|503/i.test(loadError)
+    ? 'Unable to reach the Expenses service right now. Please check your connection and try again.'
+    : loadError
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
@@ -922,7 +1249,7 @@ export default function Expenses() {
           <p className="exp-page-desc">Track seed, fertilizer, labour, machinery, and all farm operational costs.</p>
         </div>
         <div className="exp-header-actions">
-          <a href="/api/expenses/export/csv" className="exp-btn exp-btn-secondary" target="_blank" rel="noopener noreferrer">⬇ Export CSV</a>
+          <button type="button" className="exp-btn exp-btn-secondary" onClick={handleExportRegistryCSV}>⬇ Export CSV</button>
           <button type="button" className="exp-btn exp-btn-primary" onClick={handleAddClick} disabled={busy}>
             + Add Expense
           </button>
@@ -949,14 +1276,7 @@ export default function Expenses() {
             <div className="exp-error-banner" role="alert">
               <div className="exp-error-content">
                 <span className="exp-error-icon" aria-hidden="true">⚠</span>
-                <span className="exp-error-text">
-                  {loadError.includes('ERR_NGROK_3200') || loadError.includes('ngrok')
-                    ? 'Backend service is currently unreachable. Please check server connection and retry.'
-                    : loadError}
-                </span>
-                {(loadError.includes('ERR_NGROK_3200') || loadError.includes('ngrok')) && (
-                  <span className="exp-error-badge">Offline (ERR_NGROK_3200)</span>
-                )}
+                <span className="exp-error-text">{safeLoadError}</span>
               </div>
               <button type="button" className="exp-error-retry-btn" onClick={loadExpenses}>
                 ↻ Retry
@@ -964,23 +1284,7 @@ export default function Expenses() {
             </div>
           )}
 
-          {/* Status Filter Tabs */}
-          <div className="exp-status-tabs" role="tablist" aria-label="Filter expenses by status">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={statusFilter === tab}
-                className={`exp-status-tab ${statusFilter === tab ? 'active' : ''}`}
-                onClick={() => setStatusFilter(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* Toolbar */}
+          {/* Unified Compact Toolbar */}
           <div className="exp-toolbar" role="search" aria-label="Expense search and filters">
             {/* 1. Search Expenses */}
             <div className="exp-search-wrap">
@@ -995,37 +1299,26 @@ export default function Expenses() {
                 className="exp-input exp-search-input"
                 placeholder="Search expenses…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 aria-label="Search expenses"
               />
             </div>
 
-            {/* 2. From Date */}
-            <FilterDateInput
-              id="exp-filter-from-date"
-              value={dateFrom}
-              max={dateTo || undefined}
-              onChange={(val) => setDateFrom(val)}
-              placeholder="From: dd/mm/yyyy"
-              ariaLabel="From Date"
+            {/* 2. Date Range Dropdown + Calendar Popup */}
+            <ExpenseDateRangeFilter
+              preset={datePreset}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onPresetChange={handleDatePresetChange}
+              onApplyCustomRange={handleApplyCustomRange}
             />
 
-            {/* 3. To Date */}
-            <FilterDateInput
-              id="exp-filter-to-date"
-              value={dateTo}
-              min={dateFrom || undefined}
-              onChange={(val) => setDateTo(val)}
-              placeholder="To: dd/mm/yyyy"
-              ariaLabel="To Date"
-            />
-
-            {/* 4. Category */}
+            {/* 3. Category */}
             <div className="exp-select-wrap">
               <select
                 className="exp-input exp-select"
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
                 aria-label="Filter by category"
               >
                 <option value="">All Categories</option>
@@ -1033,37 +1326,37 @@ export default function Expenses() {
               </select>
             </div>
 
-            {/* 5. Supplier */}
+            {/* 4. Status */}
             <div className="exp-select-wrap">
               <select
                 className="exp-input exp-select"
-                value={supplierFilter}
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                aria-label="Filter by supplier"
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+                aria-label="Filter by status"
               >
-                <option value="">All Suppliers</option>
-                {suppliers.map((s) => <option key={s.id ?? s.name} value={s.name}>{s.name}</option>)}
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
 
-            {/* 6. Farm */}
-            <div className="exp-select-wrap">
-              <select
-                className="exp-input exp-select"
-                value={farmFilter}
-                onChange={(e) => setFarmFilter(e.target.value)}
-                aria-label="Filter by farm"
-              >
-                <option value="">All Farms</option>
-                {farms.map((f) => <option key={f.id ?? f.name} value={f.name}>{f.name}</option>)}
-              </select>
-            </div>
+            {/* 5. More Filters */}
+            <button
+              type="button"
+              className={`exp-more-filters-btn ${showMoreFilters || advancedFilterCount > 0 ? 'active' : ''}`}
+              onClick={() => setShowMoreFilters((v) => !v)}
+              aria-expanded={showMoreFilters}
+            >
+              <span>More Filters</span>
+              {advancedFilterCount > 0 && <span className="exp-filter-count">{advancedFilterCount}</span>}
+            </button>
 
-            {/* 7. Reset */}
+            {/* 6. Reset */}
             <button
               type="button"
               className="exp-reset-btn"
               onClick={resetFilters}
+              disabled={!hasAnyFilter}
               title="Reset all filters"
               aria-label="Reset all filters"
             >
@@ -1075,6 +1368,68 @@ export default function Expenses() {
               <span>Reset</span>
             </button>
           </div>
+
+          {/* Expandable Secondary Filters */}
+          {showMoreFilters && (
+            <div className="exp-advanced-filters">
+              <div className="exp-advanced-field">
+                <label htmlFor="exp-supplier-filter">Supplier</label>
+                <select
+                  id="exp-supplier-filter"
+                  className="exp-input exp-select"
+                  value={supplierFilter}
+                  onChange={(e) => { setSupplierFilter(e.target.value); setPage(1) }}
+                  aria-label="Filter by supplier"
+                >
+                  <option value="">All Suppliers</option>
+                  {suppliers.map((s) => <option key={s.id ?? s.name} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="exp-advanced-field">
+                <label htmlFor="exp-farm-filter">Farm</label>
+                <select
+                  id="exp-farm-filter"
+                  className="exp-input exp-select"
+                  value={farmFilter}
+                  onChange={(e) => { setFarmFilter(e.target.value); setPage(1) }}
+                  aria-label="Filter by farm"
+                >
+                  <option value="">All Farms</option>
+                  {farms.map((f) => <option key={f.id ?? f.name} value={f.name}>{f.name}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Active Advanced Filter Chips */}
+          {advancedFilterCount > 0 && (
+            <div className="exp-active-chips">
+              {supplierFilter && (
+                <span className="exp-filter-chip">
+                  Supplier: {supplierFilter}
+                  <button
+                    type="button"
+                    onClick={() => { setSupplierFilter(''); setPage(1) }}
+                    aria-label="Remove supplier filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {farmFilter && (
+                <span className="exp-filter-chip">
+                  Farm: {farmFilter}
+                  <button
+                    type="button"
+                    onClick={() => { setFarmFilter(''); setPage(1) }}
+                    aria-label="Remove farm filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Registry Table */}
           <div className="exp-table-card">
@@ -1105,14 +1460,36 @@ export default function Expenses() {
                         </div>
                       </td>
                     </tr>
+                  ) : loadError && records.length === 0 ? (
+                    <tr>
+                      <td colSpan={11}>
+                        <div className="exp-table-empty">
+                          <span className="exp-empty-icon">⚠</span>
+                          <strong>Unable to load expense records</strong>
+                          <p>{safeLoadError}</p>
+                          <div className="exp-empty-actions">
+                            <button type="button" className="exp-btn exp-btn-primary" onClick={loadExpenses}>Retry Connection</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   ) : records.length === 0 ? (
                     <tr>
                       <td colSpan={11}>
                         <div className="exp-table-empty">
                           <span className="exp-empty-icon">📋</span>
                           <strong>No expense records found</strong>
-                          <p>{loadError || 'Add an expense or change your search filters.'}</p>
-                          <button type="button" className="exp-btn exp-btn-secondary" onClick={resetFilters}>Clear Filters</button>
+                          <p>
+                            {hasAnyFilter
+                              ? 'No expense records match your current search or filters.'
+                              : 'Add your first expense voucher to start tracking farm and vendor costs.'}
+                          </p>
+                          <div className="exp-empty-actions">
+                            {hasAnyFilter && (
+                              <button type="button" className="exp-btn exp-btn-secondary" onClick={resetFilters}>Clear Filters</button>
+                            )}
+                            <button type="button" className="exp-btn exp-btn-primary" onClick={handleAddClick} disabled={busy}>+ Add Expense</button>
+                          </div>
                         </div>
                       </td>
                     </tr>
